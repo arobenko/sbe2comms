@@ -154,7 +154,7 @@ bool parseSchema(std::string filename, DB& db)
         return false;
     }
 
-    db.m_messageSchema.reset(new MessageSchema(root));
+    db.m_messageSchema.reset(new MessageSchema(root, db.m_doc.get()));
 
     using ParseChildNodeFunc = bool (*)(xmlNodePtr node, DB& db);
 

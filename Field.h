@@ -17,20 +17,36 @@
 
 #pragma once
 
+#include <memory>
+#include <iosfwd>
+
 #include "xml_wrap.h"
 
 namespace sbe2comms
 {
 
-class MessageSchema
+class DB;
+class Field
 {
 public:
-    explicit MessageSchema(xmlNodePtr node, xmlDocPtr doc);
+    explicit Field(xmlNodePtr node) : m_node(node)
+    {
+    }
 
-    const std::string& package();
+    virtual ~Field() noexcept {}
+
+    bool write(std::ostream& out, DB& db, unsigned indent = 0)
+    {
+        return writeImpl(out, db, indent);
+    }
+
+protected:
+    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
 
 private:
-    XmlPropsMap m_props;
+    xmlNodePtr m_node = nullptr;
 };
+
+using FieldPtr = std::unique_ptr<Field>;
 
 } // namespace sbe2comms

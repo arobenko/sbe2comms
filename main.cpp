@@ -16,7 +16,46 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <iostream>
+
+#include <boost/filesystem.hpp>
+
 #include "DB.h"
+#include "get.h"
+
+namespace bf = boost::filesystem;
+
+namespace sbe2comms
+{
+
+bool writeMessages(DB& db)
+{
+    bf::path root(get::rootPath(db));
+    bf::path protocolRelDir(get::protocolRelDir(db));
+    bf::path messagesDir(root / protocolRelDir / get::messageDirName());
+
+    boost::system::error_code ec;
+    bf::create_directories(messagesDir, ec);
+    if (ec) {
+        std::cerr << "ERROR: Failed to create \"" << messagesDir.string() <<
+                "\" with error \"" << ec.message() << "\"!" << std::endl;
+        return false;
+    }
+
+    const std::string Ext(".h");
+    for (auto iter = db.m_messages.begin(); iter != db.m_messages.end(); ++iter) {
+        auto filename = iter->first + Ext;
+        auto relPath = protocolRelDir / get::messageDirName() / filename;
+        std::cout << "INFO: Generating " << relPath.string() << std::endl;
+
+        auto filePath = messagesDir / filename;
+        if (!iter->second.write(filePath.string(), db)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace sbe2comms
 
 int main(int argc, const char* argv[])
 {
@@ -27,10 +66,14 @@ int main(int argc, const char* argv[])
     }
 
     sbe2comms::DB db;
-    if (!sbe2comms::parseSchema(argv[1], db)) {
-        return -1;
+    bool result =
+        sbe2comms::parseSchema(argv[1], db) &&
+        sbe2comms::writeMessages(db);
+
+    if (result) {
+        std::cout << "SUCCESS" << std::endl;
+        return 0;
     }
 
-    std::cout << "SUCCESS" << std::endl;
-    return 0;
+    return -1;
 }

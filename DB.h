@@ -20,6 +20,9 @@
 #include <map>
 #include <list>
 #include <string>
+
+#include <boost/optional.hpp>
+
 #include "xml_wrap.h"
 #include "MessageSchema.h"
 #include "Type.h"
@@ -35,10 +38,11 @@ struct DB
     std::map<std::string, Type> m_types;
     std::map<std::string, Message> m_messages;
 
-    struct Config {
-        std::string m_namespace;
-        std::string m_endian;
-    } m_config;
+    struct Cache {
+        std::string m_rootDir;
+        std::string m_protocolRelDir;
+        boost::optional<std::string> m_namespace;
+    } m_cache;
 };
 
 bool parseSchema(std::string filename, sbe2comms::DB& db);

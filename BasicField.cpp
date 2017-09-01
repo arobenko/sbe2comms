@@ -15,22 +15,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#include "BasicField.h"
 
-#include "xml_wrap.h"
+#include <iostream>
+
+#include "DB.h"
 
 namespace sbe2comms
 {
 
-class MessageSchema
+bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
-public:
-    explicit MessageSchema(xmlNodePtr node, xmlDocPtr doc);
-
-    const std::string& package();
-
-private:
-    XmlPropsMap m_props;
-};
+    static_cast<void>(out);
+    static_cast<void>(db);
+    static_cast<void>(indent);
+    return true;
+}
 
 } // namespace sbe2comms

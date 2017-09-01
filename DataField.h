@@ -17,20 +17,19 @@
 
 #pragma once
 
-#include "xml_wrap.h"
+#include "Field.h"
 
 namespace sbe2comms
 {
 
-class MessageSchema
+class DataField : public Field
 {
+    using Base = Field;
 public:
-    explicit MessageSchema(xmlNodePtr node, xmlDocPtr doc);
+    DataField(xmlNodePtr node) : Base(node) {}
 
-    const std::string& package();
-
-private:
-    XmlPropsMap m_props;
+protected:
+    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
 };
 
 } // namespace sbe2comms

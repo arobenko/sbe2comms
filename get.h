@@ -17,20 +17,23 @@
 
 #pragma once
 
-#include "xml_wrap.h"
+#include <string>
+#include "DB.h"
 
 namespace sbe2comms
 {
 
-class MessageSchema
+namespace get
 {
-public:
-    explicit MessageSchema(xmlNodePtr node, xmlDocPtr doc);
 
-    const std::string& package();
+const std::string& rootPath(DB& db);
+const std::string& messageDirName();
+const std::string& includeDirName();
+const std::string& fieldsDefFileName();
+const std::string& nameProperty();
+const std::string& protocolNamespace(DB& db);
+const std::string& protocolRelDir(DB& db);
 
-private:
-    XmlPropsMap m_props;
-};
+} // namespace get
 
 } // namespace sbe2comms

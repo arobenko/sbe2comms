@@ -17,18 +17,39 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
+#include <iosfwd>
+
+#include <boost/optional.hpp>
+
 #include "xml_wrap.h"
+#include "Field.h"
 
 namespace sbe2comms
 {
 
+class DB;
 class Message
 {
 public:
+    using FieldsList = std::vector<FieldPtr>;
+
     explicit Message(xmlNodePtr node);
 
+    bool write(const std::string& filename, DB& db);
+    const std::string& name(DB& db);
+
 private:
+
+    bool createFields(DB& db);
+    bool insertField(FieldPtr field, DB& db);
+    bool writeFields(std::ostream& out, DB& db);
+    void retrieveProps(DB& db);
+
     xmlNodePtr m_node = nullptr;
+    XmlPropsMap m_props;
+    boost::optional<FieldsList> m_fields;
 };
 
 } // namespace sbe2comms

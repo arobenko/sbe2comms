@@ -20,9 +20,14 @@
 namespace sbe2comms
 {
 
-MessageSchema::MessageSchema(xmlNodePtr node)
-  : m_node(node)
+MessageSchema::MessageSchema(xmlNodePtr node, xmlDocPtr doc)
+  : m_props(xmlParseNodeProps(node, doc))
 {
+}
+
+const std::string& MessageSchema::package()
+{
+    return m_props["package"]; // may create missing node
 }
 
 } // namespace sbe2comms
