@@ -15,39 +15,51 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#include "prop.h"
 
-#include <memory>
-#include <iosfwd>
-
-#include "xml_wrap.h"
+#include <string>
 
 namespace sbe2comms
 {
 
-class DB;
-class Field
+namespace prop
 {
-public:
-    explicit Field(xmlNodePtr node) : m_node(node)
-    {
+
+namespace
+{
+
+const std::string EmptyStr;
+const std::string Name("name");
+const std::string Type("type");
+const std::string Description("description");
+
+const std::string& getProp(const XmlPropsMap& map, const std::string propName)
+{
+    auto iter = map.find(propName);
+    if (iter == map.end()) {
+        return EmptyStr;
     }
 
-    virtual ~Field() noexcept {}
+    return iter->second;
+}
 
-    bool write(std::ostream& out, DB& db, unsigned indent = 0);
+} // namespace
 
-    const XmlPropsMap& props(DB& db);
+const std::string& name(const XmlPropsMap& map)
+{
+    return getProp(map, Name);
+}
 
-protected:
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
+const std::string& type(const XmlPropsMap& map)
+{
+    return getProp(map, Type);
+}
 
-private:
+const std::string& description(const XmlPropsMap& map)
+{
+    return getProp(map, Description);
+}
 
-    xmlNodePtr m_node = nullptr;
-    XmlPropsMap m_props;
-};
-
-using FieldPtr = std::unique_ptr<Field>;
+} // namespace prop
 
 } // namespace sbe2comms

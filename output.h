@@ -17,37 +17,32 @@
 
 #pragma once
 
-#include <memory>
 #include <iosfwd>
-
-#include "xml_wrap.h"
 
 namespace sbe2comms
 {
 
-class DB;
-class Field
+namespace output
+{
+
+class Indent
 {
 public:
-    explicit Field(xmlNodePtr node) : m_node(node)
-    {
-    }
-
-    virtual ~Field() noexcept {}
-
-    bool write(std::ostream& out, DB& db, unsigned indent = 0);
-
-    const XmlPropsMap& props(DB& db);
-
-protected:
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
-
+    Indent(unsigned count) : m_count(count) {}
+    unsigned value() const { return m_count; }
 private:
-
-    xmlNodePtr m_node = nullptr;
-    XmlPropsMap m_props;
+    unsigned m_count = 0U;
 };
 
-using FieldPtr = std::unique_ptr<Field>;
+inline
+Indent indent(unsigned count)
+{
+    return Indent(count);
+}
+
+} // namespace output
 
 } // namespace sbe2comms
+
+
+std::ostream& operator<<(std::ostream& out, sbe2comms::output::Indent i);

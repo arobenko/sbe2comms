@@ -15,39 +15,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#include "output.h"
 
-#include <memory>
-#include <iosfwd>
+#include <string>
 
-#include "xml_wrap.h"
-
-namespace sbe2comms
+namespace
 {
 
-class DB;
-class Field
+const std::string Ind("    ");
+
+} // namespace
+
+std::ostream& operator<<(std::ostream& out, sbe2comms::output::Indent i)
 {
-public:
-    explicit Field(xmlNodePtr node) : m_node(node)
-    {
+    for (auto c = 0U; c < i.value(); ++c) {
+        out << Ind;
     }
-
-    virtual ~Field() noexcept {}
-
-    bool write(std::ostream& out, DB& db, unsigned indent = 0);
-
-    const XmlPropsMap& props(DB& db);
-
-protected:
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
-
-private:
-
-    xmlNodePtr m_node = nullptr;
-    XmlPropsMap m_props;
-};
-
-using FieldPtr = std::unique_ptr<Field>;
-
-} // namespace sbe2comms
+    return out;
+}

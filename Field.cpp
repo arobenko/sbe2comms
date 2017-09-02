@@ -15,46 +15,45 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "BasicField.h"
+#include "Field.h"
 
 #include <iostream>
 
 #include "DB.h"
-#include "prop.h"
 #include "output.h"
+#include "prop.h"
 
 namespace sbe2comms
 {
 
-bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
+const XmlPropsMap& Field::props(DB& db)
+{
+    if (!m_props.empty()) {
+        return m_props;
+    }
+
+    m_props = xmlParseNodeProps(m_node, db.m_doc.get());
+    return m_props;
+}
+
+bool Field::write(std::ostream& out, DB& db, unsigned indent)
 {
     auto& p = props(db);
     auto& name = prop::name(p);
-    assert(!name.empty());
-
-    out << output::indent(indent) << "using " << name << " = ";
-
-    auto& type = prop::type(p);
-    if (type.empty()) {
-        out << " ???;\n\n";
+    if (name.empty()) {
         std::cerr << output::indent(1) <<
-            "ERROR: Field \"" << name << "\" does NOT specify type." << std::endl;
+            "ERROR: Field doesn't provide name." << std::endl;
         return false;
     }
 
-    auto typeIter = db.m_types.find(type);
-    if (typeIter == db.m_types.end()) {
-        // TODO: check built-in types
-        out << " ???;\n\n";
-        std::cerr << output::indent(1) <<
-            "ERROR: Unknown type \"" << type << "\" for field \"" << name << "\"" << std::endl;
-        return false;
+    out << output::indent(indent) << "/// \\brief Definition of \"" << name << "\" field.\n";
+    auto& desc = prop::description(p);
+    if (!desc.empty()) {
+        out << output::indent(indent) << "/// \\details " << desc << '\n';
     }
 
-    // TODO: check presence
+    return writeImpl(out, db, indent);
 
-    out << "field::" << type << ";\n\n";
-    return true;
 }
 
 } // namespace sbe2comms

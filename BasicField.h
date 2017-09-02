@@ -28,6 +28,8 @@ class BasicField : public Field
 public:
     BasicField(xmlNodePtr node) : Base(node) {}
 
+    const std::string& name(DB& db);
+
 protected:
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
 };

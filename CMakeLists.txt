@@ -66,11 +66,14 @@ set (
     "MessageSchema.cpp"
     "Type.cpp"
     "Message.cpp"
+    "Field.cpp"
     "BasicField.cpp"
     "GroupField.cpp"
     "DataField.cpp"
     "DB.cpp"
     "get.cpp"
+    "prop.cpp"
+    "output.cpp"
 )
 
 add_executable(${PROJECT_NAME} ${src})
