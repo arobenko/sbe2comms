@@ -26,6 +26,33 @@
 namespace sbe2comms
 {
 
+namespace
+{
+
+bool writeBuiltInType(std::ostream& out, const std::string& type)
+{
+    static const std::map<std::string, std::string> Map = {
+        std::make_pair("int8", "std::int8_t"),
+        std::make_pair("uint8", "std::uint8_t"),
+        std::make_pair("int16", "std::int16_t"),
+        std::make_pair("uint16", "std::uint16_t"),
+        std::make_pair("int32", "std::int32_t"),
+        std::make_pair("uint32", "std::uint32_t"),
+        std::make_pair("int64", "std::uint16_t"),
+        std::make_pair("uint64", "std::uint64_t"),
+    };
+
+    auto iter = Map.find(type);
+    if (iter == Map.end()) {
+        return false;
+    }
+
+    out << "comms::field::IntValue<field::FieldBase, " << iter->second << ">;\n\n";
+    return true;
+}
+
+} // namespace
+
 bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
     auto& p = props(db);
@@ -44,7 +71,11 @@ bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 
     auto typeIter = db.m_types.find(type);
     if (typeIter == db.m_types.end()) {
-        // TODO: check built-in types
+        bool builtIn = writeBuiltInType(out, type);
+        if (builtIn) {
+            return true;
+        }
+
         out << " ???;\n\n";
         std::cerr << output::indent(1) <<
             "ERROR: Unknown type \"" << type << "\" for field \"" << name << "\"" << std::endl;
@@ -53,7 +84,7 @@ bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 
     // TODO: check presence
 
-    out << "field::" << type << ";\n\n";
+    out << "field::" << type << "<TOpt>;\n\n";
     return true;
 }
 

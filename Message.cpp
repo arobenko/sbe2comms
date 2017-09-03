@@ -22,6 +22,8 @@
 #include <functional>
 
 #include "get.h"
+#include "prop.h"
+#include "output.h"
 #include "DB.h"
 #include "BasicField.h"
 #include "GroupField.h"
@@ -32,6 +34,12 @@ namespace sbe2comms
 
 namespace
 {
+
+void writeFileHeader(std::ostream& out, const std::string& name)
+{
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of " << name << " message and its fields.\n\n";
+}
 
 void writeIncludes(std::ostream& out, DB& db)
 {
@@ -48,7 +56,8 @@ void openNamespaces(std::ostream& out, DB& db)
     auto& ns = get::protocolNamespace(db);
     if (!ns.empty()) {
         out << "namespace " << ns << "\n"
-               "{\n";
+               "{\n"
+               "\n";
     }
 
     out << "namespace " << get::messageDirName() << "\n"
@@ -78,6 +87,10 @@ const std::string& fieldsClassSuffix()
 void openFieldsDef(std::ostream& out, const std::string& name)
 {
     out <<
+        "/// \\brief Accumulates details of all the " << name << " message fields.\n"
+        "/// \\tparam TOpt Extra options to be passed to all fields.\n"
+        "/// @see " << name << "\n"
+        "template <typename TOpt = comms::option::EmptyOption>\n"
         "struct " << name << fieldsClassSuffix() << "\n"
         "{\n";
 }
@@ -106,10 +119,12 @@ bool Message::write(const std::string& filename, DB& db)
         return false;
     }
 
+    writeFileHeader(stream, name(db));
     writeIncludes(stream, db);
     openNamespaces(stream, db);
     bool result =
-        writeFields(stream, db);
+        writeFields(stream, db) &&
+        writeMessageClass(stream, db);
     closeNamespaces(stream, db);
     stream.flush();
 
@@ -124,9 +139,7 @@ bool Message::write(const std::string& filename, DB& db)
 const std::string& Message::name(DB& db)
 {
     retrieveProps(db);
-    auto iter = m_props.find(get::nameProperty());
-    assert(iter != m_props.end());
-    return iter->second;
+    return prop::name(m_props);
 }
 
 bool Message::createFields(DB& db)
@@ -202,8 +215,88 @@ bool Message::writeFields(std::ostream& out, DB& db)
     for (auto& f : *m_fields) {
         result = f->write(out, db, 1) && result;
     }
+
+    result = writeAllFieldsDef(out, db) && result;
     closeFieldsDef(out, msgName);
     return result;
+}
+
+bool Message::writeAllFieldsDef(std::ostream& out, DB& db)
+{
+    out << output::indent(1) <<
+        "/// \\brief All the fields bundled in std::tuple.\n" <<
+        output::indent(1) <<
+        "using All = std::tuple<\n";
+
+    bool first = true;
+    for (auto& f : *m_fields) {
+        if (!first) {
+            out << ",\n";
+        }
+        else {
+            first = false;
+        }
+
+        auto& p = f->props(db);
+        out << output::indent(2) << prop::name(p);
+    }
+    out << '\n' << output::indent(1) << ">;\n\n";
+    return true;
+}
+
+bool Message::writeMessageClass(std::ostream& out, DB& db)
+{
+    auto& n = name(db);
+    out <<
+        "/// \\brief Definition of " << n << " message\n"
+        "/// \\details Inherits from @b comms::MessageBase\n"
+        "///     while providing @b TMsgBase as common interface class as well as\n"
+        "///     various implementation options. @n\n"
+        "///     See @ref " << n << fieldsClassSuffix() << " for definition of the fields this message contains\n"
+        "///         and COMMS_MSG_FIELDS_ACCESS() for fields access details.\n"
+        "/// \\tparam TMsgBase Common interface class for all the messages.\n"
+        "/// \\tparam TOpt Extra options to be passed to all fields.\n"
+        "template <typename TMsgBase, typename TOpt = comms::option::EmptyOption>\n"
+        "class " << n << " : public\n" <<
+        output::indent(1) << "comms::MessageBase<\n" <<
+        output::indent(2) << "TMsgBase,\n" <<
+        output::indent(2) << "comms::option::StaticNumIdImpl<MsgId_" << n << ">,\n" <<
+        output::indent(2) << "comms::option::FieldsImpl<typename " << n << fieldsClassSuffix() << "<TOpt>::All>,\n" <<
+        output::indent(2) << "comms::option::MsgType<" << n << "<TMsgBase, TOpt> >\n" <<
+        output::indent(1) << ">\n"
+        "{\n"
+        "public:\n" <<
+        output::indent(1) << "/// \\brief Allow access to internal fields.\n" <<
+        output::indent(1) << "/// \\details See definition of @b COMMS_MSG_FIELDS_ACCESS macro\n" <<
+        output::indent(1) << "///     related to @b comms::MessageBase class from COMMS library\n" <<
+        output::indent(1) << "///     for details.\n" <<
+        output::indent(1) << "///     \n" <<
+        output::indent(1) << "///     The field names are:\n";
+    for (auto& f : *m_fields) {
+        auto& p = f->props(db);
+        auto& fieldName = prop::name(p);
+        out << output::indent(1) <<
+            "///     @li @b " << fieldName <<
+            " for @ref " << n << fieldsClassSuffix() << "::" <<
+            fieldName << " field.\n";
+    }
+    out << output::indent(1) << "COMMS_MSG_FIELDS_ACCESS(\n";
+    bool firstField = true;
+    for (auto& f : *m_fields) {
+        if (!firstField) {
+            out << ",\n";
+        }
+        else {
+            firstField = false;
+        }
+        auto& p = f->props(db);
+        auto& fieldName = prop::name(p);
+        out << output::indent(2) << fieldName;
+    }
+    out << '\n' << output::indent(1) << ");\n";
+    out << "};\n\n";
+
+    return true;
 }
 
 void Message::retrieveProps(DB& db)

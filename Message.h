@@ -45,6 +45,8 @@ private:
     bool createFields(DB& db);
     bool insertField(FieldPtr field, DB& db);
     bool writeFields(std::ostream& out, DB& db);
+    bool writeAllFieldsDef(std::ostream& out, DB& db);
+    bool writeMessageClass(std::ostream& out, DB& db);
     void retrieveProps(DB& db);
 
     xmlNodePtr m_node = nullptr;
