@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <list>
 #include "Field.h"
 
 namespace sbe2comms
@@ -26,10 +27,19 @@ class GroupField : public Field
 {
     using Base = Field;
 public:
-    GroupField(xmlNodePtr node) : Base(node) {}
+    GroupField(xmlNodePtr node, const std::string& msgName)
+      : Base(node, msgName)
+    {
+    }
 
 protected:
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
+
+private:
+    bool createFields(DB& db);
+    bool insertField(FieldPtr field, DB& db);
+
+    std::list<FieldPtr> m_fields;
 };
 
 } // namespace sbe2comms

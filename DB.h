@@ -37,6 +37,7 @@ struct DB
     std::unique_ptr<MessageSchema> m_messageSchema;
     std::map<std::string, TypePtr> m_types;
     std::map<std::string, Message> m_messages;
+    std::list<std::string> m_groups;
 
     struct Cache {
         std::string m_rootDir;
@@ -46,7 +47,6 @@ struct DB
 };
 
 bool parseSchema(std::string filename, sbe2comms::DB& db);
-//bool updateConfig(DB& db);
 
 } // namespace sbe2comms
 

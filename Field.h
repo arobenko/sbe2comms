@@ -29,25 +29,50 @@ class DB;
 class Field
 {
 public:
-    explicit Field(xmlNodePtr node) : m_node(node)
+    using Ptr = std::unique_ptr<Field>;
+    explicit Field(
+        xmlNodePtr node,
+        const std::string& msgName)
+      : m_node(node),
+        m_msgName(msgName)
     {
     }
 
     virtual ~Field() noexcept {}
 
-    bool write(std::ostream& out, DB& db, unsigned indent = 0);
+    static Ptr create(xmlNodePtr node, const std::string& msgName);
+
+    bool write(std::ostream& out, DB& db, unsigned indent = 0)
+    {
+        return writeImpl(out, db, indent);
+    }
 
     const XmlPropsMap& props(DB& db);
 
 protected:
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
 
+    bool startWrite(std::ostream& out, DB& db, unsigned indent);
+
+    xmlNodePtr getNode() const
+    {
+        return m_node;
+    }
+
+    const std::string& getMsgName() const
+    {
+        return m_msgName;
+    }
+
+    std::string extraOptionsString(DB& db);
+
 private:
 
     xmlNodePtr m_node = nullptr;
+    const std::string& m_msgName;
     XmlPropsMap m_props;
 };
 
-using FieldPtr = std::unique_ptr<Field>;
+using FieldPtr = Field::Ptr;
 
 } // namespace sbe2comms

@@ -28,6 +28,10 @@ namespace sbe2comms
 
 bool DataField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
+    if (!startWrite(out, db, indent)) {
+        return false;
+    }
+
     auto& p = props(db);
     auto& name = prop::name(p);
     assert(!name.empty());

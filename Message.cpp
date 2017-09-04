@@ -25,9 +25,6 @@
 #include "prop.h"
 #include "output.h"
 #include "DB.h"
-#include "BasicField.h"
-#include "GroupField.h"
-#include "DataField.h"
 
 namespace sbe2comms
 {
@@ -41,13 +38,14 @@ void writeFileHeader(std::ostream& out, const std::string& name)
            "/// \\brief Contains definition of " << name << " message and its fields.\n\n";
 }
 
-void writeIncludes(std::ostream& out, DB& db)
+void writeIncludes(std::ostream& out, DB& db, const std::string& msgName)
 {
     out <<
         "#pragma once\n"
         "\n"
         "#include \"comms/MessageBase.h\"\n"
         "#include \"" << get::protocolNamespace(db) << '/' << get::fieldsDefFileName() << "\"\n"
+        "#include \"" << "details/" << msgName << ".h\n"
         "\n";
 }
 
@@ -119,8 +117,9 @@ bool Message::write(const std::string& filename, DB& db)
         return false;
     }
 
-    writeFileHeader(stream, name(db));
-    writeIncludes(stream, db);
+    auto& msgName = name(db);
+    writeFileHeader(stream, msgName);
+    writeIncludes(stream, db, msgName);
     openNamespaces(stream, db);
     bool result =
         writeFields(stream, db) &&
@@ -148,40 +147,17 @@ bool Message::createFields(DB& db)
         return true;
     }
 
-    using FieldCreateFunc = std::function<FieldPtr (xmlNodePtr)>;
-    static const std::map<std::string, FieldCreateFunc> CreateMap = {
-        std::make_pair(
-            "field",
-            [](xmlNodePtr n)
-            {
-                return FieldPtr(new BasicField(n));
-            }),
-        std::make_pair(
-            "group",
-            [](xmlNodePtr n)
-            {
-                return FieldPtr(new GroupField(n));
-            }),
-        std::make_pair(
-            "data",
-            [](xmlNodePtr n)
-            {
-                return FieldPtr(new DataField(n));
-            })
-    };
-
+    auto& msgName = name(db);
     assert(m_node != nullptr);
     auto* child = m_node->children;
     while (child != nullptr) {
         if (child->type == XML_ELEMENT_NODE) {
-            std::string name(reinterpret_cast<const char*>(child->name));
-            auto iter = CreateMap.find(name);
-            if (iter == CreateMap.end()) {
-                std::cerr << "ERROR: Unknown field type \"" << name << "\"!" << std::endl;
+            auto fieldPtr = Field::create(child, msgName);
+            if (!fieldPtr) {
+                std::cerr << "ERROR: Unknown field kind \"" << child->name << "\"!" << std::endl;
                 return false;
             }
 
-            auto fieldPtr = iter->second(child);
             if (!insertField(std::move(fieldPtr), db)) {
                 return false;
             }
@@ -198,7 +174,6 @@ bool Message::insertField(FieldPtr field, DB& db)
     if (!m_fields) {
         m_fields = FieldsList();
     }
-    static_cast<void>(field);
     static_cast<void>(db);
     // TODO: do padding
 

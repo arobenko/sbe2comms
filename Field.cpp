@@ -22,6 +22,9 @@
 #include "DB.h"
 #include "output.h"
 #include "prop.h"
+#include "BasicField.h"
+#include "GroupField.h"
+#include "DataField.h"
 
 namespace sbe2comms
 {
@@ -36,7 +39,40 @@ const XmlPropsMap& Field::props(DB& db)
     return m_props;
 }
 
-bool Field::write(std::ostream& out, DB& db, unsigned indent)
+Field::Ptr Field::create(xmlNodePtr node, const std::string& msgName)
+{
+    using FieldCreateFunc = std::function<Ptr (xmlNodePtr, const std::string&)>;
+    static const std::map<std::string, FieldCreateFunc> CreateMap = {
+        std::make_pair(
+            "field",
+            [](xmlNodePtr n, const std::string& msg)
+            {
+                return Ptr(new BasicField(n, msg));
+            }),
+        std::make_pair(
+            "group",
+            [](xmlNodePtr n, const std::string& msg)
+            {
+                return Ptr(new GroupField(n, msg));
+            }),
+        std::make_pair(
+            "data",
+            [](xmlNodePtr n, const std::string& msg)
+            {
+                return Ptr(new DataField(n, msg));
+            })
+    };
+
+    std::string kind(reinterpret_cast<const char*>(node->name));
+    auto iter = CreateMap.find(kind);
+    if (iter == CreateMap.end()) {
+        return Ptr();
+    }
+
+    return iter->second(node, msgName);
+}
+
+bool Field::startWrite(std::ostream& out, DB& db, unsigned indent)
 {
     auto& p = props(db);
     auto& name = prop::name(p);
@@ -52,8 +88,13 @@ bool Field::write(std::ostream& out, DB& db, unsigned indent)
         out << output::indent(indent) << "/// \\details " << desc << '\n';
     }
 
-    return writeImpl(out, db, indent);
+    return true;
+}
 
+std::string Field::extraOptionsString(DB& db)
+{
+    auto& name = prop::name(props(db));
+    return "details::" + m_msgName + "Fields::ExtraOptionsFor_" + name + "<TOpt>";
 }
 
 } // namespace sbe2comms

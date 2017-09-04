@@ -29,7 +29,7 @@ namespace sbe2comms
 namespace
 {
 
-bool writeBuiltInType(std::ostream& out, const std::string& type)
+bool writeBuiltInTypeInt(std::ostream& out, const std::string& type)
 {
     static const std::map<std::string, std::string> Map = {
         std::make_pair("int8", "std::int8_t"),
@@ -51,10 +51,35 @@ bool writeBuiltInType(std::ostream& out, const std::string& type)
     return true;
 }
 
+bool writeBuiltInTypeFloat(std::ostream& out, const std::string& type)
+{
+    static const std::map<std::string, std::string> Map = {
+        std::make_pair("float", "float"),
+        std::make_pair("double", "double"),
+    };
+
+    auto iter = Map.find(type);
+    if (iter == Map.end()) {
+        return false;
+    }
+
+    out << "comms::field::FloatValue<field::FieldBase, " << iter->second << ">;\n\n";
+    return true;
+}
+
+bool writeBuiltInType(std::ostream& out, const std::string& type)
+{
+    return writeBuiltInTypeInt(out, type) || writeBuiltInTypeFloat(out, type);
+}
+
 } // namespace
 
 bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
+    if (!startWrite(out, db, indent)) {
+        return false;
+    }
+
     auto& p = props(db);
     auto& name = prop::name(p);
     assert(!name.empty());
@@ -87,7 +112,10 @@ bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
     assert(typeIter->second);
     typeIter->second->recordNormalUse();
 
-    out << "field::" << type << "<TOpt>;\n\n";
+    out << '\n' <<
+        output::indent(indent + 1) << "field::" << type << "<\n" <<
+        output::indent(indent + 2) << extraOptionsString(db) << '\n' <<
+        output::indent(indent + 1) << ">;\n\n";
     return true;
 }
 
