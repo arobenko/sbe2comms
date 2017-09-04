@@ -84,6 +84,9 @@ bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 
     // TODO: check presence
 
+    assert(typeIter->second);
+    typeIter->second->recordNormalUse();
+
     out << "field::" << type << "<TOpt>;\n\n";
     return true;
 }

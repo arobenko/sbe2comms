@@ -15,17 +15,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#pragma once
+
 #include "Type.h"
 
 namespace sbe2comms
 {
 
-Type::Type(xmlNodePtr node)
-  : m_node(node)
+class SetType : public Type
 {
-    std::fill(m_uses.begin(), m_uses.end(), 0U);
-}
-
-Type::~Type() noexcept = default;
+    using Base = Type;
+public:
+    explicit SetType(xmlNodePtr node) : Base(node) {}
+};
 
 } // namespace sbe2comms

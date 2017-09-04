@@ -20,15 +20,42 @@
 #include <iostream>
 
 #include "DB.h"
+#include "prop.h"
+#include "output.h"
 
 namespace sbe2comms
 {
 
 bool DataField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    static_cast<void>(out);
-    static_cast<void>(db);
-    static_cast<void>(indent);
+    auto& p = props(db);
+    auto& name = prop::name(p);
+    assert(!name.empty());
+
+    out << output::indent(indent) << "using " << name << " = ";
+
+    auto& type = prop::type(p);
+    if (type.empty()) {
+        out << " ???;\n\n";
+        std::cerr << output::indent(1) <<
+            "ERROR: Data field \"" << name << "\" does NOT specify type." << std::endl;
+        return false;
+    }
+
+    auto typeIter = db.m_types.find(type);
+    if (typeIter == db.m_types.end()) {
+        out << " ???;\n\n";
+        std::cerr << output::indent(1) <<
+            "ERROR: Unknown type \"" << type << "\" for data field \"" << name << "\"" << std::endl;
+        return false;
+    }
+
+    // TODO: check presence
+
+    assert(typeIter->second);
+    typeIter->second->recordDataUse();
+
+    out << "field::" << type << "<TOpt>;\n\n";
     return true;
 }
 

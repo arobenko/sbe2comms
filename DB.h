@@ -35,7 +35,7 @@ struct DB
 {
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
-    std::map<std::string, Type> m_types;
+    std::map<std::string, TypePtr> m_types;
     std::map<std::string, Message> m_messages;
 
     struct Cache {

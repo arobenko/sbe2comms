@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include <memory>
+#include <array>
+
 #include "xml_wrap.h"
 
 namespace sbe2comms
@@ -26,9 +29,36 @@ class Type
 {
 public:
     explicit Type(xmlNodePtr node);
+    virtual ~Type() noexcept;
+
+    void recordNormalUse()
+    {
+        ++m_uses[Use_Normal];
+    }
+
+    void recordGroupSizeUse()
+    {
+        ++m_uses[Use_GroupSize];
+    }
+
+    void recordDataUse()
+    {
+        ++m_uses[Use_Data];
+    }
 
 private:
+    enum Use
+    {
+        Use_Normal,
+        Use_GroupSize,
+        Use_Data,
+        Use_NumOfValues
+    };
+
     xmlNodePtr m_node = nullptr;
+    std::array<unsigned, Use_NumOfValues> m_uses;
 };
+
+using TypePtr = std::unique_ptr<Type>;
 
 } // namespace sbe2comms
