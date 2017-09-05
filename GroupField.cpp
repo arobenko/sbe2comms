@@ -87,11 +87,11 @@ bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 
     result = startWrite(out, db, indent) && result;
     out << output::indent(indent) << "using " << name << " = \n" <<
-           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
+           output::indent(indent + 1) << "sbe2comms::groupList<\n" <<
            output::indent(indent + 2) << "field::FieldBase,\n" <<
            output::indent(indent + 2) << elemName << ",\n" <<
            output::indent(indent + 2) << extraOptionsString(db) << '\n' <<
-           output::indent(indent + 1) << ">\n\n";
+           output::indent(indent + 1) << ">;\n\n";
     return result;
 }
 

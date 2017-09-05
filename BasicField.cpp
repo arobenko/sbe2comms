@@ -18,6 +18,7 @@
 #include "BasicField.h"
 
 #include <iostream>
+#include <set>
 
 #include "DB.h"
 #include "prop.h"
@@ -31,39 +32,32 @@ namespace
 
 bool writeBuiltInTypeInt(std::ostream& out, const std::string& type)
 {
-    static const std::map<std::string, std::string> Map = {
-        std::make_pair("int8", "std::int8_t"),
-        std::make_pair("uint8", "std::uint8_t"),
-        std::make_pair("int16", "std::int16_t"),
-        std::make_pair("uint16", "std::uint16_t"),
-        std::make_pair("int32", "std::int32_t"),
-        std::make_pair("uint32", "std::uint32_t"),
-        std::make_pair("int64", "std::uint16_t"),
-        std::make_pair("uint64", "std::uint64_t"),
+    static const std::set<std::string> Set = {
+        "int8", "uint8", "int16", "uint16",
+        "int32", "uint32", "int64", "uint64"
     };
 
-    auto iter = Map.find(type);
-    if (iter == Map.end()) {
+    auto iter = Set.find(type);
+    if (iter == Set.end()) {
         return false;
     }
 
-    out << "comms::field::IntValue<field::FieldBase, " << iter->second << ">;\n\n";
+    out << "sbe2comms::" << *iter << "<field::FieldBase>;\n\n";
     return true;
 }
 
 bool writeBuiltInTypeFloat(std::ostream& out, const std::string& type)
 {
-    static const std::map<std::string, std::string> Map = {
-        std::make_pair("float", "float"),
-        std::make_pair("double", "double"),
+    static const std::set<std::string> Set = {
+        "float", "double"
     };
 
-    auto iter = Map.find(type);
-    if (iter == Map.end()) {
+    auto iter = Set.find(type);
+    if (iter == Set.end()) {
         return false;
     }
 
-    out << "comms::field::FloatValue<field::FieldBase, " << iter->second << ">;\n\n";
+    out << "sbe2comms::" << *iter << "Field<field::FieldBase>;\n\n";
     return true;
 }
 

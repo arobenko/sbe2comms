@@ -21,10 +21,14 @@
 #include <fstream>
 #include <functional>
 
+#include <boost/filesystem.hpp>
+
 #include "get.h"
 #include "prop.h"
 #include "output.h"
 #include "DB.h"
+
+namespace bf = boost::filesystem;
 
 namespace sbe2comms
 {
@@ -45,7 +49,7 @@ void writeIncludes(std::ostream& out, DB& db, const std::string& msgName)
         "\n"
         "#include \"comms/MessageBase.h\"\n"
         "#include \"" << get::protocolNamespace(db) << '/' << get::fieldsDefFileName() << "\"\n"
-        "#include \"" << "details/" << msgName << ".h\n"
+        "#include \"" << "details/" << msgName << ".h\"\n"
         "\n";
 }
 
@@ -105,34 +109,31 @@ Message::Message(xmlNodePtr node)
 {
 }
 
-bool Message::write(const std::string& filename, DB& db)
+bool Message::write(DB& db)
 {
     if (!createFields(db)) {
         return false;
     }
 
-    std::ofstream stream(filename);
-    if (!stream) {
-        std::cerr << "ERROR: Failed to create " << filename;
+    bf::path root(get::rootPath(db));
+    bf::path protocolRelDir(get::protocolRelDir(db));
+    bf::path messagesDir(root / protocolRelDir / get::messageDirName());
+
+    boost::system::error_code ec;
+    bf::create_directories(messagesDir, ec);
+    if (ec) {
+        std::cerr << "ERROR: Failed to create \"" << messagesDir.string() <<
+                "\" with error \"" << ec.message() << "\"!" << std::endl;
         return false;
     }
 
-    auto& msgName = name(db);
-    writeFileHeader(stream, msgName);
-    writeIncludes(stream, db, msgName);
-    openNamespaces(stream, db);
-    bool result =
-        writeFields(stream, db) &&
-        writeMessageClass(stream, db);
-    closeNamespaces(stream, db);
-    stream.flush();
+    const std::string Ext(".h");
+    auto filename = name(db) + Ext;
+    auto relPath = protocolRelDir / get::messageDirName() / filename;
+    auto filePath = messagesDir / filename;
 
-    bool written = stream.good();
-    if (!written) {
-        std::cerr << "ERROR: Failed to write message file" << std::endl;
-    }
-
-    return result && written;
+    std::cout << "INFO: Generating " << relPath.string() << std::endl;
+    return writeMessageDef(filePath.string(), db);
 }
 
 const std::string& Message::name(DB& db)
@@ -282,6 +283,32 @@ void Message::retrieveProps(DB& db)
 
     m_props = xmlParseNodeProps(m_node, db.m_doc.get());
     assert(!m_props.empty());
+}
+
+bool Message::writeMessageDef(const std::string& filename, DB& db)
+{
+    std::ofstream stream(filename);
+    if (!stream) {
+        std::cerr << "ERROR: Failed to create " << filename;
+        return false;
+    }
+
+    auto& msgName = name(db);
+    writeFileHeader(stream, msgName);
+    writeIncludes(stream, db, msgName);
+    openNamespaces(stream, db);
+    bool result =
+        writeFields(stream, db) &&
+        writeMessageClass(stream, db);
+    closeNamespaces(stream, db);
+    stream.flush();
+
+    bool written = stream.good();
+    if (!written) {
+        std::cerr << "ERROR: Failed to write message file" << std::endl;
+    }
+
+    return result && written;
 }
 
 } // namespace sbe2comms

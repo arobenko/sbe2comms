@@ -17,38 +17,22 @@
 
 #include <iostream>
 
-#include <boost/filesystem.hpp>
-
 #include "DB.h"
+#include "BuiltIn.h"
 #include "get.h"
-
-namespace bf = boost::filesystem;
 
 namespace sbe2comms
 {
 
+bool writeBuiltIn(DB& db)
+{
+    return BuiltIn::write(db);
+}
+
 bool writeMessages(DB& db)
 {
-    bf::path root(get::rootPath(db));
-    bf::path protocolRelDir(get::protocolRelDir(db));
-    bf::path messagesDir(root / protocolRelDir / get::messageDirName());
-
-    boost::system::error_code ec;
-    bf::create_directories(messagesDir, ec);
-    if (ec) {
-        std::cerr << "ERROR: Failed to create \"" << messagesDir.string() <<
-                "\" with error \"" << ec.message() << "\"!" << std::endl;
-        return false;
-    }
-
-    const std::string Ext(".h");
     for (auto iter = db.m_messages.begin(); iter != db.m_messages.end(); ++iter) {
-        auto filename = iter->first + Ext;
-        auto relPath = protocolRelDir / get::messageDirName() / filename;
-        std::cout << "INFO: Generating " << relPath.string() << std::endl;
-
-        auto filePath = messagesDir / filename;
-        if (!iter->second.write(filePath.string(), db)) {
+        if (!iter->second.write(db)) {
             return false;
         }
     }
@@ -68,6 +52,7 @@ int main(int argc, const char* argv[])
     sbe2comms::DB db;
     bool result =
         sbe2comms::parseSchema(argv[1], db) &&
+        sbe2comms::writeBuiltIn(db) &&
         sbe2comms::writeMessages(db);
 
     if (result) {
