@@ -27,6 +27,9 @@ class SetType : public Type
     using Base = Type;
 public:
     explicit SetType(xmlNodePtr node) : Base(node) {}
+
+protected:
+    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
 };
 
 } // namespace sbe2comms

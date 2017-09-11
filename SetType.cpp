@@ -15,21 +15,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
-
-#include "Type.h"
+#include "SetType.h"
 
 namespace sbe2comms
 {
 
-class CompositeType : public Type
+bool SetType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    using Base = Type;
-public:
-    explicit CompositeType(xmlNodePtr node) : Base(node) {}
-
-protected:
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
-};
+    static_cast<void>(out);
+    static_cast<void>(db);
+    static_cast<void>(indent);
+    // TODO
+    return true;
+}
 
 } // namespace sbe2comms

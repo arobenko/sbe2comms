@@ -19,12 +19,14 @@
 
 #include <memory>
 #include <array>
+#include <iosfwd>
 
 #include "xml_wrap.h"
 
 namespace sbe2comms
 {
 
+class DB;
 class Type
 {
 public:
@@ -45,6 +47,14 @@ public:
     {
         ++m_uses[Use_Data];
     }
+
+    bool write(std::ostream& out, DB& db, unsigned indent)
+    {
+        return writeImpl(out, db, indent);
+    }
+
+protected:
+    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
 
 private:
     enum Use

@@ -27,6 +27,10 @@ class EnumType : public Type
     using Base = Type;
 public:
     explicit EnumType(xmlNodePtr node) : Base(node) {}
+
+protected:
+    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
+
 };
 
 } // namespace sbe2comms
