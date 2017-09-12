@@ -17,6 +17,12 @@
 
 #include "Type.h"
 
+#include <iostream>
+
+#include "DB.h"
+#include "get.h"
+#include "output.h"
+
 namespace sbe2comms
 {
 
@@ -27,5 +33,69 @@ Type::Type(xmlNodePtr node)
 }
 
 Type::~Type() noexcept = default;
+
+bool Type::write(std::ostream& out, DB& db, unsigned indent)
+{
+    if (isDeperated(db)) {
+        // Don't write anything if type is deprecated
+        std::cout << output::indent(indent + 1) <<
+                     "INFO: Omitting definition of deprecated \"" << prop::name(props(db)) << "\" type." << std::endl;
+        return true;
+    }
+
+    if (!isIntroduced(db)) {
+        // Don't write anything if type was introduced in later version
+        std::cout << output::indent(indent + 1) <<
+                     "INFO: Omitting definition of not yet introduced \"" << prop::name(props(db)) << "\" type." << std::endl;
+        return true;
+    }
+
+    return writeImpl(out, db, indent);
+}
+
+const XmlPropsMap& Type::props(DB& db)
+{
+    if (m_props.empty()) {
+        m_props = xmlParseNodeProps(m_node, db.m_doc.get());
+    }
+    return m_props;
+}
+
+bool Type::isDeperated(DB& db)
+{
+    auto& p = props(db);
+    if (!prop::hasDeprecated(p)) {
+        return false;
+    }
+
+    auto depVersion = prop::deprecated(p);
+    auto currVersion = get::schemaVersion(db);
+    return currVersion < depVersion;
+}
+
+bool Type::isIntroduced(DB& db)
+{
+    auto& p = props(db);
+    if (!prop::hasSinceVersion(p)) {
+        return true;
+    }
+
+    auto sinceVersion = prop::sinceVersion(p);
+    auto currVersion = get::schemaVersion(db);
+    return sinceVersion <= currVersion;
+}
+
+void Type::writeBrief(std::ostream& out, DB& db, unsigned indent)
+{
+    auto& p = props(db);
+    out << output::indent(indent) << "/// \\brief Definition of \"" << prop::name(p) <<
+           "\" field\n";
+    auto& desc = prop::description(p);
+    if (!desc.empty()) {
+        out << output::indent(indent) << "/// @details " << desc << "\n";
+    }
+}
+
+
 
 } // namespace sbe2comms

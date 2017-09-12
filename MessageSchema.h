@@ -28,6 +28,8 @@ public:
     explicit MessageSchema(xmlNodePtr node, xmlDocPtr doc);
 
     const std::string& package();
+    unsigned version() const;
+    const std::string& byteOrder() const;
 
 private:
     XmlPropsMap m_props;

@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "MessageSchema.h"
+#include "prop.h"
 
 namespace sbe2comms
 {
@@ -28,6 +29,16 @@ MessageSchema::MessageSchema(xmlNodePtr node, xmlDocPtr doc)
 const std::string& MessageSchema::package()
 {
     return m_props["package"]; // may create missing node
+}
+
+unsigned MessageSchema::version() const
+{
+    return prop::version(m_props);
+}
+
+const std::string& MessageSchema::byteOrder() const
+{
+    return prop::byteOrder(m_props);
 }
 
 } // namespace sbe2comms

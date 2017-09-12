@@ -70,7 +70,10 @@ bool writeTypes(DB& db)
 
     stream << "/// \\file\n"
               "/// \\brief Contains definition of all the field types\n"
-              "\n";
+              "\n\n"
+              "#include <cstdint>\n"
+              "#include \"comms/fields.h\"\n"
+              "#include \"comms/Field.h\"\n\n";
     auto& ns = get::protocolNamespace(db);
     if (!ns.empty()) {
         stream << "namespace " << ns << "\n"
@@ -78,11 +81,14 @@ bool writeTypes(DB& db)
     }
 
     stream << "namespace field\n"
-              "{\n\n";
+              "{\n\n"
+              "/// \\brief Definition of common base class of all the fields.\n"
+              "using FieldBase = comms::Field<" << get::endian(db) << ">;\n\n";
+
 
     bool result = true;
     for (auto& t : db.m_types) {
-        result = t.second->write(stream, db, 1) && result;
+        result = t.second->write(stream, db) && result;
     }
 
     stream << "} // namespace field\n\n";

@@ -64,6 +64,18 @@ const std::string& nameProperty()
     return Str;
 }
 
+const std::string& emptyString()
+{
+    static const std::string Str;
+    return Str;
+}
+
+const std::string& unknownValueString()
+{
+    static const std::string Str("???;");
+    return Str;
+}
+
 const std::string& protocolNamespace(DB& db)
 {
     if (db.m_cache.m_namespace) {
@@ -91,6 +103,38 @@ const std::string& protocolRelDir(DB& db)
 
     assert(!db.m_cache.m_protocolRelDir.empty());
     return db.m_cache.m_protocolRelDir;
+}
+
+unsigned schemaVersion(DB& db)
+{
+    auto& val = db.m_cache.m_schemaVersion;
+    if (!val) {
+        // TODO: check options for override
+        assert(db.m_messageSchema);
+        val = db.m_messageSchema->version();
+    }
+
+    return *val;
+}
+
+const std::string& endian(DB& db)
+{
+    auto& val = db.m_cache.m_endian;
+    if (!val.empty()) {
+        return val;
+    }
+
+    assert(db.m_messageSchema);
+    auto& byteOrder = db.m_messageSchema->byteOrder();
+
+    static const std::string BigEndianStr("bigEndian");
+    if (byteOrder == BigEndianStr) {
+        val = "comms::option::BigEndian";
+        return val;
+    }
+
+    val = "comms::option::LittleEndian";
+    return val;
 }
 
 } // namespace get

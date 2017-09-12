@@ -32,6 +32,15 @@ const std::string EmptyStr;
 const std::string Name("name");
 const std::string Type("type");
 const std::string Description("description");
+const std::string Deprecated("deprecated");
+const std::string Version("version");
+const std::string SinceVersion("sinceVersion");
+const std::string Length("length");
+const std::string PrimitiveType("primitiveType");
+const std::string ByteOrder("byteOrder");
+const std::string Presence("presence");
+const std::string MinValue("minValue");
+const std::string MaxValue("maxValue");
 
 const std::string& getProp(const XmlPropsMap& map, const std::string propName)
 {
@@ -41,6 +50,26 @@ const std::string& getProp(const XmlPropsMap& map, const std::string propName)
     }
 
     return iter->second;
+}
+
+bool hasProp(const XmlPropsMap& map, const std::string propName)
+{
+    return map.find(propName) != map.end();
+}
+
+template <typename T>
+T getPropInt(
+    const XmlPropsMap& map,
+    const std::string propName,
+    const T& defValue = T())
+{
+    try {
+        auto strVal = getProp(map, propName);
+        return static_cast<T>(std::stoll(strVal));
+    }
+    catch (...) {
+        return defValue;
+    }
 }
 
 } // namespace
@@ -58,6 +87,90 @@ const std::string& type(const XmlPropsMap& map)
 const std::string& description(const XmlPropsMap& map)
 {
     return getProp(map, Description);
+}
+
+bool hasDeprecated(const XmlPropsMap& map)
+{
+    return hasProp(map, Deprecated);
+}
+
+unsigned deprecated(const XmlPropsMap& map)
+{
+    return getPropInt<unsigned>(map, Deprecated);
+}
+
+unsigned version(const XmlPropsMap& map)
+{
+    return getPropInt<unsigned>(map, Version);
+}
+
+bool hasSinceVersion(const XmlPropsMap& map)
+{
+    return hasProp(map, SinceVersion);
+}
+
+unsigned sinceVersion(const XmlPropsMap& map)
+{
+    return getPropInt<unsigned>(map, SinceVersion);
+}
+
+unsigned length(const XmlPropsMap& map)
+{
+    return getPropInt<unsigned>(map, Length, 1U);
+}
+
+const std::string& primitiveType(const XmlPropsMap& map)
+{
+    return getProp(map, PrimitiveType);
+}
+
+const std::string& byteOrder(const XmlPropsMap& map)
+{
+    return getProp(map, ByteOrder);
+}
+
+const std::string& presence(const XmlPropsMap& map)
+{
+    return getProp(map, Presence);
+}
+
+bool isRequired(const XmlPropsMap& map)
+{
+    static const std::string RequiredStr("required");
+    auto& val = getProp(map, Presence);
+    return val.empty() || (val == RequiredStr);
+}
+
+bool isConstant(const XmlPropsMap& map)
+{
+    static const std::string ConstantStr("constant");
+    return (getProp(map, Presence) == ConstantStr);
+}
+
+bool isOptional(const XmlPropsMap& map)
+{
+    static const std::string OptionalStr("optional");
+    return (getProp(map, Presence) == OptionalStr);
+}
+
+bool hasMinValue(const XmlPropsMap& map)
+{
+    return hasProp(map, MinValue);
+}
+
+bool hasMaxValue(const XmlPropsMap& map)
+{
+    return hasProp(map, MaxValue);
+}
+
+const std::string& minValue(const XmlPropsMap& map)
+{
+    return getProp(map, MinValue);
+}
+
+const std::string& maxValue(const XmlPropsMap& map)
+{
+    return getProp(map, MaxValue);
 }
 
 } // namespace prop

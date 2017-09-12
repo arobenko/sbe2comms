@@ -22,6 +22,7 @@
 #include <iosfwd>
 
 #include "xml_wrap.h"
+#include "prop.h"
 
 namespace sbe2comms
 {
@@ -48,13 +49,17 @@ public:
         ++m_uses[Use_Data];
     }
 
-    bool write(std::ostream& out, DB& db, unsigned indent)
-    {
-        return writeImpl(out, db, indent);
-    }
+    bool write(std::ostream& out, DB& db, unsigned indent = 0);
+
+    const XmlPropsMap& props(DB& db);
 
 protected:
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
+
+    bool isDeperated(DB& db);
+    bool isIntroduced(DB& db);
+
+    void writeBrief(std::ostream& out, DB& db, unsigned indent);
 
 private:
     enum Use
@@ -67,6 +72,7 @@ private:
 
     xmlNodePtr m_node = nullptr;
     std::array<unsigned, Use_NumOfValues> m_uses;
+    XmlPropsMap m_props;
 };
 
 using TypePtr = std::unique_ptr<Type>;

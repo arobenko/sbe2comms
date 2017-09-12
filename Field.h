@@ -42,10 +42,7 @@ public:
 
     static Ptr create(xmlNodePtr node, const std::string& msgName);
 
-    bool write(std::ostream& out, DB& db, unsigned indent = 0)
-    {
-        return writeImpl(out, db, indent);
-    }
+    bool write(std::ostream& out, DB& db, unsigned indent = 0);
 
     const XmlPropsMap& props(DB& db);
 
@@ -65,7 +62,6 @@ protected:
     }
 
     std::string extraOptionsString(DB& db);
-
 private:
 
     xmlNodePtr m_node = nullptr;

@@ -28,6 +28,22 @@ namespace prop
 const std::string& name(const XmlPropsMap& map);
 const std::string& type(const XmlPropsMap& map);
 const std::string& description(const XmlPropsMap& map);
+bool hasDeprecated(const XmlPropsMap& map);
+unsigned deprecated(const XmlPropsMap& map);
+unsigned version(const XmlPropsMap& map);
+bool hasSinceVersion(const XmlPropsMap& map);
+unsigned sinceVersion(const XmlPropsMap& map);
+unsigned length(const XmlPropsMap& map);
+const std::string& primitiveType(const XmlPropsMap& map);
+const std::string& byteOrder(const XmlPropsMap& map);
+const std::string& presence(const XmlPropsMap& map);
+bool isRequired(const XmlPropsMap& map);
+bool isConstant(const XmlPropsMap& map);
+bool isOptional(const XmlPropsMap& map);
+bool hasMinValue(const XmlPropsMap& map);
+bool hasMaxValue(const XmlPropsMap& map);
+const std::string& minValue(const XmlPropsMap& map);
+const std::string& maxValue(const XmlPropsMap& map);
 
 } // namespace prop
 

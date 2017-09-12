@@ -42,7 +42,9 @@ struct DB
     struct Cache {
         std::string m_rootDir;
         std::string m_protocolRelDir;
+        std::string m_endian;
         boost::optional<std::string> m_namespace;
+        boost::optional<unsigned> m_schemaVersion;
     } m_cache;
 };
 

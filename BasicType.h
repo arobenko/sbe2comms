@@ -30,6 +30,33 @@ public:
 
 protected:
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
+
+private:
+    bool writeSimpleType(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& primType);
+
+    bool writeSimpleInt(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& intType);
+
+    bool writeSimpleFloat(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& fpType);
+
+    bool writeFixedLength(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& primType);
+
+    bool hasMinMaxValues(DB& db);
 };
 
 } // namespace sbe2comms

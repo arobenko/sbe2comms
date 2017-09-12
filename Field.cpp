@@ -22,12 +22,23 @@
 #include "DB.h"
 #include "output.h"
 #include "prop.h"
+#include "get.h"
 #include "BasicField.h"
 #include "GroupField.h"
 #include "DataField.h"
 
 namespace sbe2comms
 {
+
+bool Field::write(std::ostream& out, DB& db, unsigned indent)
+{
+//    if ((isDeperated(db)) || (!isIntroduced(db))) {
+//        // Don't write anything if type is deprecated or was introduced in later version
+//        return true;
+//    }
+
+    return writeImpl(out, db, indent);
+}
 
 const XmlPropsMap& Field::props(DB& db)
 {
