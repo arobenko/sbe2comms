@@ -21,6 +21,8 @@
 #include <iterator>
 #include <iostream>
 
+#include <boost/algorithm/string.hpp>
+
 #include "prop.h"
 #include "get.h"
 #include "output.h"
@@ -31,10 +33,12 @@ namespace sbe2comms
 namespace
 {
 
+const std::string CharType("char");
+
 const std::string& primitiveIntToStd(const std::string& type)
 {
     static const std::map<std::string, std::string> Map = {
-        std::make_pair("char", "char"),
+        std::make_pair(CharType, CharType),
         std::make_pair("int8", "std::int8_t"),
         std::make_pair("uint8", "std::uint8_t"),
         std::make_pair("int16", "std::int16_t"),
@@ -77,7 +81,7 @@ std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::s
 {
     if (value.empty()) {
         static const std::map<std::string, std::intmax_t> Map = {
-            std::make_pair("char", std::numeric_limits<char>::min() + 1),
+            std::make_pair(CharType, 0x20),
             std::make_pair("int8", std::numeric_limits<std::int8_t>::min() + 1),
             std::make_pair("uint8", 0),
             std::make_pair("int16", std::numeric_limits<std::int16_t>::min() + 1),
@@ -104,7 +108,7 @@ std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::s
 {
     if (value.empty()) {
         static const std::map<std::string, std::intmax_t> Map = {
-            std::make_pair("char", std::numeric_limits<char>::max()),
+            std::make_pair(CharType, 0x7e),
             std::make_pair("int8", std::numeric_limits<std::int8_t>::max()),
             std::make_pair("uint8", std::numeric_limits<std::uint8_t>::max() - 1),
             std::make_pair("int16", std::numeric_limits<std::int16_t>::max()),
@@ -139,27 +143,33 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 
     auto& p = props(db);
 
-    out << output::indent(indent) << "using " << prop::name(p) << " = ";
+    out << output::indent(indent) << "using " << prop::name(p) << " = \n";
+    bool result = false;
+    do {
+        auto& primType = prop::primitiveType(p);
+        if (primType.empty()) {
+            std::cerr << "ERROR: Primitive type was not provided for type \"" << prop::name(p) << "\"" << std::endl;
+            out << get::unknownValueString();
+            break;
+        }
 
-    auto& primType = prop::primitiveType(p);
-    if (primType.empty()) {
-        std::cerr << "ERROR: Primitive type was not provided for type \"" << prop::name(p) << "\"" << std::endl;
-        out << get::unknownValueString() << "\n\n";
-        return false;
-    }
+        unsigned length = prop::length(p);
+        if (length == 1) {
+            result = writeSimpleType(out, db, indent, primType);
+            break;
+        }
 
-    unsigned length = prop::length(p);
-    if (length == 1) {
-        return writeSimpleType(out, db, indent, primType);
-    }
+        if (length == 0) {
+            // TODO: ???
+            assert(!"NYI");
+            break;
+        }
 
-    if (length == 0) {
-        // TODO: ???
-        assert(!"NYI");
-        return false;
-    }
+        result = writeFixedLength(out, db, indent, primType);
 
-    return writeFixedLength(out, db, indent, primType);
+    } while (false);
+    out << ";\n\n";
+    return result;
 }
 
 bool BasicType::writeSimpleType(
@@ -219,8 +229,7 @@ bool BasicType::writeSimpleInt(
         if (prop::isRequired(p)) {
             std::intmax_t defValue = 0;
             defValue = std::min(std::max(defValue, minVal.first), maxVal.first);
-            out << "\n" <<
-                   output::indent(indent + 1) << "comms::field::IntValue<\n" <<
+            out << output::indent(indent + 1) << "comms::field::IntValue<\n" <<
                    output::indent(indent + 2) << "FieldBase,\n" <<
                    output::indent(indent + 2) << intType << ",\n" <<
                    output::indent(indent + 2) << "comms::option::ValidNumValueRange<" <<
@@ -241,11 +250,7 @@ bool BasicType::writeSimpleInt(
         out << get::unknownValueString();
     }
 
-    out << ";\n\n";
     return result;
-
-    static_cast<void>(indent);
-    static_cast<void>(intType);
 }
 
 bool BasicType::writeSimpleFloat(
@@ -254,10 +259,11 @@ bool BasicType::writeSimpleFloat(
     unsigned indent,
     const std::string& fpType)
 {
-    out << get::unknownValueString() << "\n\n";
     static_cast<void>(db);
-    static_cast<void>(indent);
-    static_cast<void>(fpType);
+    out << output::indent(indent + 1) << "comms::field::FloatValue<\n" <<
+           output::indent(indent + 2) << "FieldBase,\n" <<
+           output::indent(indent + 2) << fpType << "\n" <<
+           output::indent(indent + 1) << ">";
     return true;
 }
 
@@ -267,10 +273,80 @@ bool BasicType::writeFixedLength(
     unsigned indent,
     const std::string& primType)
 {
-    out << get::unknownValueString() << "\n\n";
+    if (isString(db)) {
+        return writeFixedLengthString(out, db, indent);
+    }
+
+    return writeFixedLengthArray(out, db, indent, primType);
+
+    // TODO
+    out << get::unknownValueString();
     static_cast<void>(db);
     static_cast<void>(indent);
     static_cast<void>(primType);
+    return true;
+}
+
+bool BasicType::writeFixedLengthString(
+    std::ostream& out,
+    DB& db,
+    unsigned indent)
+{
+    auto& p = props(db);
+    unsigned len = prop::length(p);
+    assert(1U < len);
+    out << output::indent(indent + 1) << "comms::field::String<\n" <<
+           output::indent(indent + 2) << "FieldBase,\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
+           output::indent(indent + 1) << ">";
+    return true;
+}
+
+bool BasicType::writeFixedLengthArray(
+    std::ostream& out,
+    DB& db,
+    unsigned indent,
+    const std::string& primType)
+{
+    static const std::string RawDataTypes[] = {
+        CharType,
+        "int8",
+        "uint8"
+    };
+
+    auto iter = std::find(std::begin(RawDataTypes), std::end(RawDataTypes), primType);
+    if (iter != std::end(RawDataTypes)) {
+        return writeFixedLengthRawDataArray(out, db, indent, primType);
+    }
+
+    auto& p = props(db);
+    unsigned len = prop::length(p);
+    assert(1U < len);
+
+    out << output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
+           output::indent(indent + 2) << "FieldBase,\n";
+    writeSimpleType(out, db, indent + 1, primType);
+    out << ",\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
+           output::indent(indent + 1) << ">";
+    return true;
+}
+
+bool BasicType::writeFixedLengthRawDataArray(
+    std::ostream& out,
+    DB& db,
+    unsigned indent,
+    const std::string& primType)
+{
+    auto& p = props(db);
+    unsigned len = prop::length(p);
+    assert(1U < len);
+
+    out << output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
+           output::indent(indent + 2) << "FieldBase,\n" <<
+           output::indent(indent + 2) << primitiveIntToStd(primType) << ",\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
+           output::indent(indent + 1) << ">";
     return true;
 }
 
@@ -278,6 +354,31 @@ bool BasicType::hasMinMaxValues(DB& db)
 {
     auto& p = props(db);
     return prop::hasMinValue(p) || prop::hasMaxValue(p);
+}
+
+bool BasicType::isString(DB& db)
+{
+    static const std::string StringTypes[] = {
+        CharType,
+        "int8",
+        "uint8"
+    };
+
+    auto& p = props(db);
+    auto& primType = prop::primitiveType(p);
+    auto iter = std::find(std::begin(StringTypes), std::end(StringTypes), primType);
+    if (iter == std::end(StringTypes)) {
+        return false;
+    }
+
+    auto semType = prop::semanticType(p); // by value
+    boost::algorithm::to_lower(semType);
+    static const std::string StringSemanticType("string");
+    if (semType == StringSemanticType) {
+        return true;
+    }
+
+    return primType == CharType;
 }
 
 } // namespace sbe2comms

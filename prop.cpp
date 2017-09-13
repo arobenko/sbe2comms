@@ -37,6 +37,7 @@ const std::string Version("version");
 const std::string SinceVersion("sinceVersion");
 const std::string Length("length");
 const std::string PrimitiveType("primitiveType");
+const std::string SemanticType("semanticType");
 const std::string ByteOrder("byteOrder");
 const std::string Presence("presence");
 const std::string MinValue("minValue");
@@ -122,6 +123,11 @@ unsigned length(const XmlPropsMap& map)
 const std::string& primitiveType(const XmlPropsMap& map)
 {
     return getProp(map, PrimitiveType);
+}
+
+const std::string& semanticType(const XmlPropsMap& map)
+{
+    return getProp(map, SemanticType);
 }
 
 const std::string& byteOrder(const XmlPropsMap& map)

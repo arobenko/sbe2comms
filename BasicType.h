@@ -56,7 +56,26 @@ private:
         unsigned indent,
         const std::string& primType);
 
+    bool writeFixedLengthString(
+        std::ostream& out,
+        DB& db,
+        unsigned indent);
+
+    bool writeFixedLengthArray(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& primType);
+
+    bool writeFixedLengthRawDataArray(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& primType);
+
     bool hasMinMaxValues(DB& db);
+
+    bool isString(DB& db);
 };
 
 } // namespace sbe2comms
