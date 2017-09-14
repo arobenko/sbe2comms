@@ -92,8 +92,13 @@ void Type::writeBrief(std::ostream& out, DB& db, unsigned indent)
            "\" field\n";
     auto& desc = prop::description(p);
     if (!desc.empty()) {
-        out << output::indent(indent) << "/// @details " << desc << "\n";
+        out << output::indent(indent) << "/// \\details " << desc << "\n";
     }
+}
+
+std::string Type::nodeText()
+{
+    return xmlText(m_node);
 }
 
 

@@ -91,7 +91,7 @@ void openFieldsDef(std::ostream& out, const std::string& name)
     out <<
         "/// \\brief Accumulates details of all the " << name << " message fields.\n"
         "/// \\tparam TOpt Extra options to be passed to all fields.\n"
-        "/// @see " << name << "\n"
+        "/// \\see " << name << "\n"
         "template <typename TOpt = comms::option::EmptyOption>\n"
         "struct " << name << fieldsClassSuffix() << "\n"
         "{\n";
@@ -225,10 +225,10 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
     auto& n = name(db);
     out <<
         "/// \\brief Definition of " << n << " message\n"
-        "/// \\details Inherits from @b comms::MessageBase\n"
-        "///     while providing @b TMsgBase as common interface class as well as\n"
-        "///     various implementation options. @n\n"
-        "///     See @ref " << n << fieldsClassSuffix() << " for definition of the fields this message contains\n"
+        "/// \\details Inherits from \\b comms::MessageBase\n"
+        "///     while providing \\b TMsgBase as common interface class as well as\n"
+        "///     various implementation options. \\n\n"
+        "///     See \\ref " << n << fieldsClassSuffix() << " for definition of the fields this message contains\n"
         "///         and COMMS_MSG_FIELDS_ACCESS() for fields access details.\n"
         "/// \\tparam TMsgBase Common interface class for all the messages.\n"
         "/// \\tparam TOpt Extra options to be passed to all fields.\n"
@@ -243,8 +243,8 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
         "{\n"
         "public:\n" <<
         output::indent(1) << "/// \\brief Allow access to internal fields.\n" <<
-        output::indent(1) << "/// \\details See definition of @b COMMS_MSG_FIELDS_ACCESS macro\n" <<
-        output::indent(1) << "///     related to @b comms::MessageBase class from COMMS library\n" <<
+        output::indent(1) << "/// \\details See definition of \\b COMMS_MSG_FIELDS_ACCESS macro\n" <<
+        output::indent(1) << "///     related to \\b comms::MessageBase class from COMMS library\n" <<
         output::indent(1) << "///     for details.\n" <<
         output::indent(1) << "///     \n" <<
         output::indent(1) << "///     The field names are:\n";
@@ -252,8 +252,8 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
         auto& p = f->props(db);
         auto& fieldName = prop::name(p);
         out << output::indent(1) <<
-            "///     @li @b " << fieldName <<
-            " for @ref " << n << fieldsClassSuffix() << "::" <<
+            "///     \\li \\b " << fieldName <<
+            " for \\ref " << n << fieldsClassSuffix() << "::" <<
             fieldName << " field.\n";
     }
     out << output::indent(1) << "COMMS_MSG_FIELDS_ACCESS(\n";

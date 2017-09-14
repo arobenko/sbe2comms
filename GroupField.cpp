@@ -77,8 +77,8 @@ bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent)
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << "/// \\brief Allow access to internal fields.\n" <<
-           output::indent(indent + 1) << "/// \\details See definition of @b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
-           output::indent(indent + 1) << "///     related to @b comms::field::Bundle class from COMMS library\n" <<
+           output::indent(indent + 1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
+           output::indent(indent + 1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
            output::indent(indent + 1) << "///     for details.\n" <<
            output::indent(indent + 1) << "COMMS_FIELD_MEMBERS_ACCESS(\n";
     listFieldsFunc(2);

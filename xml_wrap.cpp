@@ -38,4 +38,18 @@ XmlPropsMap xmlParseNodeProps(xmlNodePtr node, xmlDocPtr doc)
     return map;
 }
 
+std::string xmlText(xmlNodePtr node)
+{
+    assert(node != nullptr);
+    auto* child = node->children;
+    while (child != nullptr) {
+        if (child->type == XML_TEXT_NODE) {
+            XmlCharPtr valuePtr(xmlNodeGetContent(child));
+            return std::string(reinterpret_cast<const char*>(valuePtr.get()));
+        }
+        child = child->next;
+    }
+    return std::string();
+}
+
 } // namespace sbe2comms

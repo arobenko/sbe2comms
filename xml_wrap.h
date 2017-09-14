@@ -49,5 +49,6 @@ using XmlCharPtr = std::unique_ptr<xmlChar, XmlCharFree>;
 using XmlPropsMap = std::map<std::string, std::string>;
 
 XmlPropsMap xmlParseNodeProps(xmlNodePtr node, xmlDocPtr doc);
+std::string xmlText(xmlNodePtr node);
 
 } // namespace sbe2comms

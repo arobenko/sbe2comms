@@ -60,6 +60,7 @@ protected:
     bool isIntroduced(DB& db);
 
     void writeBrief(std::ostream& out, DB& db, unsigned indent);
+    std::string nodeText();
 
 private:
     enum Use

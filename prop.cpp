@@ -42,6 +42,7 @@ const std::string ByteOrder("byteOrder");
 const std::string Presence("presence");
 const std::string MinValue("minValue");
 const std::string MaxValue("maxValue");
+const std::string NullValue("nullValue");
 
 const std::string& getProp(const XmlPropsMap& map, const std::string propName)
 {
@@ -177,6 +178,11 @@ const std::string& minValue(const XmlPropsMap& map)
 const std::string& maxValue(const XmlPropsMap& map)
 {
     return getProp(map, MaxValue);
+}
+
+const std::string& nullValue(const XmlPropsMap& map)
+{
+    return getProp(map, NullValue);
 }
 
 } // namespace prop

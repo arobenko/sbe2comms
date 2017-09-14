@@ -36,19 +36,45 @@ private:
         std::ostream& out,
         DB& db,
         unsigned indent,
-        const std::string& primType);
+        const std::string& primType,
+        bool embedded = false);
 
     bool writeSimpleInt(
         std::ostream& out,
         DB& db,
         unsigned indent,
-        const std::string& intType);
+        const std::string& intType,
+        bool embedded);
 
     bool writeSimpleFloat(
         std::ostream& out,
         DB& db,
         unsigned indent,
-        const std::string& fpType);
+        const std::string& fpType,
+        bool embedded);
+
+    bool writeVarLength(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& primType);
+
+    bool writeVarLengthString(
+        std::ostream& out,
+        DB& db,
+        unsigned indent);
+
+    bool writeVarLengthArray(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& primType);
+
+    bool writeVarLengthRawDataArray(
+        std::ostream& out,
+        DB& db,
+        unsigned indent,
+        const std::string& primType);
 
     bool writeFixedLength(
         std::ostream& out,
