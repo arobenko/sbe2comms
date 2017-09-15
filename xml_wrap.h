@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 #include <map>
+#include <list>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
@@ -50,5 +51,6 @@ using XmlPropsMap = std::map<std::string, std::string>;
 
 XmlPropsMap xmlParseNodeProps(xmlNodePtr node, xmlDocPtr doc);
 std::string xmlText(xmlNodePtr node);
+std::list<xmlNodePtr> xmlChildren(xmlNodePtr node, const std::string& name = std::string());
 
 } // namespace sbe2comms

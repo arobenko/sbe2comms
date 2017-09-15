@@ -20,6 +20,11 @@
 namespace sbe2comms
 {
 
+EnumType::Kind EnumType::kindImpl() const
+{
+    return Kind::Enum;
+}
+
 bool EnumType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
     static_cast<void>(out);
@@ -27,6 +32,13 @@ bool EnumType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     static_cast<void>(indent);
     // TODO
     return true;
+}
+
+std::size_t EnumType::lengthImpl(DB& db)
+{
+    static_cast<void>(db);
+    // TODO
+    return 0U;
 }
 
 } // namespace sbe2comms

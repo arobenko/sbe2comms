@@ -101,6 +101,35 @@ std::string Type::nodeText()
     return xmlText(m_node);
 }
 
+std::size_t Type::primitiveLength(const std::string& type)
+{
+    static const std::map<std::string, std::size_t> Map = {
+        std::make_pair("char", sizeof(char)),
+        std::make_pair("int8", sizeof(std::int8_t)),
+        std::make_pair("uint8", sizeof(std::uint8_t)),
+        std::make_pair("int16", sizeof(std::int16_t)),
+        std::make_pair("uint16", sizeof(std::uint16_t)),
+        std::make_pair("int32", sizeof(std::int32_t)),
+        std::make_pair("uint32", sizeof(std::uint32_t)),
+        std::make_pair("int64", sizeof(std::int64_t)),
+        std::make_pair("uint64", sizeof(std::uint64_t)),
+    };
 
+    auto iter = Map.find(type);
+    if (iter == Map.end()) {
+        return 0U;
+    }
+    return iter->second;
+}
+
+std::pair<std::intmax_t, bool> Type::stringToInt(const std::string& str)
+{
+    try {
+        return std::make_pair(std::stoll(str), true);
+    }
+    catch (...) {
+        return std::make_pair(0, false);
+    }
+}
 
 } // namespace sbe2comms

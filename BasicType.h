@@ -29,7 +29,9 @@ public:
     explicit BasicType(xmlNodePtr node) : Base(node) {}
 
 protected:
+    virtual Kind kindImpl() const override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
+    virtual std::size_t lengthImpl(DB& db) override;
 
 private:
     bool writeSimpleType(

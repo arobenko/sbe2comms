@@ -132,16 +132,6 @@ std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::s
     }
 }
 
-std::pair<std::intmax_t, bool> stringToInt(const std::string& str)
-{
-    try {
-        return std::make_pair(std::stoll(str), true);
-    }
-    catch (...) {
-        return std::make_pair(0, false);
-    }
-}
-
 std::string toString(std::intmax_t val) {
     return std::to_string(val) + "LL";
 }
@@ -165,7 +155,13 @@ std::intmax_t builtInIntNullValue(const std::string& type)
     return iter->second;
 }
 
+
 } // namespace
+
+BasicType::Kind BasicType::kindImpl() const
+{
+    return Kind::Basic;
+}
 
 bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
@@ -204,6 +200,27 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     } while (false);
     out << ";\n\n";
     return result;
+}
+
+std::size_t BasicType::lengthImpl(DB& db)
+{
+    auto& p = props(db);
+    auto len = prop::length(p);
+    if (len == 0) {
+        return 0U;
+    }
+
+    auto& primType = prop::primitiveType(p);
+    if (primType.empty()) {
+        return 0U;
+    }
+
+    if (prop::isConstant(p)) {
+        return 0U;
+    }
+
+    auto singleLen = primitiveLength(primType);
+    return singleLen * len;
 }
 
 bool BasicType::writeSimpleType(

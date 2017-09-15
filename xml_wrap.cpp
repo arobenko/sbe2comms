@@ -52,4 +52,31 @@ std::string xmlText(xmlNodePtr node)
     return std::string();
 }
 
+std::list<xmlNodePtr> xmlChildren(xmlNodePtr node, const std::string& name)
+{
+    std::list<xmlNodePtr> result;
+    auto* cur = node->children;
+    while (cur != nullptr) {
+        do {
+            if (cur->type != XML_ELEMENT_NODE) {
+                break;
+            }
+
+            if (name.empty()) {
+                result.push_back(cur);
+                break;
+            }
+
+            std::string elemName(reinterpret_cast<const char*>(cur->name));
+            if (elemName == name) {
+                result.push_back(cur);
+                break;
+            }
+        } while (false);
+
+        cur = cur->next;
+    }
+    return result;
+}
+
 } // namespace sbe2comms

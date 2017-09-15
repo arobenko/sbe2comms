@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include <map>
+#include <set>
+
 #include "Type.h"
 
 namespace sbe2comms
@@ -29,7 +32,19 @@ public:
     explicit SetType(xmlNodePtr node) : Base(node) {}
 
 protected:
+    virtual Kind kindImpl() const override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
+    virtual std::size_t lengthImpl(DB& db) override;
+
+private:
+    using BitsMap = std::map<unsigned, std::string>;
+
+    bool readChoices(DB& db);
+    std::uintmax_t calcReservedMask(unsigned len);
+    void writeSeq(std::ostream& out, unsigned indent);
+    void writeNonSeq(std::ostream& out, unsigned indent);
+
+    BitsMap m_bits;
 };
 
 } // namespace sbe2comms

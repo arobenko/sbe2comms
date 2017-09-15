@@ -20,6 +20,8 @@
 #include <memory>
 #include <array>
 #include <iosfwd>
+#include <cstdint>
+#include <utility>
 
 #include "xml_wrap.h"
 #include "prop.h"
@@ -31,6 +33,14 @@ class DB;
 class Type
 {
 public:
+    enum class Kind
+    {
+        Basic,
+        Composite,
+        Enum,
+        Set
+    };
+
     explicit Type(xmlNodePtr node);
     virtual ~Type() noexcept;
 
@@ -49,18 +59,37 @@ public:
         ++m_uses[Use_Data];
     }
 
+    Kind kind() const
+    {
+        return kindImpl();
+    }
+
     bool write(std::ostream& out, DB& db, unsigned indent = 0);
 
     const XmlPropsMap& props(DB& db);
 
+    std::size_t length(DB& db)
+    {
+        return lengthImpl(db);
+    }
+
 protected:
+    xmlNodePtr getNode() const
+    {
+        return m_node;
+    }
+
+    virtual Kind kindImpl() const = 0;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
+    virtual std::size_t lengthImpl(DB& db) = 0;
 
     bool isDeperated(DB& db);
     bool isIntroduced(DB& db);
 
     void writeBrief(std::ostream& out, DB& db, unsigned indent);
     std::string nodeText();
+    static std::size_t primitiveLength(const std::string& type);
+    static std::pair<std::intmax_t, bool> stringToInt(const std::string& str);
 
 private:
     enum Use

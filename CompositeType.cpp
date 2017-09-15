@@ -20,6 +20,11 @@
 namespace sbe2comms
 {
 
+CompositeType::Kind CompositeType::kindImpl() const
+{
+    return Kind::Composite;
+}
+
 bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
     static_cast<void>(out);
@@ -27,6 +32,13 @@ bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     static_cast<void>(indent);
     // TODO
     return true;
+}
+
+std::size_t CompositeType::lengthImpl(DB& db)
+{
+    static_cast<void>(db);
+    // TODO
+    return 0U;
 }
 
 } // namespace sbe2comms

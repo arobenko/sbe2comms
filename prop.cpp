@@ -43,6 +43,7 @@ const std::string Presence("presence");
 const std::string MinValue("minValue");
 const std::string MaxValue("maxValue");
 const std::string NullValue("nullValue");
+const std::string EncodingType("encodingType");
 
 const std::string& getProp(const XmlPropsMap& map, const std::string propName)
 {
@@ -183,6 +184,11 @@ const std::string& maxValue(const XmlPropsMap& map)
 const std::string& nullValue(const XmlPropsMap& map)
 {
     return getProp(map, NullValue);
+}
+
+const std::string& encodingType(const XmlPropsMap& map)
+{
+    return getProp(map, EncodingType);
 }
 
 } // namespace prop

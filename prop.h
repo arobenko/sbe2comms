@@ -46,6 +46,7 @@ bool hasMaxValue(const XmlPropsMap& map);
 const std::string& minValue(const XmlPropsMap& map);
 const std::string& maxValue(const XmlPropsMap& map);
 const std::string& nullValue(const XmlPropsMap& map);
+const std::string& encodingType(const XmlPropsMap& map);
 
 } // namespace prop
 

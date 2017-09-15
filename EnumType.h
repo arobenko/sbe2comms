@@ -29,8 +29,9 @@ public:
     explicit EnumType(xmlNodePtr node) : Base(node) {}
 
 protected:
+    virtual Kind kindImpl() const override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
-
+    virtual std::size_t lengthImpl(DB& db) override;
 };
 
 } // namespace sbe2comms
