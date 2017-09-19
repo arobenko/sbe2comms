@@ -36,28 +36,6 @@ namespace
 
 const std::string CharType("char");
 
-const std::string& primitiveIntToStd(const std::string& type)
-{
-    static const std::map<std::string, std::string> Map = {
-        std::make_pair(CharType, CharType),
-        std::make_pair("int8", "std::int8_t"),
-        std::make_pair("uint8", "std::uint8_t"),
-        std::make_pair("int16", "std::int16_t"),
-        std::make_pair("uint16", "std::uint16_t"),
-        std::make_pair("int32", "std::int32_t"),
-        std::make_pair("uint32", "std::uint32_t"),
-        std::make_pair("int64", "std::int64_t"),
-        std::make_pair("uint64", "std::uint64_t")
-    };
-
-    auto iter = Map.find(type);
-    if (iter == Map.end()) {
-        return get::emptyString();
-    }
-
-    return iter->second;
-}
-
 const std::string& primitiveFloatToStd(const std::string& type)
 {
     static const std::string Values[] = {
@@ -77,84 +55,6 @@ std::string toSignedMinInt()
 {
     return std::to_string(std::numeric_limits<T>::min() + 1) + "LL";
 }
-
-std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value)
-{
-    if (value.empty()) {
-        static const std::map<std::string, std::intmax_t> Map = {
-            std::make_pair(CharType, 0x20),
-            std::make_pair("int8", std::numeric_limits<std::int8_t>::min() + 1),
-            std::make_pair("uint8", 0),
-            std::make_pair("int16", std::numeric_limits<std::int16_t>::min() + 1),
-            std::make_pair("uint16", 0),
-            std::make_pair("int32", std::numeric_limits<std::int32_t>::min() + 1),
-            std::make_pair("uint32", 0),
-            std::make_pair("int64", std::numeric_limits<std::int64_t>::min() + 1),
-            std::make_pair("uint64", 0)
-        };
-
-        auto iter = Map.find(type);
-        assert(iter != Map.end());
-        return std::make_pair(iter->second, true);
-    }
-
-    try {
-        return std::make_pair(std::stoll(value), true);
-    } catch(...) {
-        return std::make_pair(std::intmax_t(0), false);
-    }
-}
-
-std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value)
-{
-    if (value.empty()) {
-        static const std::map<std::string, std::intmax_t> Map = {
-            std::make_pair(CharType, 0x7e),
-            std::make_pair("int8", std::numeric_limits<std::int8_t>::max()),
-            std::make_pair("uint8", std::numeric_limits<std::uint8_t>::max() - 1),
-            std::make_pair("int16", std::numeric_limits<std::int16_t>::max()),
-            std::make_pair("uint16", std::numeric_limits<std::uint16_t>::max() - 1),
-            std::make_pair("int32", std::numeric_limits<std::int32_t>::max()),
-            std::make_pair("uint32", std::numeric_limits<std::uint32_t>::max() - 1),
-            std::make_pair("int64", std::numeric_limits<std::int64_t>::max()),
-            std::make_pair("uint64", std::numeric_limits<std::uint64_t>::max() - 1)
-        };
-
-        auto iter = Map.find(type);
-        assert(iter != Map.end());
-        return std::make_pair(iter->second, true);
-    }
-
-    try {
-        return std::make_pair(std::stoll(value), true);
-    } catch(...) {
-        return std::make_pair(std::intmax_t(0), false);
-    }
-}
-
-std::string toString(std::intmax_t val) {
-    return std::to_string(val) + "LL";
-}
-
-std::intmax_t builtInIntNullValue(const std::string& type)
-{
-    static const std::map<std::string, std::intmax_t> Map = {
-        std::make_pair("char", 0),
-        std::make_pair("std::int8_t", intMinValue("int8", std::string()).first - 1),
-        std::make_pair("std::uint8_t", intMaxValue("uint8", std::string()).first + 1),
-        std::make_pair("std::int16_t", intMinValue("int16", std::string()).first - 1),
-        std::make_pair("std::uint16_t", intMaxValue("uint16", std::string()).first + 1),
-        std::make_pair("std::int32_t", intMinValue("int32", std::string()).first - 1),
-        std::make_pair("std::uint32_t", intMaxValue("uint32", std::string()).first + 1),
-        std::make_pair("std::int64_t", intMinValue("int64", std::string()).first - 1),
-        std::make_pair("std::uint64_t", intMaxValue("uint64", std::string()).first + 1),
-    };
-
-    auto iter = Map.find(type);
-    assert(iter != Map.end());
-    return iter->second;
-}
-
 
 } // namespace
 
@@ -230,7 +130,7 @@ bool BasicType::writeSimpleType(
     const std::string& primType,
     bool embedded)
 {
-    auto& intType = primitiveIntToStd(primType);
+    auto& intType = primitiveTypeToStdInt(primType);
     if (!intType.empty()) {
         return writeSimpleInt(out, db, indent, intType, embedded);
     }
@@ -465,7 +365,7 @@ bool BasicType::writeVarLengthRawDataArray(
     out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << primitiveIntToStd(primType) << "\n" <<
+           output::indent(indent + 2) << primitiveTypeToStdInt(primType) << "\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }
@@ -543,7 +443,7 @@ bool BasicType::writeFixedLengthRawDataArray(
     out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << primitiveIntToStd(primType) << ",\n" <<
+           output::indent(indent + 2) << primitiveTypeToStdInt(primType) << ",\n" <<
            output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
            output::indent(indent + 1) << ">";
     return true;

@@ -86,10 +86,16 @@ protected:
     bool isDeperated(DB& db);
     bool isIntroduced(DB& db);
 
-    void writeBrief(std::ostream& out, DB& db, unsigned indent);
+    void writeBrief(std::ostream& out, DB& db, unsigned indent, bool extraOpts = false);
     std::string nodeText();
     static std::size_t primitiveLength(const std::string& type);
     static std::pair<std::intmax_t, bool> stringToInt(const std::string& str);
+    static const std::string& primitiveTypeToStdInt(const std::string& type);
+    static std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value);
+    static std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value);
+    static std::intmax_t builtInIntNullValue(const std::string& type);
+    static std::string toString(std::intmax_t val);
+
 
 private:
     enum Use

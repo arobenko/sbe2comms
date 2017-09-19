@@ -72,6 +72,9 @@ bool writeTypes(DB& db)
               "/// \\brief Contains definition of all the field types\n"
               "\n\n"
               "#include <cstdint>\n"
+              "#include <iterator>\n"
+              "#include <algorithm>\n"
+              "\n"
               "#include \"comms/fields.h\"\n"
               "#include \"comms/Field.h\"\n\n";
     auto& ns = get::protocolNamespace(db);

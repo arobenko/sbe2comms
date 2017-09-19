@@ -22,6 +22,7 @@
 #include <limits>
 #include <cstdint>
 #include <sstream>
+#include <set>
 
 #include "DB.h"
 #include "prop.h"
@@ -144,24 +145,24 @@ bool SetType::readChoices(DB& db)
 
         auto nameIter = processedNames.find(choiceName);
         if (nameIter != processedNames.end()) {
-            std::cerr << "ERROR: The set\"" << prop::name(p) << "\" has at least two choices with the same name (\"" << choiceName << "\")" << std::endl;
+            std::cerr << "ERROR: The set \"" << prop::name(p) << "\" has at least two choices with the same name (\"" << choiceName << "\")" << std::endl;
             return false;
         }
 
         auto text = xmlText(c);
         if (text.empty()) {
-            std::cerr << "ERROR: The choice \"" << choiceName << "\" of set\"" << prop::name(p) << "\" doesn't specify the bit number." << std::endl;
+            std::cerr << "ERROR: The choice \"" << choiceName << "\" of set \"" << prop::name(p) << "\" doesn't specify the bit number." << std::endl;
             return false;
         }
 
         auto bitIdx = stringToInt(text);
         if (!bitIdx.second) {
-            std::cerr << "ERROR: The choice \"" << choiceName << "\" of set\"" << prop::name(p) << "\" doesn't specify the numeric bit number." << std::endl;
+            std::cerr << "ERROR: The choice \"" << choiceName << "\" of set \"" << prop::name(p) << "\" doesn't specify the numeric bit number." << std::endl;
             return false;
         }
 
         if (bitIdx.first < 0) {
-            std::cerr << "ERROR: The choice \"" << choiceName << "\" of set\"" << prop::name(p) << "\" specifies negative bit number." << std::endl;
+            std::cerr << "ERROR: The choice \"" << choiceName << "\" of set \"" << prop::name(p) << "\" specifies negative bit number." << std::endl;
             return false;
         }
 
@@ -173,7 +174,7 @@ bool SetType::readChoices(DB& db)
 
         auto bitsIter = m_bits.find(castedBitIdx);
         if (bitsIter != m_bits.end()) {
-            std::cerr << "ERROR: The set\"" << prop::name(p) << "\" has at least two choices with the same bit index." << std::endl;
+            std::cerr << "ERROR: The set \"" << prop::name(p) << "\" has at least two choices with the same bit index." << std::endl;
             return false;
         }
 

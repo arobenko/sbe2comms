@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include <map>
+#include <cstdint>
+
 #include "Type.h"
 
 namespace sbe2comms
@@ -32,6 +35,19 @@ protected:
     virtual Kind kindImpl() const override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
     virtual std::size_t lengthImpl(DB& db) override;
+
+private:
+    using Values = std::multimap<std::intmax_t, std::string>;
+    using Descriptions = std::map<std::string, std::string>;
+    using RangeInfo = std::pair<std::intmax_t, std::intmax_t>;
+    using RangeInfosList = std::list<RangeInfo>;
+
+    const std::string& getUnderlyingType(DB& db);
+    bool readValues(DB& db);
+    RangeInfosList getValidRanges();
+
+    Values m_values;
+    Descriptions m_desc;
 };
 
 } // namespace sbe2comms
