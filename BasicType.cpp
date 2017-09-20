@@ -50,12 +50,6 @@ const std::string& primitiveFloatToStd(const std::string& type)
     return *iter;
 }
 
-template <typename T>
-std::string toSignedMinInt()
-{
-    return std::to_string(std::numeric_limits<T>::min() + 1) + "LL";
-}
-
 } // namespace
 
 BasicType::Kind BasicType::kindImpl() const
@@ -79,13 +73,13 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
         }
 
         unsigned length = prop::length(p);
-        if (length == 1) {
+        if ((length == 1) && (!isConstString(db))) {
             result = writeSimpleType(out, db, indent, primType);
             break;
         }
 
-        if (!prop::isRequired(p)) {
-            std::cerr << "ERROR: Only \"required\" fields may have non-default length. "
+        if (prop::isOptional(p)) {
+            std::cerr << "ERROR: The \"optional\" fields may NOT have non-default length. "
                          "See definition of \"" << prop::name(p) << "\" type." << std::endl;
             return false;
         }
@@ -105,6 +99,10 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 std::size_t BasicType::lengthImpl(DB& db)
 {
     auto& p = props(db);
+    if (prop::isConstant(p)) {
+        return 0U;
+    }
+
     auto len = prop::length(p);
     if (len == 0) {
         return 0U;
@@ -310,6 +308,12 @@ bool BasicType::writeVarLength(
     unsigned indent,
     const std::string& primType)
 {
+    auto& p = props(db);
+    if (prop::isConstant(p)) {
+        std::cerr << "ERROR: Variable lengths constant types are unsupported (\"" << prop::name(p) << "\")." << std::endl;
+        return false;
+    }
+    
     if (isString(db)) {
         return writeVarLengthString(out, db, indent);
     }
@@ -379,6 +383,12 @@ bool BasicType::writeFixedLength(
     if (isString(db)) {
         return writeFixedLengthString(out, db, indent);
     }
+    
+    auto& p = props(db);
+    if (prop::isConstant(p)) {
+        std::cerr << "ERROR: Fixed length constant arrays are unsupported (\"" << prop::name(p) << "\")." << std::endl;
+        return false;
+    }
 
     return writeFixedLengthArray(out, db, indent, primType);
 }
@@ -389,13 +399,44 @@ bool BasicType::writeFixedLengthString(
     unsigned indent)
 {
     auto& p = props(db);
-    unsigned len = prop::length(p);
-    assert(1U < len);
-    out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
+    if (!isConstString(db)) {
+        unsigned len = prop::length(p);
+        assert(1U < len);
+        out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
+               output::indent(indent + 1) << "comms::field::String<\n" <<
+               output::indent(indent + 2) << "FieldBase,\n" <<
+               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
+               output::indent(indent + 1) << ">";
+        return true;
+    }
+    
+    auto text = xmlText(getNode());
+    out << output::indent(indent) << "struct " << prop::name(p) << " : public \n" <<
            output::indent(indent + 1) << "comms::field::String<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
-           output::indent(indent + 1) << ">";
+           output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << prop::name(p) << "()\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << "using Base = typename std::decay<decltype(toFieldBase(*this))>::type;\n" <<
+           output::indent(indent + 2) << "static const char Chars[" << text.size() << "] = {\n" <<
+           output::indent(indent + 3);
+    bool firstChar = true;
+    for (auto ch : text) {
+        if (!firstChar) {
+            out << ", ";
+        }
+
+        firstChar = false;
+        out << '\'' << ch << '\'';
+    }
+    out << '\n' <<
+           output::indent(indent + 2) << "}\n\n" <<
+           output::indent(indent + 2) << "Base::value() = Chars;\n" <<
+           output::indent(indent + 1) << "}\n" <<
+           output::indent(indent) << "}";
+    
     return true;
 }
 
@@ -479,5 +520,12 @@ bool BasicType::isString(DB& db)
 
     return primType == CharType;
 }
+
+bool BasicType::isConstString(DB& db)
+{
+    auto& p = props(db);
+    return prop::isConstant(p) && isString(db);
+}
+
 
 } // namespace sbe2comms

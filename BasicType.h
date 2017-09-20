@@ -104,6 +104,8 @@ private:
     bool hasMinMaxValues(DB& db);
 
     bool isString(DB& db);
+
+    bool isConstString(DB& db);
 };
 
 } // namespace sbe2comms

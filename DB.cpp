@@ -60,42 +60,13 @@ bool recordTypeRef(xmlNodePtr node, DB& db)
         return false;
     }
 
-    using TypeCreateFunc = std::function<TypePtr (xmlNodePtr)>;
-    static const std::map<std::string, TypeCreateFunc> Map = {
-        std::make_pair(
-            "type",
-            [](xmlNodePtr n)
-            {
-                return TypePtr(new BasicType(n));
-            }),
-        std::make_pair(
-            "composite",
-            [](xmlNodePtr n)
-            {
-                return TypePtr(new CompositeType(n));
-            }),
-        std::make_pair(
-            "enum",
-            [](xmlNodePtr n)
-            {
-                return TypePtr(new EnumType(n));
-            }),
-        std::make_pair(
-            "set",
-            [](xmlNodePtr n)
-            {
-                return TypePtr(new SetType(n));
-            })
-    };
-
     std::string kind(reinterpret_cast<const char*>(node->name));
-    auto createIter = Map.find(kind);
-    if (createIter == Map.end()) {
-        std::cerr << "ERROR: Unknown type kind \"" << kind << "\"." << std::endl;
+    auto ptr = Type::create(kind, node);
+    if (!ptr) {
         return false;
     }
 
-    db.m_types.insert(std::make_pair(std::move(name), createIter->second(node)));
+    db.m_types.insert(std::make_pair(std::move(name), std::move(ptr)));
     return true;
 }
 

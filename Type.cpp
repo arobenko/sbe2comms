@@ -22,6 +22,11 @@
 #include "DB.h"
 #include "get.h"
 #include "output.h"
+#include "BasicType.h"
+#include "CompositeType.h"
+#include "EnumType.h"
+#include "SetType.h"
+#include "RefType.h"
 
 namespace sbe2comms
 {
@@ -33,6 +38,51 @@ Type::Type(xmlNodePtr node)
 }
 
 Type::~Type() noexcept = default;
+
+Type::Ptr Type::create(const std::string& name, xmlNodePtr node)
+{
+    using TypeCreateFunc = std::function<Ptr (xmlNodePtr)>;
+    static const std::map<std::string, TypeCreateFunc> Map = {
+        std::make_pair(
+            "type",
+            [](xmlNodePtr n)
+            {
+                return Ptr(new BasicType(n));
+            }),
+        std::make_pair(
+            "composite",
+            [](xmlNodePtr n)
+            {
+                return Ptr(new CompositeType(n));
+            }),
+        std::make_pair(
+            "enum",
+            [](xmlNodePtr n)
+            {
+                return Ptr(new EnumType(n));
+            }),
+        std::make_pair(
+            "set",
+            [](xmlNodePtr n)
+            {
+                return Ptr(new SetType(n));
+            }),
+        std::make_pair(
+            "ref",
+            [](xmlNodePtr n)
+            {
+                return Ptr(new RefType(n));
+            })
+    };
+
+    auto createIter = Map.find(name);
+    if (createIter == Map.end()) {
+        std::cerr << "ERROR: Unknown type kind \"" << name << "\"." << std::endl;
+        return Ptr();
+    }
+
+    return createIter->second(node);
+}
 
 bool Type::write(std::ostream& out, DB& db, unsigned indent)
 {
@@ -50,7 +100,19 @@ bool Type::write(std::ostream& out, DB& db, unsigned indent)
         return true;
     }
 
-    return writeImpl(out, db, indent);
+    if (m_written) {
+        return true;
+    }
+
+    if (m_writingInProgress) {
+        std::cerr << "ERROR: Recursive types dependencies discovered for \"" << prop::name(props(db)) << "\" type." << std::endl;
+        return false;
+    }
+
+    m_writingInProgress = true;
+    m_written = writeImpl(out, db, indent);
+    m_writingInProgress = false;
+    return m_written;
 }
 
 const XmlPropsMap& Type::props(DB& db)
@@ -59,6 +121,14 @@ const XmlPropsMap& Type::props(DB& db)
         m_props = xmlParseNodeProps(m_node, db.m_doc.get());
     }
     return m_props;
+}
+
+bool Type::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
+{
+    static_cast<void>(out);
+    static_cast<void>(db);
+    static_cast<void>(indent);
+    return true;
 }
 
 bool Type::isDeperated(DB& db)

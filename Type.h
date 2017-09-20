@@ -33,16 +33,21 @@ class DB;
 class Type
 {
 public:
+    using Ptr = std::unique_ptr<Type>;
+
     enum class Kind
     {
         Basic,
         Composite,
         Enum,
-        Set
+        Set,
+        Ref
     };
 
     explicit Type(xmlNodePtr node);
     virtual ~Type() noexcept;
+
+    static Ptr create(const std::string& name, xmlNodePtr node);
 
     void recordNormalUse()
     {
@@ -73,6 +78,11 @@ public:
         return lengthImpl(db);
     }
 
+    bool writeDependencies(std::ostream& out, DB& db, unsigned indent = 0)
+    {
+        return writeDependenciesImpl(out, db, indent);
+    }
+
 protected:
     xmlNodePtr getNode() const
     {
@@ -82,6 +92,7 @@ protected:
     virtual Kind kindImpl() const = 0;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
     virtual std::size_t lengthImpl(DB& db) = 0;
+    virtual bool writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent);
 
     bool isDeperated(DB& db);
     bool isIntroduced(DB& db);
@@ -109,8 +120,10 @@ private:
     xmlNodePtr m_node = nullptr;
     std::array<unsigned, Use_NumOfValues> m_uses;
     XmlPropsMap m_props;
+    bool m_written = false;
+    bool m_writingInProgress = false;
 };
 
-using TypePtr = std::unique_ptr<Type>;
+using TypePtr = Type::Ptr;
 
 } // namespace sbe2comms

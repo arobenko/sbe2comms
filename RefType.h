@@ -17,28 +17,25 @@
 
 #pragma once
 
-#include <vector>
-
 #include "Type.h"
 
 namespace sbe2comms
 {
 
-class CompositeType : public Type
+class RefType : public Type
 {
     using Base = Type;
 public:
-    explicit CompositeType(xmlNodePtr node) : Base(node) {}
+    explicit RefType(xmlNodePtr node) : Base(node) {}
 
 protected:
     virtual Kind kindImpl() const override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
     virtual std::size_t lengthImpl(DB& db) override;
-private:
-    bool prepareMembers(DB& db);
-    bool writeMembers(std::ostream& out, DB& db, unsigned indent);
+    virtual bool writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent) override;
 
-    std::vector<TypePtr> m_members;
+private:
+    const Ptr& getReferenceType(DB& db);
 };
 
 } // namespace sbe2comms

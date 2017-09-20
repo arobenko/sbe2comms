@@ -17,8 +17,21 @@
 
 #include "CompositeType.h"
 
+#include <iostream>
+
+#include "DB.h"
+#include "prop.h"
+#include "output.h"
+
 namespace sbe2comms
 {
+
+namespace
+{
+
+const std::string MembersSuffix("Members");
+
+} // namespace
 
 CompositeType::Kind CompositeType::kindImpl() const
 {
@@ -27,6 +40,22 @@ CompositeType::Kind CompositeType::kindImpl() const
 
 bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
+    if (!prepareMembers(db)) {
+        return false;
+    }
+
+    auto& p = props(db);
+    for (auto& m : m_members) {
+        if (!m->writeDependencies(out, db, indent)) {
+            std::cerr << "ERROR: Failed to write dependencies for composite \"" << prop::name(p) << "\"." << std::endl;
+            return false;
+        }
+    }
+
+    if (!writeMembers(out, db, indent)) {
+        return false;
+    }
+
     static_cast<void>(out);
     static_cast<void>(db);
     static_cast<void>(indent);
@@ -39,6 +68,40 @@ std::size_t CompositeType::lengthImpl(DB& db)
     static_cast<void>(db);
     // TODO
     return 0U;
+}
+
+bool CompositeType::prepareMembers(DB& db)
+{
+    auto& p = props(db);
+    auto children = xmlChildren(getNode());
+    m_members.reserve(children.size());
+    for (auto* c : children) {
+        std::string cName(reinterpret_cast<const char*>(c->name));
+        m_members.push_back(Type::create(cName, c));
+        if (!m_members.back()) {
+            m_members.pop_back();
+            std::cerr << "ERROR: Failed to create members of \"" << prop::name(p) << "\" composite." << std::endl;
+            return false;
+        }
+    }
+    return !m_members.empty();
+}
+
+bool CompositeType::writeMembers(std::ostream& out, DB& db, unsigned indent)
+{
+    auto& p = props(db);
+    auto& n = prop::name(p);
+    std::string membersStruct = n + MembersSuffix;
+
+    out << output::indent(indent) << "/// \\brief Scope for all the members of \"" << n << "\" field.\n" <<
+           output::indent(indent) << "struct " << membersStruct << '\n' <<
+           output::indent(indent) << "{\n";
+    bool result = true;
+    for (auto& m : m_members) {
+        result = m->write(out, db, indent + 1) && result;
+    }
+    out << output::indent(indent) << "};\n\n";
+    return result;
 }
 
 } // namespace sbe2comms

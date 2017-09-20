@@ -69,6 +69,7 @@ set (
     "CompositeType.cpp"
     "EnumType.cpp"
     "SetType.cpp"
+    "RefType.cpp"
     "Message.cpp"
     "Field.cpp"
     "BasicField.cpp"
