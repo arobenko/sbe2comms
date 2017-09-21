@@ -31,6 +31,13 @@ namespace
 
 const std::string MembersSuffix("Members");
 
+enum StringEncIdx
+{
+    StringEncIdx_length,
+    StringEncIdx_data,
+    StringEncIdx_numOfValues
+};
+
 } // namespace
 
 CompositeType::Kind CompositeType::kindImpl() const
@@ -54,6 +61,10 @@ bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 
     if (!writeMembers(out, db, indent)) {
         return false;
+    }
+
+    if (mustBeString()) {
+        return writeString(out, db, indent);
     }
 
     return writeBundle(out, db, indent);
@@ -155,6 +166,39 @@ bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent)
     out << output::indent(indent + 1) << ");\n" <<
            output::indent(indent) << "};\n\n";
 
+    return true;
+}
+
+bool CompositeType::writeString(std::ostream& out, DB& db, unsigned indent)
+{
+    auto& p = props(db);
+    auto& n = prop::name(p);
+
+    if (m_members.size() != StringEncIdx_numOfValues) {
+        std::cerr << "ERROR: The number of members in \"" << n << "\" composite is expected to be " << StringEncIdx_numOfValues << std::endl;
+        return false;
+    }
+
+    writeBrief(out, db, indent, true);
+    auto& lenProps = m_members[StringEncIdx_length]->props(db);
+    auto& dataProps = m_members[StringEncIdx_data]->props(db);
+    out << output::indent(indent) << "template <typename... TOpt>\n" <<
+           output::indent(indent) << "using " << n << " = \n" <<
+           output::indent(indent + 1) << n << MembersSuffix << "::" << prop::name(dataProps) << "<\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceSizeFieldPrefix<\n" <<
+           output::indent(indent + 3) << n << MembersSuffix << "::" << prop::name(lenProps) << '\n' <<
+           output::indent(indent + 2) << ">\n" <<
+           output::indent(indent + 1) << ">;\n\n";
+    return true;
+}
+
+bool CompositeType::mustBeString()
+{
+    if (!dataUseRecorded()) {
+        return false;
+    }
+
+    // TODO: check semantic type(s)
     return true;
 }
 

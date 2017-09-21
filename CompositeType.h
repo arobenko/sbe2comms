@@ -38,6 +38,8 @@ private:
     bool prepareMembers(DB& db);
     bool writeMembers(std::ostream& out, DB& db, unsigned indent);
     bool writeBundle(std::ostream& out, DB& db, unsigned indent);
+    bool writeString(std::ostream& out, DB& db, unsigned indent);
+    bool mustBeString();
 
     std::vector<TypePtr> m_members;
 };

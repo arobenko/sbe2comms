@@ -328,7 +328,8 @@ bool BasicType::writeVarLengthString(
     unsigned indent)
 {
     auto p = props(db);
-    out << output::indent(indent) << "using " << prop::name(p) << " = comms::field::String<FieldBase>";
+    out << output::indent(indent) << "template <typename... TOpt>\n" <<
+           output::indent(indent) << "using " << prop::name(p) << " = comms::field::String<FieldBase, TOpt...>";
     return true;
 }
 
@@ -515,6 +516,11 @@ bool BasicType::isString(DB& db)
     boost::algorithm::to_lower(semType);
     static const std::string StringSemanticType("string");
     if (semType == StringSemanticType) {
+        return true;
+    }
+
+    auto& enc = prop::characterEncoding(p);
+    if (!enc.empty()) {
         return true;
     }
 

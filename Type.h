@@ -49,6 +49,21 @@ public:
 
     static Ptr create(const std::string& name, xmlNodePtr node);
 
+    bool normalUseRecorded() const
+    {
+        return 0U < m_uses[Use_Normal];
+    }
+
+    bool groupSizeUseRecorded() const
+    {
+        return 0U < m_uses[Use_GroupSize];
+    }
+
+    bool dataUseRecorded() const
+    {
+        return 0U < m_uses[Use_Data];
+    }
+
     void recordNormalUse()
     {
         ++m_uses[Use_Normal];
