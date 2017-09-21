@@ -37,6 +37,7 @@ protected:
 private:
     bool prepareMembers(DB& db);
     bool writeMembers(std::ostream& out, DB& db, unsigned indent);
+    bool writeBundle(std::ostream& out, DB& db, unsigned indent);
 
     std::vector<TypePtr> m_members;
 };

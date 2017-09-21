@@ -56,11 +56,7 @@ bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
         return false;
     }
 
-    static_cast<void>(out);
-    static_cast<void>(db);
-    static_cast<void>(indent);
-    // TODO
-    return true;
+    return writeBundle(out, db, indent);
 }
 
 std::size_t CompositeType::lengthImpl(DB& db)
@@ -93,15 +89,73 @@ bool CompositeType::writeMembers(std::ostream& out, DB& db, unsigned indent)
     auto& n = prop::name(p);
     std::string membersStruct = n + MembersSuffix;
 
-    out << output::indent(indent) << "/// \\brief Scope for all the members of \"" << n << "\" field.\n" <<
+    out << output::indent(indent) << "/// \\brief Scope for all the members of the \\ref " << n << " field.\n" <<
            output::indent(indent) << "struct " << membersStruct << '\n' <<
            output::indent(indent) << "{\n";
     bool result = true;
     for (auto& m : m_members) {
         result = m->write(out, db, indent + 1) && result;
     }
-    out << output::indent(indent) << "};\n\n";
+
+    out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n" <<
+           output::indent(indent + 1) << "using All = std::tuple<\n";
+    bool first = true;
+    for (auto& m : m_members) {
+        if (!first) {
+            out << ",\n";
+        }
+        first = false;
+        auto& mProps = m->props(db);
+        auto& mName = prop::name(mProps);
+        if (!mName.empty()) {
+            out << output::indent(indent + 2) << mName;
+        }
+    }
+    out << '\n' <<
+           output::indent(indent + 1) << ">;\n" <<
+           output::indent(indent) << "};\n\n";
     return result;
+}
+
+bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent)
+{
+    writeBrief(out, db, indent);
+    auto& p = props(db);
+    auto& n = prop::name(p);
+    if (n.empty()) {
+        std::cerr << "ERROR: Unknown name of composite type" << std::endl;
+        return false;
+    }
+
+    out << output::indent(indent) << "struct " << n << " : public\n" <<
+           output::indent(indent + 1) << "comms::field::Bundle<\n" <<
+           output::indent(indent + 2) << "FieldBase,\n" <<
+           output::indent(indent + 2) << n << MembersSuffix << "::All\n" <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "/// \\brief Allow access to internal fields.\n" <<
+           output::indent(indent + 1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
+           output::indent(indent + 1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
+           output::indent(indent + 1) << "///     for details.\\n\n" <<
+           output::indent(indent + 1) << "///     The names are:\n";
+    auto memsScope = n + MembersSuffix + "::";
+    for (auto& m : m_members) {
+        auto& mProps = m->props(db);
+        out << output::indent(indent + 1) << "///     \\li \\b " << prop::name(mProps) << " for \\ref " << memsScope << prop::name(mProps) << '.' << std::endl;
+    }
+    out << output::indent(indent + 1) << "COMMS_FIELD_MEMBERS_ACCESS(\n";
+    bool first = true;
+    for (auto& m : m_members) {
+        if (!first) {
+            out << ",\n";
+        }
+        auto& mProps = m->props(db);
+        out << output::indent(indent + 2) << prop::name(mProps) << std::endl;
+    }
+    out << output::indent(indent + 1) << ");\n" <<
+           output::indent(indent) << "};\n\n";
+
+    return true;
 }
 
 } // namespace sbe2comms

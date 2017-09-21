@@ -21,6 +21,7 @@
 
 #include "DB.h"
 #include "prop.h"
+#include "output.h"
 
 namespace sbe2comms
 {
@@ -37,11 +38,22 @@ bool RefType::writeImpl(std::ostream& out, DB& db, unsigned indent)
         return false;
     }
 
+    auto& p = props(db);
+    auto& n = prop::name(p);
+    if (n.empty()) {
+        std::cerr << "ERROR: Unknown name of the \"ref\" element" << std::endl;
+        return false;
+    }
 
-    static_cast<void>(out);
-    static_cast<void>(db);
-    static_cast<void>(indent);
-    // TODO
+    auto& refProps = ptr->props(db);
+    auto& refName = prop::name(refProps);
+    if (refName.empty()) {
+        std::cerr << "ERROR: Unknown reference type of \"" << n << "\" ref." << std::endl;
+        return false;
+    }
+
+    writeBrief(out, db, indent);
+    out << output::indent(indent) << "using " << n << " = field::" << refName << ";\n\n";
     return true;
 }
 
