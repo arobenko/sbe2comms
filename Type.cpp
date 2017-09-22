@@ -27,6 +27,7 @@
 #include "EnumType.h"
 #include "SetType.h"
 #include "RefType.h"
+#include "log.h"
 
 namespace sbe2comms
 {
@@ -42,7 +43,30 @@ Type::~Type() noexcept = default;
 
 bool Type::parse()
 {
-    assert(!"NYI");
+    m_props = xmlParseNodeProps(m_node, getDb().getDoc());
+    if (m_props.empty()) {
+        log::error() << "No properties for \"" << getNodeName() << "\" type." << std::endl;
+        return false;
+    }
+
+    auto& name = getName();
+    if (name.empty()) {
+        log::error() << "No name has been specified for \"" << getNodeName() << "\" type." << std::endl;
+        return false;
+    }
+
+    return parseImpl();
+}
+
+const char* Type::getNodeName() const
+{
+    return reinterpret_cast<const char*>(getNode()->name);
+}
+
+const std::string& Type::getName() const
+{
+    assert(!m_props.empty());
+    return prop::name(m_props);
 }
 
 Type::Ptr Type::create(const std::string& name, DB& db, xmlNodePtr node)
@@ -127,6 +151,11 @@ const XmlPropsMap& Type::props(DB& db)
         m_props = xmlParseNodeProps(m_node, db.getDoc());
     }
     return m_props;
+}
+
+bool Type::parseImpl()
+{
+    return true;
 }
 
 bool Type::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)

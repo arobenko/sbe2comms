@@ -80,6 +80,7 @@ set (
     "get.cpp"
     "prop.cpp"
     "output.cpp"
+    "log.cpp"
 )
 
 add_executable(${PROJECT_NAME} ${src})

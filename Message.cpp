@@ -112,7 +112,7 @@ Message::Message(DB& db, xmlNodePtr node)
 
 bool Message::parse()
 {
-    assert(!"NYI");
+    // TODO
     return true;
 }
 

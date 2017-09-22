@@ -49,6 +49,10 @@ public:
 
     bool parse();
 
+    const char* getNodeName() const;
+
+    const std::string& getName() const;
+
     static Ptr create(const std::string& name, DB& db, xmlNodePtr node);
 
     bool normalUseRecorded() const
@@ -112,6 +116,7 @@ protected:
     }
 
     virtual Kind kindImpl() const = 0;
+    virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
     virtual std::size_t lengthImpl(DB& db) = 0;
     virtual bool writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent);
