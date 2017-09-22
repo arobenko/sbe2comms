@@ -26,17 +26,12 @@ namespace sbe2comms
 namespace get
 {
 
-const std::string& rootPath(DB& db);
 const std::string& messageDirName();
 const std::string& includeDirName();
 const std::string& fieldsDefFileName();
 const std::string& nameProperty();
 const std::string& emptyString();
 const std::string& unknownValueString();
-const std::string& protocolNamespace(DB& db);
-const std::string& protocolRelDir(DB& db);
-unsigned schemaVersion(DB& db);
-const std::string& endian(DB& db);
 
 } // namespace get
 

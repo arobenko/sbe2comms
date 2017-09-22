@@ -35,7 +35,11 @@ class Message
 public:
     using FieldsList = std::vector<FieldPtr>;
 
-    explicit Message(xmlNodePtr node);
+    Message(DB& db, xmlNodePtr node);
+    Message(const Message&) = default;
+    Message(Message&&) = default;
+
+    bool parse();
 
     bool write(DB& db);
     const std::string& name(DB& db);
@@ -50,6 +54,7 @@ private:
     void retrieveProps(DB& db);
     bool writeMessageDef(const std::string& filename, DB& db);
 
+    DB& m_db;
     xmlNodePtr m_node = nullptr;
     XmlPropsMap m_props;
     boost::optional<FieldsList> m_fields;

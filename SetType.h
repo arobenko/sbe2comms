@@ -28,7 +28,7 @@ class SetType : public Type
 {
     using Base = Type;
 public:
-    explicit SetType(xmlNodePtr node) : Base(node) {}
+    explicit SetType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
 protected:
     virtual Kind kindImpl() const override;

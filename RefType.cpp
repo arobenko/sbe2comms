@@ -88,8 +88,9 @@ const RefType::Ptr& RefType::getReferenceType(DB& db)
         return NoRef;
     }
 
-    auto iter = db.m_types.find(t);
-    if (iter == db.m_types.end()) {
+    auto& types = db.getTypes();
+    auto iter = types.find(t);
+    if (iter == types.end()) {
         std::cerr << "ERROR: Unknown type \"" << t << "\" in ref \"" << prop::name(p) << "\"." << std::endl;
         return NoRef;
     }

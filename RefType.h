@@ -26,7 +26,7 @@ class RefType : public Type
 {
     using Base = Type;
 public:
-    explicit RefType(xmlNodePtr node) : Base(node) {}
+    explicit RefType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
 protected:
     virtual Kind kindImpl() const override;

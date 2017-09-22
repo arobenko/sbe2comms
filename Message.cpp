@@ -48,14 +48,14 @@ void writeIncludes(std::ostream& out, DB& db, const std::string& msgName)
         "#pragma once\n"
         "\n"
         "#include \"comms/MessageBase.h\"\n"
-        "#include \"" << get::protocolNamespace(db) << '/' << get::fieldsDefFileName() << "\"\n"
+        "#include \"" << db.getProtocolNamespace() << '/' << get::fieldsDefFileName() << "\"\n"
         "#include \"" << "details/" << msgName << ".h\"\n"
         "\n";
 }
 
 void openNamespaces(std::ostream& out, DB& db)
 {
-    auto& ns = get::protocolNamespace(db);
+    auto& ns = db.getProtocolNamespace();
     if (!ns.empty()) {
         out << "namespace " << ns << "\n"
                "{\n"
@@ -72,7 +72,7 @@ void closeNamespaces(std::ostream& out, DB& db)
     out << "} // namespace " << get::messageDirName() << "\n"
             "\n";
 
-    auto& ns = get::protocolNamespace(db);
+    auto& ns = db.getProtocolNamespace();
     if (!ns.empty()) {
         out << "} // namespace " << ns << "\n"
                "\n";
@@ -104,9 +104,16 @@ void closeFieldsDef(std::ostream& out, const std::string& name)
 
 } // namespace
 
-Message::Message(xmlNodePtr node)
-  : m_node(node)
+Message::Message(DB& db, xmlNodePtr node)
+  : m_db(db),
+    m_node(node)
 {
+}
+
+bool Message::parse()
+{
+    assert(!"NYI");
+    return true;
 }
 
 bool Message::write(DB& db)
@@ -115,8 +122,8 @@ bool Message::write(DB& db)
         return false;
     }
 
-    bf::path root(get::rootPath(db));
-    bf::path protocolRelDir(get::protocolRelDir(db));
+    bf::path root(db.getRootPath());
+    bf::path protocolRelDir(db.getProtocolRelDir());
     bf::path messagesDir(root / protocolRelDir / get::messageDirName());
 
     boost::system::error_code ec;
@@ -281,7 +288,7 @@ void Message::retrieveProps(DB& db)
         return;
     }
 
-    m_props = xmlParseNodeProps(m_node, db.m_doc.get());
+    m_props = xmlParseNodeProps(m_node, db.getDoc());
     assert(!m_props.empty());
 }
 

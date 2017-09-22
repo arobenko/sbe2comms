@@ -36,7 +36,8 @@ bool writeBuiltIn(DB& db)
 
 bool writeMessages(DB& db)
 {
-    for (auto iter = db.m_messages.begin(); iter != db.m_messages.end(); ++iter) {
+    auto& messages = db.getMessages();
+    for (auto iter = messages.begin(); iter != messages.end(); ++iter) {
         if (!iter->second.write(db)) {
             return false;
         }
@@ -46,8 +47,8 @@ bool writeMessages(DB& db)
 
 bool writeTypes(DB& db)
 {
-    bf::path root(get::rootPath(db));
-    bf::path protocolRelDir(get::protocolRelDir(db));
+    bf::path root(db.getRootPath());
+    bf::path protocolRelDir(db.getProtocolRelDir());
     bf::path protocolDir(root / protocolRelDir);
 
     boost::system::error_code ec;
@@ -77,7 +78,7 @@ bool writeTypes(DB& db)
               "\n"
               "#include \"comms/fields.h\"\n"
               "#include \"comms/Field.h\"\n\n";
-    auto& ns = get::protocolNamespace(db);
+    auto& ns = db.getProtocolNamespace();
     if (!ns.empty()) {
         stream << "namespace " << ns << "\n"
                   "{\n\n";
@@ -86,11 +87,11 @@ bool writeTypes(DB& db)
     stream << "namespace field\n"
               "{\n\n"
               "/// \\brief Definition of common base class of all the fields.\n"
-              "using FieldBase = comms::Field<" << get::endian(db) << ">;\n\n";
+              "using FieldBase = comms::Field<" << db.getEndian() << ">;\n\n";
 
 
     bool result = true;
-    for (auto& t : db.m_types) {
+    for (auto& t : db.getTypes()) {
         result = t.second->write(stream, db) && result;
     }
 
@@ -120,7 +121,7 @@ int main(int argc, const char* argv[])
 
     sbe2comms::DB db;
     bool result =
-        sbe2comms::parseSchema(argv[1], db) &&
+        db.parseSchema(argv[1]) &&
         sbe2comms::writeBuiltIn(db) &&
         sbe2comms::writeMessages(db) &&
         sbe2comms::writeTypes(db);

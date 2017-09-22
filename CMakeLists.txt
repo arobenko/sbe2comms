@@ -63,6 +63,7 @@ set (
     src
     "main.cpp"
     "xml_wrap.cpp"
+    "DB.cpp"
     "MessageSchema.cpp"
     "Type.cpp"
     "BasicType.cpp"
@@ -75,7 +76,6 @@ set (
     "BasicField.cpp"
     "GroupField.cpp"
     "DataField.cpp"
-    "DB.cpp"
     "BuiltIn.cpp"
     "get.cpp"
     "prop.cpp"

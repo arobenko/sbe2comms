@@ -46,8 +46,9 @@ bool DataField::writeImpl(std::ostream& out, DB& db, unsigned indent)
         return false;
     }
 
-    auto typeIter = db.m_types.find(type);
-    if (typeIter == db.m_types.end()) {
+    auto& types = db.getTypes();
+    auto typeIter = types.find(type);
+    if (typeIter == types.end()) {
         out << " ???;\n\n";
         std::cerr << output::indent(1) <<
             "ERROR: Unknown type \"" << type << "\" for data field \"" << name << "\"" << std::endl;

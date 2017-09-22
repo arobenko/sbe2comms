@@ -102,8 +102,9 @@ std::size_t SetType::lengthImpl(DB& db)
         return 0U;
     }
 
-    auto iter = db.m_types.find(encType);
-    if (iter == db.m_types.end()) {
+    auto& types = db.getTypes();
+    auto iter = types.find(encType);
+    if (iter == types.end()) {
         auto len = primitiveLength(encType);
         if (len == 0) {
             std::cerr << "ERROR: Unknown encoding type \"" << encType << "\" for set \"" << prop::name(p) << "\"" << std::endl;
@@ -136,7 +137,7 @@ bool SetType::readChoices(DB& db)
     assert(0U < bitsCount);
     std::set<std::string> processedNames;
     for (auto* c : choices) {
-        auto choiceProps = xmlParseNodeProps(c, db.m_doc.get());
+        auto choiceProps = xmlParseNodeProps(c, db.getDoc());
         auto& choiceName = prop::name(choiceProps);
         if (choiceName.empty()) {
             std::cerr << "ERROR: The set \"" << prop::name(p) << "\" has choice without name." << std::endl;

@@ -29,7 +29,7 @@ class EnumType : public Type
 {
     using Base = Type;
 public:
-    explicit EnumType(xmlNodePtr node) : Base(node) {}
+    explicit EnumType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
 protected:
     virtual Kind kindImpl() const override;

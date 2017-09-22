@@ -21,98 +21,24 @@
 #include <cassert>
 #include <functional>
 
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include "BasicType.h"
 #include "CompositeType.h"
 #include "EnumType.h"
 #include "SetType.h"
+#include "prop.h"
+#include "get.h"
+
+namespace bf = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
 
 namespace
 {
-
-const std::string NameStr("name");
-
-bool recordTypeRef(xmlNodePtr node, DB& db)
-{
-    std::string name;
-    auto* prop = node->properties;
-    while (prop != nullptr) {
-        auto* propName = reinterpret_cast<const char*>(prop->name);
-        if (propName == NameStr) {
-            XmlCharPtr valuePtr(xmlNodeListGetString(db.m_doc.get(), prop->children, 1));
-            name = reinterpret_cast<const char*>(valuePtr.get());
-            break;
-        }
-        prop = prop->next;
-    }
-
-    if (name.empty()) {
-        std::cerr << "ERROR: type element \"" <<
-            node->name << "\" does NOT have name property" << std::endl;
-        return false;
-    }
-
-    auto iter = db.m_types.find(name);
-    if (iter != db.m_types.end()) {
-        std::cerr << "ERROR: type \"" << name << "\" has been defined more than once" << std::endl;
-        return false;
-    }
-
-    std::string kind(reinterpret_cast<const char*>(node->name));
-    auto ptr = Type::create(kind, node);
-    if (!ptr) {
-        return false;
-    }
-
-    db.m_types.insert(std::make_pair(std::move(name), std::move(ptr)));
-    return true;
-}
-
-bool parseTypes(xmlNodePtr node, DB& db)
-{
-    auto* cur = node->children;
-    while (cur != nullptr) {
-        if (cur->type == XML_ELEMENT_NODE) {
-            if (!recordTypeRef(cur, db)) {
-                return false;
-            }
-        }
-
-        cur = cur->next;
-    }
-    return true;
-}
-
-bool parseMessage(xmlNodePtr node, DB& db)
-{
-    std::string name;
-    auto* prop = node->properties;
-    while (prop != nullptr) {
-        auto* propName = reinterpret_cast<const char*>(prop->name);
-        if (propName == NameStr) {
-            XmlCharPtr valuePtr(xmlNodeListGetString(db.m_doc.get(), prop->children, 1));
-            name = reinterpret_cast<const char*>(valuePtr.get());
-            break;
-        }
-        prop = prop->next;
-    }
-
-    if (name.empty()) {
-        std::cerr << "ERROR: message element does NOT have name property" << std::endl;
-        return false;
-    }
-
-    auto iter = db.m_messages.find(name);
-    if (iter != db.m_messages.end()) {
-        std::cerr << "ERROR: message \"" << name << "\" has been defined more than once" << std::endl;
-        return false;
-    }
-
-    db.m_messages.insert(std::make_pair(std::move(name), Message(node)));
-    return true;
-}
 
 //bool updateConfigNamespace(const PropsMap& map, DB& db)
 //{
@@ -144,15 +70,15 @@ bool parseMessage(xmlNodePtr node, DB& db)
 
 } // namespace
 
-bool parseSchema(std::string filename, DB& db)
+bool DB::parseSchema(std::string filename)
 {
-    db.m_doc.reset(xmlParseFile(filename.c_str()));
-    if (!db.m_doc) {
+    m_doc.reset(xmlParseFile(filename.c_str()));
+    if (!m_doc) {
         std::cerr << "ERROR: Invalid schema file: \"" << filename << "\"!" << std::endl;
         return false;
     }
 
-    auto* root = xmlDocGetRootElement(db.m_doc.get());
+    auto* root = xmlDocGetRootElement(m_doc.get());
     if (root == nullptr) {
         std::cerr << "ERROR: Failed to fine root element in the schema!" << std::endl;
         return false;
@@ -166,13 +92,13 @@ bool parseSchema(std::string filename, DB& db)
         return false;
     }
 
-    db.m_messageSchema.reset(new MessageSchema(root, db.m_doc.get()));
+    m_messageSchema.reset(new MessageSchema(root, m_doc.get()));
 
-    using ParseChildNodeFunc = bool (*)(xmlNodePtr node, DB& db);
+    using ParseChildNodeFunc = bool (DB::*)(xmlNodePtr node);
 
     std::map<std::string, ParseChildNodeFunc> parseFuncMap = {
-        std::make_pair("types", static_cast<ParseChildNodeFunc>(&parseTypes)),
-        std::make_pair("message", static_cast<ParseChildNodeFunc>(&parseMessage))
+        std::make_pair("types", &DB::parseTypes),
+        std::make_pair("message", &DB::parseMessage)
     };
 
     auto* cur = root->children;
@@ -190,7 +116,7 @@ bool parseSchema(std::string filename, DB& db)
             }
 
             auto func = iter->second;
-            if (!func(cur, db)) {
+            if (!((this->*func)(cur))) {
                 return false;
             }
         } while (false);
@@ -200,6 +126,149 @@ bool parseSchema(std::string filename, DB& db)
 
     return true;
 }
+
+const std::string& DB::getRootPath()
+{
+    if (m_cache.m_rootDir.empty()) {
+        // TODO: program options
+        m_cache.m_rootDir = bf::current_path().string();
+    }
+
+    assert(!m_cache.m_rootDir.empty());
+    return m_cache.m_rootDir;
+}
+
+const std::string& DB::getProtocolNamespace()
+{
+    if (m_cache.m_namespace) {
+        return *m_cache.m_namespace;
+    }
+
+    assert(m_messageSchema);
+    auto package = m_messageSchema->package();
+    ba::replace_all(package, " ", "_");
+    m_cache.m_namespace = std::move(package);
+    return *m_cache.m_namespace;
+}
+
+const std::string& DB::getProtocolRelDir()
+{
+    if (m_cache.m_protocolRelDir.empty()) {
+        bf::path path(get::includeDirName());
+        auto& ns = getProtocolNamespace();
+        if (!ns.empty()) {
+            path /= ns;
+        }
+
+        m_cache.m_protocolRelDir = path.string();
+    }
+
+    assert(!m_cache.m_protocolRelDir.empty());
+    return m_cache.m_protocolRelDir;
+}
+
+unsigned DB::getSchemaVersion()
+{
+    auto& val = m_cache.m_schemaVersion;
+    if (!val) {
+        // TODO: check options for override
+        assert(m_messageSchema);
+        val = m_messageSchema->version();
+    }
+
+    return *val;
+}
+
+const std::string& DB::getEndian()
+{
+    auto& val = m_cache.m_endian;
+    if (!val.empty()) {
+        return val;
+    }
+
+    assert(m_messageSchema);
+    auto& byteOrder = m_messageSchema->byteOrder();
+
+    static const std::string BigEndianStr("bigEndian");
+    if (byteOrder == BigEndianStr) {
+        val = "comms::option::BigEndian";
+        return val;
+    }
+
+    val = "comms::option::LittleEndian";
+    return val;
+}
+
+bool DB::recordTypeRef(xmlNodePtr node)
+{
+    auto props = xmlParseNodeProps(node, m_doc.get());
+    auto& name = prop::name(props);
+
+    if (name.empty()) {
+        std::cerr << "ERROR: type element \"" <<
+            node->name << "\" does NOT have name property" << std::endl;
+        return false;
+    }
+
+    auto iter = m_types.find(name);
+    if (iter != m_types.end()) {
+        std::cerr << "ERROR: type \"" << name << "\" has been defined more than once" << std::endl;
+        return false;
+    }
+
+    std::string kind(reinterpret_cast<const char*>(node->name));
+    auto ptr = Type::create(kind, *this, node);
+    if (!ptr) {
+        return false;
+    }
+
+    if (!ptr->parse()) {
+        return false;
+    }
+
+    m_types.insert(std::make_pair(name, std::move(ptr)));
+    return true;
+}
+
+bool DB::parseTypes(xmlNodePtr node)
+{
+    auto* cur = node->children;
+    while (cur != nullptr) {
+        if (cur->type == XML_ELEMENT_NODE) {
+            if (!recordTypeRef(cur)) {
+                return false;
+            }
+        }
+
+        cur = cur->next;
+    }
+    return true;
+}
+
+bool DB::parseMessage(xmlNodePtr node)
+{
+    auto props = xmlParseNodeProps(node, m_doc.get());
+    auto& name = prop::name(props);
+    if (name.empty()) {
+        std::cerr << "ERROR: message element does NOT have name property" << std::endl;
+        return false;
+    }
+
+    auto iter = m_messages.find(name);
+    if (iter != m_messages.end()) {
+        std::cerr << "ERROR: message \"" << name << "\" has been defined more than once" << std::endl;
+        return false;
+    }
+
+    Message msg(*this, node);
+    if (!msg.parse()) {
+        return false;
+    }
+
+    m_messages.insert(std::make_pair(name, std::move(msg)));
+    return true;
+}
+
 
 //bool updateConfig(DB& db)
 //{

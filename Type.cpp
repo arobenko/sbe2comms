@@ -31,47 +31,53 @@
 namespace sbe2comms
 {
 
-Type::Type(xmlNodePtr node)
-  : m_node(node)
+Type::Type(DB& db, xmlNodePtr node)
+  : m_db(db),
+    m_node(node)
 {
     std::fill(m_uses.begin(), m_uses.end(), 0U);
 }
 
 Type::~Type() noexcept = default;
 
-Type::Ptr Type::create(const std::string& name, xmlNodePtr node)
+bool Type::parse()
 {
-    using TypeCreateFunc = std::function<Ptr (xmlNodePtr)>;
+    assert(!"NYI");
+}
+
+Type::Ptr Type::create(const std::string& name, DB& db, xmlNodePtr node)
+{
+    using TypeCreateFunc = std::function<Ptr (DB&, xmlNodePtr)>;
     static const std::map<std::string, TypeCreateFunc> Map = {
         std::make_pair(
             "type",
-            [](xmlNodePtr n)
+            [](DB& d, xmlNodePtr n)
             {
-                return Ptr(new BasicType(n));
+                return Ptr(new BasicType(d, n));
             }),
         std::make_pair(
             "composite",
-            [](xmlNodePtr n)
+            [](DB& d, xmlNodePtr n)
             {
-                return Ptr(new CompositeType(n));
+                return Ptr(new CompositeType(d, n));
             }),
         std::make_pair(
             "enum",
-            [](xmlNodePtr n)
+            [](DB& d, xmlNodePtr n)
             {
-                return Ptr(new EnumType(n));
+                return Ptr(new EnumType(d, n));
             }),
         std::make_pair(
             "set",
-            [](xmlNodePtr n)
+            [](DB& d, xmlNodePtr n)
             {
-                return Ptr(new SetType(n));
+                return Ptr(new SetType(d, n));
             }),
         std::make_pair(
             "ref",
-            [](xmlNodePtr n)
+            [](DB& d, xmlNodePtr n)
             {
-                return Ptr(new RefType(n));
+                return Ptr(new RefType(d, n));
             })
     };
 
@@ -81,7 +87,7 @@ Type::Ptr Type::create(const std::string& name, xmlNodePtr node)
         return Ptr();
     }
 
-    return createIter->second(node);
+    return createIter->second(db, node);
 }
 
 bool Type::write(std::ostream& out, DB& db, unsigned indent)
@@ -118,7 +124,7 @@ bool Type::write(std::ostream& out, DB& db, unsigned indent)
 const XmlPropsMap& Type::props(DB& db)
 {
     if (m_props.empty()) {
-        m_props = xmlParseNodeProps(m_node, db.m_doc.get());
+        m_props = xmlParseNodeProps(m_node, db.getDoc());
     }
     return m_props;
 }
@@ -139,7 +145,7 @@ bool Type::isDeperated(DB& db)
     }
 
     auto depVersion = prop::deprecated(p);
-    auto currVersion = get::schemaVersion(db);
+    auto currVersion = db.getSchemaVersion();
     return currVersion < depVersion;
 }
 
@@ -151,7 +157,7 @@ bool Type::isIntroduced(DB& db)
     }
 
     auto sinceVersion = prop::sinceVersion(p);
-    auto currVersion = get::schemaVersion(db);
+    auto currVersion = db.getSchemaVersion();
     return sinceVersion <= currVersion;
 }
 

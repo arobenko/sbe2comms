@@ -28,7 +28,7 @@ class CompositeType : public Type
 {
     using Base = Type;
 public:
-    explicit CompositeType(xmlNodePtr node) : Base(node) {}
+    explicit CompositeType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
 protected:
     virtual Kind kindImpl() const override;

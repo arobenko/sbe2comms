@@ -61,8 +61,8 @@ namespace sbe2comms
 
 bool BuiltIn::write(DB& db)
 {
-    bf::path root(get::rootPath(db));
-    bf::path protocolRelDir(get::protocolRelDir(db));
+    bf::path root(db.getRootPath());
+    bf::path protocolRelDir(db.getProtocolRelDir());
 
     boost::system::error_code ec;
     bf::create_directories(protocolRelDir, ec);

@@ -31,12 +31,48 @@
 namespace sbe2comms
 {
 
-struct DB
+class DB
 {
+public:
+    using TypesMap = std::map<std::string, TypePtr>;
+    using MessagesMap = std::map<std::string, Message>;
+
+    bool parseSchema(std::string filename);
+
+    xmlDocPtr getDoc()
+    {
+        return m_doc.get();
+    }
+
+    TypesMap& getTypes()
+    {
+        return m_types;
+    }
+
+    MessagesMap& getMessages()
+    {
+        return m_messages;
+    }
+
+    const std::string& getRootPath();
+
+    const std::string& getProtocolNamespace();
+
+    const std::string& getProtocolRelDir();
+
+    unsigned getSchemaVersion();
+
+    const std::string& getEndian();
+
+private:
+    bool recordTypeRef(xmlNodePtr node);
+    bool parseTypes(xmlNodePtr node);
+    bool parseMessage(xmlNodePtr node);
+
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
-    std::map<std::string, TypePtr> m_types;
-    std::map<std::string, Message> m_messages;
+    TypesMap m_types;
+    MessagesMap m_messages;
     std::list<std::string> m_groups;
 
     struct Cache {
@@ -47,8 +83,6 @@ struct DB
         boost::optional<unsigned> m_schemaVersion;
     } m_cache;
 };
-
-bool parseSchema(std::string filename, sbe2comms::DB& db);
 
 } // namespace sbe2comms
 

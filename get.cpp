@@ -29,17 +29,6 @@ namespace sbe2comms
 namespace get
 {
 
-const std::string& rootPath(DB& db)
-{
-    if (db.m_cache.m_rootDir.empty()) {
-        // TODO: program options
-        db.m_cache.m_rootDir = bf::current_path().string();
-    }
-
-    assert(!db.m_cache.m_rootDir.empty());
-    return db.m_cache.m_rootDir;
-}
-
 const std::string& messageDirName()
 {
     static const std::string Name("message");
@@ -74,67 +63,6 @@ const std::string& unknownValueString()
 {
     static const std::string Str("???;");
     return Str;
-}
-
-const std::string& protocolNamespace(DB& db)
-{
-    if (db.m_cache.m_namespace) {
-        return *db.m_cache.m_namespace;
-    }
-
-    assert(db.m_messageSchema);
-    auto package = db.m_messageSchema->package();
-    ba::replace_all(package, " ", "_");
-    db.m_cache.m_namespace = std::move(package);
-    return *db.m_cache.m_namespace;
-}
-
-const std::string& protocolRelDir(DB& db)
-{
-    if (db.m_cache.m_protocolRelDir.empty()) {
-        bf::path path(includeDirName());
-        auto& ns = protocolNamespace(db);
-        if (!ns.empty()) {
-            path /= ns;
-        }
-
-        db.m_cache.m_protocolRelDir = path.string();
-    }
-
-    assert(!db.m_cache.m_protocolRelDir.empty());
-    return db.m_cache.m_protocolRelDir;
-}
-
-unsigned schemaVersion(DB& db)
-{
-    auto& val = db.m_cache.m_schemaVersion;
-    if (!val) {
-        // TODO: check options for override
-        assert(db.m_messageSchema);
-        val = db.m_messageSchema->version();
-    }
-
-    return *val;
-}
-
-const std::string& endian(DB& db)
-{
-    auto& val = db.m_cache.m_endian;
-    if (!val.empty()) {
-        return val;
-    }
-
-    assert(db.m_messageSchema);
-    auto& byteOrder = db.m_messageSchema->byteOrder();
-
-    static const std::string BigEndianStr("bigEndian");
-    if (byteOrder == BigEndianStr) {
-        val = "comms::option::BigEndian";
-        return val;
-    }
-
-    val = "comms::option::LittleEndian";
-    return val;
 }
 
 } // namespace get

@@ -46,7 +46,7 @@ const XmlPropsMap& Field::props(DB& db)
         return m_props;
     }
 
-    m_props = xmlParseNodeProps(m_node, db.m_doc.get());
+    m_props = xmlParseNodeProps(m_node, db.getDoc());
     return m_props;
 }
 

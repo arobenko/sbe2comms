@@ -130,8 +130,8 @@ std::size_t EnumType::lengthImpl(DB& db)
     }
 
 
-    auto iter = db.m_types.find(encType);
-    if (iter == db.m_types.end()) {
+    auto iter = db.getTypes().find(encType);
+    if (iter == db.getTypes().end()) {
         auto len = primitiveLength(encType);
         if (len == 0) {
             std::cerr << "ERROR: Unknown encoding type \"" << encType << "\" for enum \"" << prop::name(p) << "\"" << std::endl;
@@ -159,8 +159,8 @@ const std::string& EnumType::getUnderlyingType(DB& db)
         return get::emptyString();
     }
 
-    auto typeIter = db.m_types.find(encType);
-    if (typeIter == db.m_types.end()) {
+    auto typeIter = db.getTypes().find(encType);
+    if (typeIter == db.getTypes().end()) {
         return primitiveTypeToStdInt(encType);
     }
 
@@ -195,7 +195,7 @@ bool EnumType::readValues(DB& db)
     bool isChar = (underlying == "char");
     std::set<std::string> processedNames;
     for (auto* v : vals) {
-        auto vProps = xmlParseNodeProps(v, db.m_doc.get());
+        auto vProps = xmlParseNodeProps(v, db.getDoc());
         auto& vName = prop::name(vProps);
         if (vName.empty()) {
             std::cerr << "ERROR: The enum \"" << prop::name(p) << "\" has validValue without name." << std::endl;

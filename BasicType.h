@@ -26,7 +26,7 @@ class BasicType : public Type
 {
     using Base = Type;
 public:
-    explicit BasicType(xmlNodePtr node) : Base(node) {}
+    explicit BasicType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
 protected:
     virtual Kind kindImpl() const override;

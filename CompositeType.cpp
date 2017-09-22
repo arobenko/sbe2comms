@@ -84,7 +84,7 @@ bool CompositeType::prepareMembers(DB& db)
     m_members.reserve(children.size());
     for (auto* c : children) {
         std::string cName(reinterpret_cast<const char*>(c->name));
-        m_members.push_back(Type::create(cName, c));
+        m_members.push_back(Type::create(cName, getDb(), c));
         if (!m_members.back()) {
             m_members.pop_back();
             std::cerr << "ERROR: Failed to create members of \"" << prop::name(p) << "\" composite." << std::endl;

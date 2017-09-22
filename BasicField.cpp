@@ -88,8 +88,9 @@ bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
         return false;
     }
 
-    auto typeIter = db.m_types.find(type);
-    if (typeIter == db.m_types.end()) {
+    auto& types = db.getTypes();
+    auto typeIter = types.find(type);
+    if (typeIter == types.end()) {
         bool builtIn = writeBuiltInType(out, type);
         if (builtIn) {
             return true;
