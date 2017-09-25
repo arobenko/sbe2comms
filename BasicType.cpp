@@ -24,6 +24,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/optional.hpp>
 
+#include "log.h"
 #include "prop.h"
 #include "get.h"
 #include "output.h"
@@ -52,35 +53,46 @@ const std::string& primitiveFloatToStd(const std::string& type)
 
 } // namespace
 
+const std::string& BasicType::getPrimitiveType() const
+{
+    return prop::primitiveType(getProps());
+}
+
 BasicType::Kind BasicType::kindImpl() const
 {
     return Kind::Basic;
 }
 
+bool BasicType::parseImpl()
+{
+    auto& primType = getPrimitiveType();
+    if (primType.empty()) {
+        log::error() << "Primitive type was not provided for type \"" << getName() << "\"." << std::endl;
+        return false;
+    }
+    return true;
+}
+
 bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    writeBrief(out, db, indent);
-
-    auto& p = props(db);
+    static_cast<void>(db);
+    writeBrief(out, indent);
+    writeOptions(out, indent);
 
     bool result = false;
     do {
-        auto& primType = prop::primitiveType(p);
-        if (primType.empty()) {
-            std::cerr << "ERROR: Primitive type was not provided for type \"" << prop::name(p) << "\"" << std::endl;
-            out << get::unknownValueString();
-            break;
-        }
+        auto& primType = getPrimitiveType();
+        assert(!primType.empty());
 
-        unsigned length = prop::length(p);
+        unsigned length = getLengthProp();
         if ((length == 1) && (!isConstString(db))) {
-            result = writeSimpleType(out, db, indent, primType);
+            result = writeSimpleType(out, indent);
             break;
         }
 
-        if (prop::isOptional(p)) {
-            std::cerr << "ERROR: The \"optional\" fields may NOT have non-default length. "
-                         "See definition of \"" << prop::name(p) << "\" type." << std::endl;
+        if (isOptional()) {
+            log::error() << "The \"optional\" fields may NOT have non-default length. "
+                         "See definition of \"" << getName() << "\" type." << std::endl;
             return false;
         }
 
@@ -123,57 +135,52 @@ std::size_t BasicType::lengthImpl(DB& db)
 
 bool BasicType::writeSimpleType(
     std::ostream& out,
-    DB& db,
     unsigned indent,
-    const std::string& primType,
     bool embedded)
 {
+    auto& primType = getPrimitiveType();
     auto& intType = primitiveTypeToStdInt(primType);
     if (!intType.empty()) {
-        return writeSimpleInt(out, db, indent, intType, embedded);
+        return writeSimpleInt(out, indent, intType, embedded);
     }
 
     auto& fpType = primitiveFloatToStd(primType);
     if (!fpType.empty()) {
-        return writeSimpleFloat(out, db, indent, fpType, embedded);
+        return writeSimpleFloat(out, indent, fpType, embedded);
     }
 
-    std::cerr << "ERROR: Unknown primitiveType \"" << primType << "\" for "
-                 "field \"" << prop::name(props(db)) << '\"' << std::endl;
-    out << get::unknownValueString() << "\n\n";
+    log::error() << "Unknown primitiveType \"" << primType << "\" for "
+                 "field \"" << getName() << '\"' << std::endl;
     return false;
 }
 
 bool BasicType::writeSimpleInt(
     std::ostream& out,
-    DB& db,
     unsigned indent,
     const std::string& intType,
     bool embedded)
 {
     bool result = false;
     do {
-        auto& p = props(db);
-        auto& primType = prop::primitiveType(p);
-        assert (!primType.empty());
-        auto minValStr = prop::minValue(p);
+        auto& primType = getPrimitiveType();
+        auto& minValStr = getMinValue();
         auto minVal = intMinValue(primType, minValStr);
         if (!minVal.second) {
-            std::cerr << "ERROR: invalid minValue attribute \"" << minValStr << "\" for type \"" <<
-                         prop::name(p) << "\"." << std::endl;
+            log::error() << "Invalid minValue attribute \"" << minValStr << "\" for type \"" <<
+                         getName() << "\"." << std::endl;
             break;
         }
 
-        auto maxValStr = prop::maxValue(p);
+        auto& maxValStr = getMaxValue();
         auto maxVal = intMaxValue(primType, maxValStr);
         if (!maxVal.second) {
-            std::cerr << "ERROR: invalid maxValue attribute \"" << maxValStr << "\" for type \"" <<
-                         prop::name(p) << "\"." << std::endl;
+            log::error() << "Invalid maxValue attribute \"" << maxValStr << "\" for type \"" <<
+                         getName() << "\"." << std::endl;
             break;
         }
 
         if (maxVal.first < minVal.first) {
-            std::cerr << "ERROR: min/max values range error for type \"" << prop::name(p) << "\"." << std::endl;
+            log::error() << "min/max values range error for type \"" << getName() << "\"." << std::endl;
             break;
         }
 
@@ -183,7 +190,7 @@ bool BasicType::writeSimpleInt(
         boost::optional<std::intmax_t> extraValidNumber;
 
         auto writeFunc =
-            [this, intType, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
+            [this, embedded, intType, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
             {
                 out << output::indent(ind) << "comms::field::IntValue<\n" <<
                        output::indent(ind + 1) << "FieldBase,\n" <<
@@ -207,28 +214,37 @@ bool BasicType::writeSimpleInt(
                     out << ",\n" <<
                            output::indent(ind + 1) << "comms::option::DefaultNumValue<" << toString(defValue) << ">";
                 }
+
                 if (constant) {
                     out << ",\n" <<
                            output::indent(ind + 1) << "comms::option::EmptySerialization";
                 }
+
+                writeFailOnInvalid(out, ind + 1);
+
+                if (!embedded) {
+                    out << ",\n" <<
+                           output::indent(ind + 1) << "TOpt...";
+                }
+
                 out << "\n" << output::indent(ind) << ">";
             };
 
-        if (prop::isRequired(p)) {
+        if (isRequired()) {
             if (!embedded) {
-                out << output::indent(indent) << "using " << prop::name(p) << " = \n";
+                out << output::indent(indent) << "using " << getName() << " = \n";
             }
             writeFunc(indent + 1);
             result = true;
             break;
         }
 
-        if (prop::isConstant(p)) {
+        if (isConstant()) {
             assert(!embedded);
             constant = true;
             auto text = nodeText();
             if (text.empty()) {
-                std::cerr << "ERROR: Empty constant value for type \"" << prop::name(p) << "\"." << std::endl;
+                log::error() << "Empty constant value for type \"" << getName() << "\"." << std::endl;
                 break;
             }
 
@@ -237,18 +253,18 @@ bool BasicType::writeSimpleInt(
                 minVal.first = defValue;
                 maxVal.first = defValue;
             } catch (...) {
-                std::cerr << "ERROR: Invalid constant value \"" << text << "\" for type \"" << prop::name(p) << "\"." << std::endl;
+                log::error() << "Invalid constant value \"" << text << "\" for type \"" << getName() << "\"." << std::endl;
                 break;
             }
 
-            out << output::indent(indent) << "using " << prop::name(p) << " = \n";
+            out << output::indent(indent) << "using " << getName() << " = \n";
             writeFunc(indent + 1);
             result = true;
             break;
         }
 
-        if (prop::isOptional(p)) {
-            auto& nullValStr = prop::nullValue(p);
+        if (isOptional()) {
+            auto& nullValStr = getNullValue();
             std::intmax_t nullValue = 0;
             if (nullValStr.empty()) {
                 nullValue = builtInIntNullValue(intType);
@@ -256,24 +272,27 @@ bool BasicType::writeSimpleInt(
             else {
                 auto convertResult = stringToInt(nullValStr);
                 if (!convertResult.second) {
-                    std::cerr << "ERROR: Bad nullValue for type \"" << prop::name(p) << "\": " << nullValStr << std::endl;
+                    log::error() << "ERROR: Bad nullValue for type \"" << getName() << "\": " << nullValStr << std::endl;
                     break;
                 }
                 nullValue = convertResult.first;
             }
 
             extraValidNumber = nullValue;
-            out << output::indent(indent) << "struct " << prop::name(p) << " : public\n";
+            out << output::indent(indent) << "struct " << getName() << " : public\n";
             writeFunc(indent + 1);
             out << output::indent(indent) << "\n" <<
                    output::indent(indent) << "{\n" <<
-                   output::indent(indent + 1) << "static const " << intType << " NullValue = static_cast<" << intType << ">(" << nullValue << ");\n" <<
+                   output::indent(indent + 1) << "bool isNull() const\n" <<
+                   output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
+                   output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
+                   output::indent(indent + 1) << "}\n" <<
                    output::indent(indent) << "}";
             result = true;
             break;
         }
 
-        std::cerr << "ERROR: Unkown \"presence\" token value \"" << prop::presence(p) << "\"." << std::endl;
+        log::error() << "Unkown \"presence\" token value \"" << getPresence() << "\"." << std::endl;
     } while (false);
 
     if (!result) {
@@ -285,19 +304,25 @@ bool BasicType::writeSimpleInt(
 
 bool BasicType::writeSimpleFloat(
     std::ostream& out,
-    DB& db,
     unsigned indent,
     const std::string& fpType,
     bool embedded)
 {
     if (!embedded) {
-        auto p = props(db);
-        out << output::indent(indent) << "using " << prop::name(p) << " = \n";
+        out << output::indent(indent) << "using " << getName() << " = \n";
     }
 
     out << output::indent(indent + 1) << "comms::field::FloatValue<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << fpType << "\n" <<
+           output::indent(indent + 2) << fpType;
+
+    writeFailOnInvalid(out, indent + 2);
+
+    if (!embedded) {
+        out << ",\n" <<
+               output::indent(indent + 2) << "TOpt...";
+    }
+    out << "\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }
@@ -354,7 +379,7 @@ bool BasicType::writeVarLengthArray(
     out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n";
-    writeSimpleType(out, db, indent + 1, primType, true);
+    writeSimpleType(out, indent + 1, true);
     out << "\n" <<
            output::indent(indent + 1) << ">";
     return true;
@@ -465,7 +490,7 @@ bool BasicType::writeFixedLengthArray(
     out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n";
-    writeSimpleType(out, db, indent + 1, primType, true);
+    writeSimpleType(out, indent + 1, true);
     out << ",\n" <<
            output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
            output::indent(indent + 1) << ">";

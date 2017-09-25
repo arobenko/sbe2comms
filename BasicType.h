@@ -28,29 +28,28 @@ class BasicType : public Type
 public:
     explicit BasicType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
+    const std::string& getPrimitiveType() const;
+
 protected:
     virtual Kind kindImpl() const override;
+    virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
     virtual std::size_t lengthImpl(DB& db) override;
 
 private:
     bool writeSimpleType(
         std::ostream& out,
-        DB& db,
         unsigned indent,
-        const std::string& primType,
         bool embedded = false);
 
     bool writeSimpleInt(
         std::ostream& out,
-        DB& db,
         unsigned indent,
         const std::string& intType,
         bool embedded);
 
     bool writeSimpleFloat(
         std::ostream& out,
-        DB& db,
         unsigned indent,
         const std::string& fpType,
         bool embedded);

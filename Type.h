@@ -52,6 +52,18 @@ public:
     const char* getNodeName() const;
 
     const std::string& getName() const;
+    const std::string& getDescription() const;
+    bool isDeprecated() const;
+    bool isIntroduced() const;
+    bool isRequired() const;
+    bool isOptional() const;
+    bool isConstant() const;
+    const std::string& getPresence() const;
+    unsigned getLengthProp() const;
+    const std::string& getMinValue() const;
+    const std::string& getMaxValue() const;
+    const std::string& getNullValue() const;
+    std::pair<std::string, bool> getFailOnInvalid() const;
 
     static Ptr create(const std::string& name, DB& db, xmlNodePtr node);
 
@@ -94,6 +106,11 @@ public:
 
     const XmlPropsMap& props(DB& db);
 
+    const XmlPropsMap& getProps() const
+    {
+        return m_props;
+    }
+
     std::size_t length(DB& db)
     {
         return lengthImpl(db);
@@ -125,6 +142,9 @@ protected:
     bool isIntroduced(DB& db);
 
     void writeBrief(std::ostream& out, DB& db, unsigned indent, bool extraOpts = false);
+    void writeBrief(std::ostream& out, unsigned indent, bool extraOpts = true);
+    static void writeOptions(std::ostream& out, unsigned indent);
+    void writeFailOnInvalid(std::ostream& out, unsigned indent);
     std::string nodeText();
     static std::size_t primitiveLength(const std::string& type);
     static std::pair<std::intmax_t, bool> stringToInt(const std::string& str);

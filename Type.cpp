@@ -69,6 +69,105 @@ const std::string& Type::getName() const
     return prop::name(m_props);
 }
 
+const std::string& Type::getDescription() const
+{
+    assert(!m_props.empty());
+    return prop::description(m_props);
+}
+
+bool Type::isDeprecated() const
+{
+    assert(!m_props.empty());
+    if (!prop::hasDeprecated(m_props)) {
+        return false;
+    }
+
+    auto depVersion = prop::deprecated(m_props);
+    auto currVersion = m_db.getSchemaVersion();
+    return currVersion < depVersion;
+}
+
+bool Type::isIntroduced() const
+{
+    if (!prop::hasSinceVersion(m_props)) {
+        return true;
+    }
+
+    auto sinceVersion = prop::sinceVersion(m_props);
+    auto currVersion = m_db.getSchemaVersion();
+    return sinceVersion <= currVersion;
+}
+
+bool Type::isRequired() const
+{
+    assert(!m_props.empty());
+    return prop::isRequired(m_props);
+}
+
+bool Type::isOptional() const
+{
+    assert(!m_props.empty());
+    return prop::isOptional(m_props);
+}
+
+bool Type::isConstant() const
+{
+    assert(!m_props.empty());
+    return prop::isConstant(m_props);
+}
+
+const std::string& Type::getPresence() const
+{
+    assert(!m_props.empty());
+    return prop::presence(m_props);
+}
+
+unsigned Type::getLengthProp() const
+{
+    assert(!m_props.empty());
+    return prop::length(m_props);
+}
+
+const std::string& Type::getMinValue() const
+{
+    assert(!m_props.empty());
+    return prop::minValue(m_props);
+}
+
+const std::string& Type::getMaxValue() const
+{
+    assert(!m_props.empty());
+    return prop::maxValue(m_props);
+}
+
+const std::string& Type::getNullValue() const
+{
+    assert(!m_props.empty());
+    return prop::nullValue(m_props);
+}
+
+std::pair<std::string, bool> Type::getFailOnInvalid() const
+{
+    assert(!m_props.empty());
+    auto& str = prop::ccFailInvalid(m_props);
+    if (str.empty()) {
+        return std::make_pair(str, false);
+    }
+
+    static const std::map<std::string, std::string> Map = {
+        std::make_pair("default", std::string()),
+        std::make_pair("data", "comms::ErrorStatus::InvalidMsgData"),
+        std::make_pair("protocol", "comms::ErrorStatus::ProtocolError")
+    };
+
+    auto iter = Map.find(str);
+    if (iter == Map.end()) {
+        return std::make_pair(get::emptyString(), false);
+    }
+
+    return std::make_pair(iter->second, true);
+}
+
 Type::Ptr Type::create(const std::string& name, DB& db, xmlNodePtr node)
 {
     using TypeCreateFunc = std::function<Ptr (DB&, xmlNodePtr)>;
@@ -116,17 +215,16 @@ Type::Ptr Type::create(const std::string& name, DB& db, xmlNodePtr node)
 
 bool Type::write(std::ostream& out, DB& db, unsigned indent)
 {
-    if (isDeperated(db)) {
+    static_cast<void>(db);
+    if (isDeprecated()) {
         // Don't write anything if type is deprecated
-        std::cout << output::indent(indent + 1) <<
-                     "INFO: Omitting definition of deprecated \"" << prop::name(props(db)) << "\" type." << std::endl;
+        log::info() << "Omitting definition of deprecated \"" << getName() << "\" type." << std::endl;
         return true;
     }
 
     if (!isIntroduced(db)) {
         // Don't write anything if type was introduced in later version
-        std::cout << output::indent(indent + 1) <<
-                     "INFO: Omitting definition of not yet introduced \"" << prop::name(props(db)) << "\" type." << std::endl;
+        log::info() << "Omitting definition of not yet introduced \"" << getName() << "\" type." << std::endl;
         return true;
     }
 
@@ -135,7 +233,7 @@ bool Type::write(std::ostream& out, DB& db, unsigned indent)
     }
 
     if (m_writingInProgress) {
-        std::cerr << "ERROR: Recursive types dependencies discovered for \"" << prop::name(props(db)) << "\" type." << std::endl;
+        log::error() << "Recursive types dependencies discovered for \"" << getName() << "\" type." << std::endl;
         return false;
     }
 
@@ -203,6 +301,35 @@ void Type::writeBrief(std::ostream& out, DB& db, unsigned indent, bool extraOpts
     if (extraOpts) {
         out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
     }
+}
+
+void Type::writeBrief(std::ostream& out, unsigned indent, bool extraOpts)
+{
+    out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
+    auto& desc = getDescription();
+    if (!desc.empty()) {
+        out << output::indent(indent) << "/// \\details " << desc << "\n";
+    }
+
+    if (extraOpts) {
+        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
+    }
+}
+
+void Type::writeOptions(std::ostream& out, unsigned indent)
+{
+    out << output::indent(indent) << "template <typename... TOpt>\n";
+}
+
+void Type::writeFailOnInvalid(std::ostream& out, unsigned indent)
+{
+    auto result = getFailOnInvalid();
+    if (!result.second) {
+        return;
+    }
+
+    out << ",\n" <<
+           output::indent(indent) << "comms::option::FailOnInvalid<" << result.first << ">";
 }
 
 std::string Type::nodeText()

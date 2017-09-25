@@ -27,6 +27,8 @@ namespace log
 
 std::ostream& error();
 
+std::ostream& info();
+
 } // namespace log
 
 } // namespace sbe2comms

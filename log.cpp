@@ -31,6 +31,12 @@ std::ostream& error()
     return std::cerr;
 }
 
+std::ostream& info()
+{
+    std::cout << "INFO: ";
+    return std::cout;
+}
+
 } // namespace log
 
 } // namespace sbe2comms

@@ -47,6 +47,8 @@ CompositeType::Kind CompositeType::kindImpl() const
 
 bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
+    return true; // TODO: remove
+
     if (!prepareMembers(db)) {
         return false;
     }
