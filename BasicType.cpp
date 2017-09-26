@@ -115,13 +115,13 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
         assert(!primType.empty());
 
         unsigned length = getLengthProp();
-        if ((length == 1) && (!isConstString(db))) {
+        if ((length == 1) && (!isConstString())) {
             result = writeSimpleType(out, indent);
             break;
         }
 
         if (length == 0) {
-            result = writeVarLength(out, db, indent, primType);
+            result = writeVarLength(out, indent, primType);
             break;
         }
 
@@ -301,18 +301,23 @@ bool BasicType::writeSimpleInt(
                 }
                 nullValue = convertResult.first;
             }
+            defValue = nullValue;
 
             extraValidNumber = nullValue;
-            out << output::indent(indent) << "struct " << getName() << " : public\n";
+            if (!embedded) {
+                out << output::indent(indent) << "struct " << getName() << " : public\n";
+            }
             writeFunc(indent + 1);
-            out << output::indent(indent) << "\n" <<
-                   output::indent(indent) << "{\n" <<
-                   output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
-                   output::indent(indent + 1) << "bool isNull() const\n" <<
-                   output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
-                   output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
-                   output::indent(indent + 1) << "}\n" <<
-                   output::indent(indent) << "}";
+            if (!embedded) {
+                out << output::indent(indent) << "\n" <<
+                       output::indent(indent) << "{\n" <<
+                       output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
+                       output::indent(indent + 1) << "bool isNull() const\n" <<
+                       output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
+                       output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
+                       output::indent(indent + 1) << "}\n" <<
+                       output::indent(indent) << "}";
+            }
             result = true;
             break;
         }
@@ -511,38 +516,28 @@ bool BasicType::writeSimpleFloatInitializer(
 
 bool BasicType::writeVarLength(
     std::ostream& out,
-    DB& db,
     unsigned indent,
     const std::string& primType)
 {
-    auto& p = props(db);
-    if (prop::isConstant(p)) {
-        std::cerr << "ERROR: Variable lengths constant types are unsupported (\"" << prop::name(p) << "\")." << std::endl;
-        return false;
-    }
-    
-    if (isString(db)) {
-        return writeVarLengthString(out, db, indent);
+    assert(!isConstant());
+    if (isString()) {
+        return writeVarLengthString(out, indent);
     }
 
-    return writeVarLengthArray(out, db, indent, primType);
+    return writeVarLengthArray(out, indent, primType);
 }
 
 
 bool BasicType::writeVarLengthString(
     std::ostream& out,
-    DB& db,
     unsigned indent)
 {
-    auto p = props(db);
-    out << output::indent(indent) << "template <typename... TOpt>\n" <<
-           output::indent(indent) << "using " << prop::name(p) << " = comms::field::String<FieldBase, TOpt...>";
+    out << output::indent(indent) << "using " << getName() << " = comms::field::String<FieldBase, TOpt...>";
     return true;
 }
 
 bool BasicType::writeVarLengthArray(
     std::ostream& out,
-    DB& db,
     unsigned indent,
     const std::string& primType)
 {
@@ -554,30 +549,29 @@ bool BasicType::writeVarLengthArray(
 
     auto iter = std::find(std::begin(RawDataTypes), std::end(RawDataTypes), primType);
     if (iter != std::end(RawDataTypes)) {
-        return writeVarLengthRawDataArray(out, db, indent, primType);
+        return writeVarLengthRawDataArray(out, indent, primType);
     }
 
-    auto p = props(db);
-    out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
+    out << output::indent(indent) << "using " << getName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n";
     writeSimpleType(out, indent + 1, true);
     out << "\n" <<
+           output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }
 
 bool BasicType::writeVarLengthRawDataArray(
     std::ostream& out,
-    DB& db,
     unsigned indent,
     const std::string& primType)
 {
-    auto p = props(db);
-    out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
+    out << output::indent(indent) << "using " << getName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << primitiveTypeToStdInt(primType) << "\n" <<
+           output::indent(indent + 2) << primitiveTypeToStdInt(primType) << ",\n" <<
+           output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }
@@ -588,7 +582,7 @@ bool BasicType::writeFixedLength(
     unsigned indent,
     const std::string& primType)
 {
-    if (isString(db)) {
+    if (isString()) {
         return writeFixedLengthString(out, db, indent);
     }
     
@@ -607,7 +601,7 @@ bool BasicType::writeFixedLengthString(
     unsigned indent)
 {
     auto& p = props(db);
-    if (!isConstString(db)) {
+    if (!isConstString()) {
         unsigned len = prop::length(p);
         assert(1U < len);
         out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
@@ -704,7 +698,7 @@ bool BasicType::hasMinMaxValues(DB& db)
     return prop::hasMinValue(p) || prop::hasMaxValue(p);
 }
 
-bool BasicType::isString(DB& db)
+bool BasicType::isString()
 {
     static const std::string StringTypes[] = {
         CharType,
@@ -712,21 +706,20 @@ bool BasicType::isString(DB& db)
         "uint8"
     };
 
-    auto& p = props(db);
-    auto& primType = prop::primitiveType(p);
+    auto& primType = getPrimitiveType();
     auto iter = std::find(std::begin(StringTypes), std::end(StringTypes), primType);
     if (iter == std::end(StringTypes)) {
         return false;
     }
 
-    auto semType = prop::semanticType(p); // by value
+    auto semType = getSemanticType(); // by value
     boost::algorithm::to_lower(semType);
     static const std::string StringSemanticType("string");
     if (semType == StringSemanticType) {
         return true;
     }
 
-    auto& enc = prop::characterEncoding(p);
+    auto& enc = getCharacterEncoding();
     if (!enc.empty()) {
         return true;
     }
@@ -734,10 +727,9 @@ bool BasicType::isString(DB& db)
     return primType == CharType;
 }
 
-bool BasicType::isConstString(DB& db)
+bool BasicType::isConstString()
 {
-    auto& p = props(db);
-    return prop::isConstant(p) && isString(db);
+    return isConstant() && isString();
 }
 
 

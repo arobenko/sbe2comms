@@ -65,6 +65,8 @@ public:
     const std::string& getMinValue() const;
     const std::string& getMaxValue() const;
     const std::string& getNullValue() const;
+    const std::string& getSemanticType() const;
+    const std::string& getCharacterEncoding() const;
     std::pair<std::string, bool> getFailOnInvalid() const;
     void updateExtraIncludes(ExtraIncludes& extraIncludes);
 

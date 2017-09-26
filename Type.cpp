@@ -153,6 +153,18 @@ const std::string& Type::getNullValue() const
     return prop::nullValue(m_props);
 }
 
+const std::string& Type::getSemanticType() const
+{
+    assert(!m_props.empty());
+    return prop::semanticType(m_props);
+}
+
+const std::string& Type::getCharacterEncoding() const
+{
+    assert(!m_props.empty());
+    return prop::characterEncoding(m_props);
+}
+
 std::pair<std::string, bool> Type::getFailOnInvalid() const
 {
     assert(!m_props.empty());

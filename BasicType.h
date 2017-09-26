@@ -68,24 +68,20 @@ private:
 
     bool writeVarLength(
         std::ostream& out,
-        DB& db,
         unsigned indent,
         const std::string& primType);
 
     bool writeVarLengthString(
         std::ostream& out,
-        DB& db,
         unsigned indent);
 
     bool writeVarLengthArray(
         std::ostream& out,
-        DB& db,
         unsigned indent,
         const std::string& primType);
 
     bool writeVarLengthRawDataArray(
         std::ostream& out,
-        DB& db,
         unsigned indent,
         const std::string& primType);
 
@@ -114,9 +110,9 @@ private:
 
     bool hasMinMaxValues(DB& db);
 
-    bool isString(DB& db);
+    bool isString();
 
-    bool isConstString(DB& db);
+    bool isConstString();
 };
 
 } // namespace sbe2comms
