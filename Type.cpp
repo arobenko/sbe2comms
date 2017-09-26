@@ -55,6 +55,13 @@ bool Type::parse()
         return false;
     }
 
+    if ((!isRequired()) &&
+        (!isOptional()) &&
+        (!isConstant())) {
+        log::error() << "Unknwon presence token \"" << prop::presence(m_props) << "\" for type \"" << getName() << "\"." << std::endl;
+        return false;
+    }
+
     return parseImpl();
 }
 
@@ -166,6 +173,19 @@ std::pair<std::string, bool> Type::getFailOnInvalid() const
     }
 
     return std::make_pair(iter->second, true);
+}
+
+void Type::updateExtraIncludes(ExtraIncludes& extraIncludes)
+{
+    for (auto& i : m_extraIncludes) {
+        auto iter = extraIncludes.lower_bound(i);
+        if ((iter != extraIncludes.end()) &&
+            (*iter == i)) {
+            continue;
+        }
+
+        extraIncludes.insert(iter, i);
+    }
 }
 
 Type::Ptr Type::create(const std::string& name, DB& db, xmlNodePtr node)
@@ -321,6 +341,11 @@ void Type::writeOptions(std::ostream& out, unsigned indent)
     out << output::indent(indent) << "template <typename... TOpt>\n";
 }
 
+void Type::writeBaseDef(std::ostream& out, unsigned indent)
+{
+    out << output::indent(indent) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n";
+}
+
 void Type::writeFailOnInvalid(std::ostream& out, unsigned indent)
 {
     auto result = getFailOnInvalid();
@@ -335,6 +360,15 @@ void Type::writeFailOnInvalid(std::ostream& out, unsigned indent)
 std::string Type::nodeText()
 {
     return xmlText(m_node);
+}
+
+void Type::addExtraInclude(const std::string& val)
+{
+    auto iter = m_extraIncludes.lower_bound(val);
+    if ((iter == m_extraIncludes.end()) ||
+        (*iter != val)) {
+        m_extraIncludes.insert(iter, val);
+    }
 }
 
 std::size_t Type::primitiveLength(const std::string& type)

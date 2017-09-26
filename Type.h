@@ -22,6 +22,7 @@
 #include <iosfwd>
 #include <cstdint>
 #include <utility>
+#include <set>
 
 #include "xml_wrap.h"
 #include "prop.h"
@@ -34,6 +35,7 @@ class Type
 {
 public:
     using Ptr = std::unique_ptr<Type>;
+    using ExtraIncludes = std::set<std::string>;
 
     enum class Kind
     {
@@ -64,6 +66,7 @@ public:
     const std::string& getMaxValue() const;
     const std::string& getNullValue() const;
     std::pair<std::string, bool> getFailOnInvalid() const;
+    void updateExtraIncludes(ExtraIncludes& extraIncludes);
 
     static Ptr create(const std::string& name, DB& db, xmlNodePtr node);
 
@@ -144,8 +147,10 @@ protected:
     void writeBrief(std::ostream& out, DB& db, unsigned indent, bool extraOpts = false);
     void writeBrief(std::ostream& out, unsigned indent, bool extraOpts = true);
     static void writeOptions(std::ostream& out, unsigned indent);
+    static void writeBaseDef(std::ostream& out, unsigned indent);
     void writeFailOnInvalid(std::ostream& out, unsigned indent);
     std::string nodeText();
+    void addExtraInclude(const std::string& val);
     static std::size_t primitiveLength(const std::string& type);
     static std::pair<std::intmax_t, bool> stringToInt(const std::string& str);
     static const std::string& primitiveTypeToStdInt(const std::string& type);
@@ -170,6 +175,7 @@ private:
     XmlPropsMap m_props;
     bool m_written = false;
     bool m_writingInProgress = false;
+    ExtraIncludes m_extraIncludes;
 };
 
 using TypePtr = Type::Ptr;

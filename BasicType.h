@@ -54,6 +54,18 @@ private:
         const std::string& fpType,
         bool embedded);
 
+    bool writeSimpleValidator(std::ostream& out,
+        unsigned indent);
+
+    bool writeSimpleFloatValidator(std::ostream& out,
+        unsigned indent);
+
+    bool writeSimpleInitializer(std::ostream& out,
+        unsigned indent);
+
+    bool writeSimpleFloatInitializer(std::ostream& out,
+        unsigned indent);
+
     bool writeVarLength(
         std::ostream& out,
         DB& db,

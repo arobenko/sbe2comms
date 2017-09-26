@@ -72,10 +72,17 @@ bool writeTypes(DB& db)
     stream << "/// \\file\n"
               "/// \\brief Contains definition of all the field types\n"
               "\n\n"
-              "#include <cstdint>\n"
-              "#include <iterator>\n"
-              "#include <algorithm>\n"
-              "\n"
+              "#include <cstdint>\n";
+    std::set<std::string> extraIncludes;
+    for (auto& t : db.getTypes()) {
+        assert(t.second);
+        t.second->updateExtraIncludes(extraIncludes);
+    }
+
+    for (auto& i : extraIncludes) {
+        stream << "#include " << i << '\n';
+    }
+    stream << "\n"
               "#include \"comms/fields.h\"\n"
               "#include \"comms/Field.h\"\n\n";
     auto& ns = db.getProtocolNamespace();

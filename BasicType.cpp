@@ -36,6 +36,8 @@ namespace
 {
 
 const std::string CharType("char");
+const std::string ValidatorSuffix("Validator");
+const std::string InitSuffix("Initializer");
 
 const std::string& primitiveFloatToStd(const std::string& type)
 {
@@ -70,12 +72,40 @@ bool BasicType::parseImpl()
         log::error() << "Primitive type was not provided for type \"" << getName() << "\"." << std::endl;
         return false;
     }
+
+    if (isConstant()) {
+        auto text = xmlText(getNode());
+        if (text.empty()) {
+            log::error() << "No constant value provided for type \"" << getName() << "\"." << std::endl;
+            return false;
+        }
+
+        auto len = getLengthProp();
+        if (len != 1U) {
+            log::error() << "Constant type \"" << getName() << "\" can NOT have non default length property." << std::endl;
+            return false;
+        }
+    }
+
+    auto& fpType = primitiveFloatToStd(getPrimitiveType());
+    if (!fpType.empty()) {
+        addExtraInclude("<limits>");
+        addExtraInclude("<cmath>");
+    }
     return true;
 }
 
 bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
     static_cast<void>(db);
+    if (!writeSimpleInitializer(out, indent)) {
+        return false;
+    }
+
+    if (!writeSimpleValidator(out, indent)) {
+        return false;
+    }
+
     writeBrief(out, indent);
     writeOptions(out, indent);
 
@@ -88,12 +118,6 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
         if ((length == 1) && (!isConstString(db))) {
             result = writeSimpleType(out, indent);
             break;
-        }
-
-        if (isOptional()) {
-            log::error() << "The \"optional\" fields may NOT have non-default length. "
-                         "See definition of \"" << getName() << "\" type." << std::endl;
-            return false;
         }
 
         if (length == 0) {
@@ -283,6 +307,7 @@ bool BasicType::writeSimpleInt(
             writeFunc(indent + 1);
             out << output::indent(indent) << "\n" <<
                    output::indent(indent) << "{\n" <<
+                   output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
                    output::indent(indent + 1) << "bool isNull() const\n" <<
                    output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
                    output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
@@ -308,8 +333,9 @@ bool BasicType::writeSimpleFloat(
     const std::string& fpType,
     bool embedded)
 {
+    auto& name = getName();
     if (!embedded) {
-        out << output::indent(indent) << "using " << getName() << " = \n";
+        out << output::indent(indent) << "struct " << name << " : public\n";
     }
 
     out << output::indent(indent + 1) << "comms::field::FloatValue<\n" <<
@@ -318,12 +344,168 @@ bool BasicType::writeSimpleFloat(
 
     writeFailOnInvalid(out, indent + 2);
 
-    if (!embedded) {
+    if (isConstant()) {
+        assert(!embedded);
         out << ",\n" <<
-               output::indent(indent + 2) << "TOpt...";
+               output::indent(indent + 2) << "comms::option::EmptySerialization";
     }
-    out << "\n" <<
-           output::indent(indent + 1) << ">";
+
+    if (embedded) {
+        out << ",\n";
+        if (!isOptional()) {
+            out << output::indent(indent + 2) << "comms::option::ContentsValidator<" << name << ValidatorSuffix << ">\n";
+        }
+        else {
+            out << output::indent(indent + 2) << "comms::option::DefaultValueInitialiser<" << name << InitSuffix << ">\n";
+        }
+
+        out << output::indent(indent + 1) << ">";
+        return true;
+    }
+
+    out << ",\n" <<
+           output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+
+    bool result = false;
+    do {
+        auto writeConstractorFunc =
+            [this, &out, &name](unsigned ind, const std::string& val)
+            {
+                out << output::indent(ind) << "/// \\brief Default constructor.\n" <<
+                       output::indent(ind) << name << "::" << name << "()\n" <<
+                       output::indent(ind) << "{\n";
+                writeBaseDef(out, ind + 1);
+                out << output::indent(ind + 1) << "Base::value() = " << val << ";\n" <<
+                       output::indent(ind) << "}\n";
+            };
+
+
+        if (isRequired()) {
+            out << output::indent(indent + 1) << "/// \\brief Value validity check function.\n" <<
+                   output::indent(indent + 1) << "bool valid() const\n" <<
+                   output::indent(indent + 1) << "{\n";
+            writeBaseDef(out, indent + 2);
+            out << output::indent(indent + 2) << "return Base::valid() && (!std::isnan(Base::value()));\n" <<
+                   output::indent(indent + 1) << "}\n";
+            result = true;
+            break;
+        }
+        
+        if (isOptional()) {
+            writeConstractorFunc(indent + 1, "std::numeric_limits<Base::ValueType>::quiet_NaN()");
+            out << '\n' <<
+                   output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
+                   output::indent(indent + 1) << "bool isNull() const\n" <<
+                   output::indent(indent + 1) << "{\n";
+            writeBaseDef(out, indent + 2);
+            out << output::indent(indent + 2) << "return std::isnan(Base::value());\n" <<
+                   output::indent(indent + 1) << "}\n";
+            result = true;
+            break;
+        }
+
+        if (isConstant()) {
+            auto constValStr = xmlText(getNode());
+            assert(!constValStr.empty());
+            writeConstractorFunc(indent + 1, "static_cast<Base::ValueType>(" + constValStr + ")");
+            out << '\n' <<
+                   output::indent(indent + 1) << "/// \\brief Value validity check function.\n" <<
+                   output::indent(indent + 1) << "bool valid() const\n" <<
+                   output::indent(indent + 1) << "{\n";
+            writeBaseDef(out, indent + 2);
+            out << output::indent(indent + 2) << "auto defaultValue = static_cast<Base::ValueType>(" << constValStr << ");\n" <<
+                   output::indent(indent + 2) << "return std::abs(Base::value() - defaultValue) < std::numberic_limits<Base::ValueType>::epsilon;\n" <<
+                   output::indent(indent + 1) << "}\n";
+            result = true;
+            break;
+        }
+
+        assert(!"Invalid presence");
+    } while (false);
+
+    out << output::indent(indent) << "}";
+    return result;
+}
+
+bool BasicType::writeSimpleValidator(
+    std::ostream& out,
+    unsigned indent)
+{
+    auto& primType = getPrimitiveType();
+    auto& fpType = primitiveFloatToStd(primType);
+    if (!fpType.empty()) {
+        return writeSimpleFloatValidator(out, indent);
+    }
+
+    return true;
+}
+
+bool BasicType::writeSimpleFloatValidator(
+    std::ostream& out,
+    unsigned indent)
+{
+    if (!isRequired()) {
+        return true; // nothing to do
+    }
+
+    auto len = getLengthProp();
+    if (len == 1U) {
+        return true; // nothing to do for non-embedded definitions
+    }
+
+    out << output::indent(indent) << "/// \\brief Custom validator for \\ref " << getName() << " field.\n" <<
+           output::indent(indent) << "struct " << getName() << ValidatorSuffix << "\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "/// \\brief Checks the value is valid.\n" <<
+           output::indent(indent + 1) << "/// \\return \\b true if and only if the value is not \\b NaN.\n" <<
+           output::indent(indent + 1) << "template <typename TField>\n" <<
+           output::indent(indent + 1) << "bool operator()(const TField& field) const\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << "return !std::isnan(field.value());\n" <<
+           output::indent(indent + 1) << "}\n" <<
+           output::indent(indent) << "};\n\n";
+    return true;
+}
+
+bool BasicType::writeSimpleInitializer(
+    std::ostream& out,
+    unsigned indent)
+{
+    auto& primType = getPrimitiveType();
+    auto& fpType = primitiveFloatToStd(primType);
+    if (!fpType.empty()) {
+        return writeSimpleFloatInitializer(out, indent);
+    }
+
+    return true;
+}
+
+bool BasicType::writeSimpleFloatInitializer(
+    std::ostream& out,
+    unsigned indent)
+{
+    if (!isOptional()) {
+        return true; // nothing to do
+    }
+
+    auto len = getLengthProp();
+    if (len == 1U) {
+        return true; // nothing to do for not embedded definitions
+    }
+
+    out << output::indent(indent) << "/// \\brief Custom inititializer for \\ref " << getName() << " field.\n" <<
+           output::indent(indent) << "struct " << getName() << InitSuffix << "\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "/// \\brief Initializes inner value to \\b NaN.\n" <<
+           output::indent(indent + 1) << "template <typename TField>\n" <<
+           output::indent(indent + 1) << "void operator()(TField& field) const\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << "using Field = typename std::decay<decltype(field)>::type;\n" <<
+           output::indent(indent + 2) << "field.value() = std::numeric_limits<typename Field::ValueType>::quiet_NaN();\n" <<
+           output::indent(indent + 1) << "}\n" <<
+           output::indent(indent) << "};\n\n";
     return true;
 }
 
