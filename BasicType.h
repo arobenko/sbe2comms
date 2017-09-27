@@ -40,36 +40,23 @@ private:
     bool writeSimpleType(
         std::ostream& out,
         unsigned indent,
-        bool embedded = false);
+        bool isElement = false);
 
     bool writeSimpleInt(
         std::ostream& out,
         unsigned indent,
         const std::string& intType,
-        bool embedded);
+        bool isElement);
 
     bool writeSimpleFloat(
         std::ostream& out,
         unsigned indent,
         const std::string& fpType,
-        bool embedded);
-
-    bool writeSimpleValidator(std::ostream& out,
-        unsigned indent);
-
-    bool writeSimpleFloatValidator(std::ostream& out,
-        unsigned indent);
-
-    bool writeSimpleInitializer(std::ostream& out,
-        unsigned indent);
-
-    bool writeSimpleFloatInitializer(std::ostream& out,
-        unsigned indent);
+        bool isElement);
 
     bool writeVarLength(
         std::ostream& out,
-        unsigned indent,
-        const std::string& primType);
+        unsigned indent);
 
     bool writeVarLengthString(
         std::ostream& out,
@@ -77,42 +64,35 @@ private:
 
     bool writeVarLengthArray(
         std::ostream& out,
-        unsigned indent,
-        const std::string& primType);
+        unsigned indent);
 
     bool writeVarLengthRawDataArray(
         std::ostream& out,
         unsigned indent,
         const std::string& primType);
 
-    bool writeFixedLength(
-        std::ostream& out,
-        DB& db,
-        unsigned indent,
-        const std::string& primType);
+    bool writeFixedLength(std::ostream& out,
+        unsigned indent);
 
     bool writeFixedLengthString(
         std::ostream& out,
-        DB& db,
         unsigned indent);
 
-    bool writeFixedLengthArray(
-        std::ostream& out,
-        DB& db,
-        unsigned indent,
-        const std::string& primType);
+    bool writeFixedLengthArray(std::ostream& out,
+        unsigned indent);
 
     bool writeFixedLengthRawDataArray(
         std::ostream& out,
-        DB& db,
         unsigned indent,
         const std::string& primType);
 
-    bool hasMinMaxValues(DB& db);
+    bool isString() const;
 
-    bool isString();
+    bool isConstString() const;
 
-    bool isConstString();
+    bool isRawData() const;
+
+    static bool isRawData(const std::string& primType);
 };
 
 } // namespace sbe2comms
