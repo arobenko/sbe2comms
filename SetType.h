@@ -32,16 +32,19 @@ public:
 
 protected:
     virtual Kind kindImpl() const override;
+    virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
     virtual std::size_t lengthImpl(DB& db) override;
 
 private:
     using BitsMap = std::map<unsigned, std::string>;
 
-    bool readChoices(DB& db);
-    std::uintmax_t calcReservedMask(unsigned len);
+    void writeSingle(std::ostream& out, unsigned indent, bool isElement = false);
+    void writeList(std::ostream& out, unsigned indent, unsigned count);
+    bool readChoices();
     void writeSeq(std::ostream& out, unsigned indent);
     void writeNonSeq(std::ostream& out, unsigned indent);
+    std::uintmax_t calcReservedMask(unsigned len);
 
     BitsMap m_bits;
 };

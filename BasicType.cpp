@@ -101,7 +101,7 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     static_cast<void>(db);
     auto len = getLengthProp();
     if ((len != 1) && (!isString()) && (!isRawData())) {
-        out << output::indent(indent) << "/// \\brief Element of \\ref " << getName() << " list.\n";
+        writeBriefElement(out, indent);
         writeOptions(out, indent);
         writeSimpleType(out, indent, true);
         out << ";\n\n";
@@ -431,7 +431,7 @@ bool BasicType::writeVarLengthArray(
     out << output::indent(indent) << "using " << getName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << getName() << ElementSuffix << ",\n" <<
+           output::indent(indent + 2) << getName() << ElementSuffix << "<>,\n" <<
            output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
@@ -524,7 +524,7 @@ bool BasicType::writeFixedLengthArray(
     out << output::indent(indent) << "using " << getName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << getName() << ElementSuffix << ",\n" <<
+           output::indent(indent + 2) << getName() << ElementSuffix << "<>,\n" <<
            output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
            output::indent(indent + 1) << ">";
     return true;

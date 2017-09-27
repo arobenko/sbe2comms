@@ -165,6 +165,12 @@ const std::string& Type::getCharacterEncoding() const
     return prop::characterEncoding(m_props);
 }
 
+const std::string& Type::getEncodingType() const
+{
+    assert(!m_props.empty());
+    return prop::encodingType(m_props);
+}
+
 std::pair<std::string, bool> Type::getFailOnInvalid() const
 {
     assert(!m_props.empty());
@@ -346,6 +352,12 @@ void Type::writeBrief(std::ostream& out, unsigned indent, bool extraOpts)
     if (extraOpts) {
         out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
     }
+}
+
+void Type::writeBriefElement(std::ostream& out, unsigned indent)
+{
+    out << output::indent(indent) << "/// \\brief Element of \\ref " << getName() << " list field.\n" <<
+           output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
 }
 
 void Type::writeOptions(std::ostream& out, unsigned indent)

@@ -67,6 +67,7 @@ public:
     const std::string& getNullValue() const;
     const std::string& getSemanticType() const;
     const std::string& getCharacterEncoding() const;
+    const std::string& getEncodingType() const;
     std::pair<std::string, bool> getFailOnInvalid() const;
     void updateExtraIncludes(ExtraIncludes& extraIncludes);
 
@@ -148,6 +149,7 @@ protected:
 
     void writeBrief(std::ostream& out, DB& db, unsigned indent, bool extraOpts = false);
     void writeBrief(std::ostream& out, unsigned indent, bool extraOpts = true);
+    void writeBriefElement(std::ostream& out, unsigned indent);
     static void writeOptions(std::ostream& out, unsigned indent);
     static void writeBaseDef(std::ostream& out, unsigned indent);
     void writeFailOnInvalid(std::ostream& out, unsigned indent);
