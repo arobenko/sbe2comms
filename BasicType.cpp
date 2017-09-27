@@ -99,14 +99,6 @@ bool BasicType::parseImpl()
 bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
     static_cast<void>(db);
-//    if (!writeSimpleInitializer(out, indent)) {
-//        return false;
-//    }
-
-//    if (!writeSimpleValidator(out, indent)) {
-//        return false;
-//    }
-
     auto len = getLengthProp();
     if ((len != 1) && (!isString()) && (!isRawData())) {
         out << output::indent(indent) << "/// \\brief Element of \\ref " << getName() << " list.\n";
@@ -139,27 +131,14 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 
 std::size_t BasicType::lengthImpl(DB& db)
 {
-    auto& p = props(db);
-    if (prop::isConstant(p)) {
-        return 0U;
+    static_cast<void>(db);
+    if (isConstant()) {
+        return false;
     }
 
-    auto len = prop::length(p);
-    if (len == 0) {
-        return 0U;
-    }
-
-    auto& primType = prop::primitiveType(p);
-    if (primType.empty()) {
-        return 0U;
-    }
-
-    if (prop::isConstant(p)) {
-        return 0U;
-    }
-
-    auto singleLen = primitiveLength(primType);
-    return singleLen * len;
+    auto count = getLengthProp();
+    auto singleLen = primitiveLength(getPrimitiveType());
+    return singleLen * count;
 }
 
 bool BasicType::writeSimpleType(std::ostream& out,
