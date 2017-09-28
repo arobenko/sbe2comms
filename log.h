@@ -27,7 +27,10 @@ namespace log
 
 std::ostream& error();
 
+std::ostream& warning();
+
 std::ostream& info();
+
 
 } // namespace log
 

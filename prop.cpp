@@ -18,6 +18,7 @@
 #include "prop.h"
 
 #include <string>
+#include <limits>
 
 namespace sbe2comms
 {
@@ -101,7 +102,7 @@ bool hasDeprecated(const XmlPropsMap& map)
 
 unsigned deprecated(const XmlPropsMap& map)
 {
-    return getPropInt<unsigned>(map, Deprecated);
+    return getPropInt<unsigned>(map, Deprecated, std::numeric_limits<unsigned>::max());
 }
 
 unsigned version(const XmlPropsMap& map)

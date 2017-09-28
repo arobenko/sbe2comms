@@ -327,12 +327,14 @@ bool EnumType::readValues()
             numVal = numValPair.first;
         } while (false);
 
-        m_values.insert(std::make_pair(numVal, vName));
-        processedNames.insert(vName);
+        if (getDb().doesElementExist(prop::sinceVersion(vProps), prop::deprecated(vProps))) {
+            m_values.insert(std::make_pair(numVal, vName));
+            processedNames.insert(vName);
 
-        auto& desc = prop::description(vProps);
-        if (!desc.empty()) {
-            m_desc.insert(std::make_pair(vName, desc));
+            auto& desc = prop::description(vProps);
+            if (!desc.empty()) {
+                m_desc.insert(std::make_pair(vName, desc));
+            }
         }
     }
 

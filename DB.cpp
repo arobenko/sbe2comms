@@ -30,6 +30,7 @@
 #include "SetType.h"
 #include "prop.h"
 #include "get.h"
+#include "log.h"
 
 namespace bf = boost::filesystem;
 namespace ba = boost::algorithm;
@@ -74,13 +75,13 @@ bool DB::parseSchema(std::string filename)
 {
     m_doc.reset(xmlParseFile(filename.c_str()));
     if (!m_doc) {
-        std::cerr << "ERROR: Invalid schema file: \"" << filename << "\"!" << std::endl;
+        log::error() << "Invalid schema file: \"" << filename << "\"!" << std::endl;
         return false;
     }
 
     auto* root = xmlDocGetRootElement(m_doc.get());
     if (root == nullptr) {
-        std::cerr << "ERROR: Failed to fine root element in the schema!" << std::endl;
+        log::error() << "Failed to fine root element in the schema!" << std::endl;
         return false;
     }
 
@@ -88,7 +89,7 @@ bool DB::parseSchema(std::string filename)
     std::string rootName(reinterpret_cast<const char*>(root->name));
     std::size_t pos = rootName.find(SchemaName);
     if ((pos == std::string::npos) || (pos != (rootName.size() - SchemaName.size()))) {
-        std::cerr << "ERROR: Root element is not " << SchemaName;
+        log::error() << "Root element is not " << SchemaName;
         return false;
     }
 
@@ -111,7 +112,7 @@ bool DB::parseSchema(std::string filename)
             std::string elemName(reinterpret_cast<const char*>(cur->name));
             auto iter = parseFuncMap.find(elemName);
             if (iter == parseFuncMap.end()) {
-                std::cerr << "WARNING: Unexpected element: \"" << elemName << "\", ignored..." << std::endl;
+                log::warning() << "Unexpected element: \"" << elemName << "\", ignored..." << std::endl;
                 break;
             }
 
@@ -179,6 +180,11 @@ unsigned DB::getSchemaVersion()
     return *val;
 }
 
+unsigned DB::getMinRemoteVersion()
+{
+    return 0U;
+}
+
 const std::string& DB::getEndian()
 {
     auto& val = m_cache.m_endian;
@@ -199,20 +205,27 @@ const std::string& DB::getEndian()
     return val;
 }
 
+bool DB::doesElementExist(unsigned introducedSince, unsigned deprecatedSince)
+{
+    return
+        ((introducedSince <= getSchemaVersion()) &&
+         (getMinRemoteVersion() < deprecatedSince));
+}
+
 bool DB::recordTypeRef(xmlNodePtr node)
 {
     auto props = xmlParseNodeProps(node, m_doc.get());
     auto& name = prop::name(props);
 
     if (name.empty()) {
-        std::cerr << "ERROR: type element \"" <<
+        log::error() << "type element \"" <<
             node->name << "\" does NOT have name property" << std::endl;
         return false;
     }
 
     auto iter = m_types.find(name);
     if (iter != m_types.end()) {
-        std::cerr << "ERROR: type \"" << name << "\" has been defined more than once" << std::endl;
+        log::error() << "type \"" << name << "\" has been defined more than once" << std::endl;
         return false;
     }
 
@@ -226,7 +239,9 @@ bool DB::recordTypeRef(xmlNodePtr node)
         return false;
     }
 
-    m_types.insert(std::make_pair(name, std::move(ptr)));
+    if (ptr->doesExist()) {
+        m_types.insert(std::make_pair(name, std::move(ptr)));
+    }
     return true;
 }
 
@@ -250,13 +265,13 @@ bool DB::parseMessage(xmlNodePtr node)
     auto props = xmlParseNodeProps(node, m_doc.get());
     auto& name = prop::name(props);
     if (name.empty()) {
-        std::cerr << "ERROR: message element does NOT have name property" << std::endl;
+        log::error() << "message element does NOT have name property" << std::endl;
         return false;
     }
 
     auto iter = m_messages.find(name);
     if (iter != m_messages.end()) {
-        std::cerr << "ERROR: message \"" << name << "\" has been defined more than once" << std::endl;
+        log::error() << "message \"" << name << "\" has been defined more than once" << std::endl;
         return false;
     }
 

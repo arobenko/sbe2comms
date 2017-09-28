@@ -67,7 +67,11 @@ public:
 
     unsigned getSchemaVersion();
 
+    unsigned getMinRemoteVersion();
+
     const std::string& getEndian();
+
+    bool doesElementExist(unsigned introducedSince, unsigned deprecatedSince);
 
 private:
     bool recordTypeRef(xmlNodePtr node);

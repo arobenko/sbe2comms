@@ -65,6 +65,12 @@ bool Type::parse()
     return parseImpl();
 }
 
+bool Type::doesExist()
+{
+    assert(!m_props.empty());
+    return m_db.doesElementExist(prop::sinceVersion(m_props), prop::deprecated(m_props));
+}
+
 const char* Type::getNodeName() const
 {
     return reinterpret_cast<const char*>(getNode()->name);
@@ -254,17 +260,7 @@ Type::Ptr Type::create(const std::string& name, DB& db, xmlNodePtr node)
 bool Type::write(std::ostream& out, DB& db, unsigned indent)
 {
     static_cast<void>(db);
-    if (isDeprecated()) {
-        // Don't write anything if type is deprecated
-        log::info() << "Omitting definition of deprecated \"" << getName() << "\" type." << std::endl;
-        return true;
-    }
-
-    if (!isIntroduced(db)) {
-        // Don't write anything if type was introduced in later version
-        log::info() << "Omitting definition of not yet introduced \"" << getName() << "\" type." << std::endl;
-        return true;
-    }
+    assert(doesExist());
 
     if (m_written) {
         return true;

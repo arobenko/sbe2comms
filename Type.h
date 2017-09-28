@@ -50,6 +50,7 @@ public:
     virtual ~Type() noexcept;
 
     bool parse();
+    bool doesExist();
 
     const char* getNodeName() const;
 

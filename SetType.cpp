@@ -217,7 +217,7 @@ bool SetType::readChoices()
 
         auto text = xmlText(c);
         if (text.empty()) {
-            log::error() << "ERROR: The choice \"" << choiceName << "\" of set \"" << getName() << "\" doesn't specify the bit number." << std::endl;
+            log::error() << "The choice \"" << choiceName << "\" of set \"" << getName() << "\" doesn't specify the bit number." << std::endl;
             return false;
         }
 
@@ -244,8 +244,10 @@ bool SetType::readChoices()
             return false;
         }
 
-        m_bits.insert(std::make_pair(castedBitIdx, choiceName));
-        processedNames.insert(choiceName);
+        if (getDb().doesElementExist(prop::sinceVersion(choiceProps), prop::deprecated(choiceProps))) {
+            m_bits.insert(std::make_pair(castedBitIdx, choiceName));
+            processedNames.insert(choiceName);
+        }
     }
     return true;
 }

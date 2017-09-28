@@ -31,6 +31,12 @@ std::ostream& error()
     return std::cerr;
 }
 
+std::ostream& warning()
+{
+    std::cerr << "WARNING: ";
+    return std::cerr;
+}
+
 std::ostream& info()
 {
     std::cout << "INFO: ";
