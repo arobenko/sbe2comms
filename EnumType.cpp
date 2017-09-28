@@ -22,34 +22,105 @@
 
 #include "get.h"
 #include "output.h"
+#include "log.h"
+#include "BasicType.h"
 
 namespace sbe2comms
 {
+
+namespace
+{
+
+const std::string ElementSuffix("Element");
+const std::string NullValueName("NullValue");
+
+} // namespace
+
 
 EnumType::Kind EnumType::kindImpl() const
 {
     return Kind::Enum;
 }
 
-bool EnumType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool EnumType::parseImpl()
 {
-    auto& p = props(db);
-    if (prop::isConstant(p)) {
-        std::cerr << "ERROR: Enum type \"" << prop::name(p) << "\" cannot be constant." << std::endl;
+    if (isConstant()) {
+        log::error() << "Constant enum types are not supported. See definition of \"" << getName() << "\"." << std::endl;
         return false;
     }
 
-    auto& underlying = getUnderlyingType(db);
+    if (isOptional()) {
+        auto& nullValue = getNullValue();
+        if (nullValue.empty()) {
+            log::error() << "Optional enum \"" << getName() << "\" doesn't specify nullValue." << std::endl;
+            return false;
+        }
+    }
+
+    auto& underlying = getUnderlyingType();
     if (underlying.empty()) {
         return false;
     }
 
-    if (!readValues(db)) {
+    if (!readValues()) {
         return false;
     }
 
-    auto enumName = prop::name(p) + "Val";
-    out << output::indent(indent) << "/// \\brief Enumeration for \"" << prop::name(p) << "\" field.\n" <<
+    return true;
+}
+
+bool EnumType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+{
+    static_cast<void>(db);
+    auto count = getLengthProp();
+    if (count != 1U) {
+        writeSingle(out, indent, true);
+    }
+
+    if (count == 1U) {
+        writeSingle(out, indent);
+        return true;
+    }
+
+    writeList(out, indent, count);
+
+    return true;
+}
+
+std::size_t EnumType::lengthImpl(DB& db)
+{
+    static_cast<void>(db);
+    auto& encType = getEncodingType();
+    assert(!encType.empty());
+
+    auto& types = getDb().getTypes();
+    auto iter = types.find(encType);
+    if (iter == types.end()) {
+        auto len = primitiveLength(encType);
+        if (len == 0) {
+            log::error() << "Unknown encoding type \"" << encType << "\" for enum \"" << getName() << "\"" << std::endl;
+        }
+
+        return len;
+    }
+
+    assert(iter->second);
+    auto k = iter->second->kind();
+    if (k != Kind::Basic) {
+        log::error() << "Only basic type can be used as encodingType for enum \"" << getName() << "\"" << std::endl;
+        return 0U;
+    }
+
+    return iter->second->length(getDb());
+}
+
+void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
+{
+    auto& underlying = getUnderlyingType();
+    assert(!underlying.empty());
+
+    auto enumName = getName() + "Val";
+    out << output::indent(indent) << "/// \\brief Enumeration for \"" << getName() << "\" field.\n" <<
            output::indent(indent) << "enum class " << enumName << " : " << underlying << '\n' <<
            output::indent(indent) << "{\n";
     for (auto& v : m_values) {
@@ -65,20 +136,58 @@ bool EnumType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     }
     out << output::indent(indent) << "};\n\n";
 
+    auto name = getName();
+    if (isElement) {
+        writeBriefElement(out, indent);
+        name += ElementSuffix;
+    }
+    else {
+        writeBrief(out, indent, true);
+    }
+    writeOptions(out, indent);
+
     static const std::size_t MaxRangesCount = 10;
     auto ranges = getValidRanges();
     bool tooManyRanges = MaxRangesCount < ranges.size();
-    writeBrief(out, db, indent, true);
-    out << output::indent(indent) << "template <typename... TOpt>\n";
-    if (tooManyRanges) {
-        out << output::indent(indent) << "struct " << prop::name(p) << " : public\n" <<
+    bool asType = (!isOptional()) && (!tooManyRanges);
+
+    auto writeRangesFunc =
+        [&out, &ranges](unsigned ind)
+            {
+            for (auto& r : ranges) {
+                out << output::indent(ind);
+                if (r.first == r.second) {
+                    out << "comms::option::ValidNumValue<" << toString(r.first) << ">,\n";
+                }
+                else {
+                    out << "comms::option::ValidNumValueRange<" << toString(r.first) << ", " << toString(r.second) << ">,\n";
+                }
+            }
+        };
+
+    if (asType) {
+        out << output::indent(indent) << "using " << name << " = \n" <<
                output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
                output::indent(indent + 2) << "FieldBase,\n" <<
-               output::indent(indent + 2) << enumName << ",\n" <<
-               output::indent(indent + 2) << "TOpt...\n" <<
-               output::indent(indent + 1) << ">\n" <<
-               output::indent(indent) << "{\n" <<
-               output::indent(indent + 1) << "/// \\brief Custom implementation of validity check.\n" <<
+               output::indent(indent + 2) << enumName << ",\n";
+        writeRangesFunc(indent + 2);
+        out << output::indent(indent + 2) << "TOpt...\n" <<
+               output::indent(indent + 1) << ">;\n\n";
+        return;
+    }
+
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
+           output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
+           output::indent(indent + 2) << "FieldBase,\n" <<
+           output::indent(indent + 2) << enumName << ",\n";
+    if (!tooManyRanges) {
+        writeRangesFunc(indent + 2);
+    }
+    out << output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    if (tooManyRanges) {
+        out << output::indent(indent + 1) << "/// \\brief Custom implementation of validity check.\n" <<
                output::indent(indent + 1) << "bool valid() const\n" <<
                output::indent(indent + 1) << "{\n" <<
                output::indent(indent + 2) << "using Base = typename std::decay<decltype(toFieldBase(*this))>::type;\n" <<
@@ -97,83 +206,62 @@ bool EnumType::writeImpl(std::ostream& out, DB& db, unsigned indent)
         out << output::indent(indent + 2) << "};\n\n" <<
                output::indent(indent + 2) << "auto iter = std::lower_bound(std::begin(Values), std::end(Values), Base::value());\n" <<
                output::indent(indent + 2) << "return (iter != std::end(Values)) && (*iter == Base::value());\n" <<
-               output::indent(indent + 1) << "}\n" <<
-               output::indent(indent) << "};\n\n";
-        return true;
+               output::indent(indent + 1) << "}\n\n";
     }
 
-    out << output::indent(indent) << "using " << prop::name(p) << " = \n" <<
-           output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
+    if (isOptional()) {
+        out << output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
+               output::indent(indent + 1) << "bool isNull() const\n" <<
+               output::indent(indent + 1) << "{\n";
+        writeBaseDef(out, indent + 2);
+        out << output::indent(indent + 2) << "return Base::value() == Base::ValueType::" << NullValueName << ";\n" <<
+               output::indent(indent + 1) << "}\n\n";
+    }
+
+    out << output::indent(indent) << "};\n\n";
+}
+
+void EnumType::writeList(std::ostream& out, unsigned indent, unsigned count)
+{
+    writeBrief(out, indent, true);
+    writeOptions(out, indent);
+
+    out << output::indent(indent) << "using " << getName() << " = \n" <<
+           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << enumName << ",\n";
-    for (auto& r : ranges) {
-        out << output::indent(indent + 2);
-        if (r.first == r.second) {
-            out << "comms::option::ValidNumValue<" << toString(r.first) << ">,\n";
-        }
-        else {
-            out << "comms::option::ValidNumValueRange<" << toString(r.first) << ", " << toString(r.second) << ">,\n";
-        }
+           output::indent(indent + 2) << getName() << ElementSuffix << "<>,\n";
+    if (count != 0U) {
+        out << output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">,\n";
     }
     out << output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">;\n\n";
-    return true;
 }
 
-std::size_t EnumType::lengthImpl(DB& db)
+const std::string& EnumType::getUnderlyingType() const
 {
-    auto& p = props(db);
-    auto& encType = prop::encodingType(p);
+    auto& encType = getEncodingType();
     if (encType.empty()) {
-        std::cerr << "ERROR: Encoding type was NOT specified for enum \"" << prop::name(p) << "\"" << std::endl;
-        return 0U;
-    }
-
-
-    auto iter = db.getTypes().find(encType);
-    if (iter == db.getTypes().end()) {
-        auto len = primitiveLength(encType);
-        if (len == 0) {
-            std::cerr << "ERROR: Unknown encoding type \"" << encType << "\" for enum \"" << prop::name(p) << "\"" << std::endl;
-        }
-
-        return len;
-    }
-
-    assert(iter->second);
-    auto k = iter->second->kind();
-    if (k != Kind::Basic) {
-        std::cerr << "ERROR: Only basic type can be used as encodingType for enum \"" << prop::name(p) << "\"" << std::endl;
-        return 0U;
-    }
-
-    return iter->second->length(db);
-}
-
-const std::string& EnumType::getUnderlyingType(DB& db)
-{
-    auto& p = props(db);
-    auto& encType = prop::encodingType(p);
-    if (encType.empty()) {
-        std::cerr << "ERROR: Encoding type was NOT specified for enum \"" << prop::name(p) << "\"" << std::endl;
+        log::error() << "Encoding type was NOT specified for enum \"" << getName() << "\"" << std::endl;
         return get::emptyString();
     }
 
-    auto typeIter = db.getTypes().find(encType);
-    if (typeIter == db.getTypes().end()) {
+    auto& types = getDb().getTypes();
+    auto typeIter = types.find(encType);
+    if (typeIter == types.end()) {
         return primitiveTypeToStdInt(encType);
     }
 
     assert(typeIter->second);
     if (typeIter->second->kind() != Kind::Basic) {
-        std::cerr << "ERROR: Only basic type can be used as encodingType for enum \"" << prop::name(p) << "\"" << std::endl;
+        log::error() << "Only basic type can be used as encodingType for enum \"" << getName() << "\"" << std::endl;
         return get::emptyString();
     }
 
-    auto typeProps = typeIter->second->props(db);
-    auto& primType = prop::primitiveType(typeProps);
+    auto& typePtr = typeIter->second;
+    auto& basicType = static_cast<const BasicType&>(*typePtr);
+    auto& primType = basicType.getPrimitiveType();
     if (primType.empty()) {
-        std::cerr << "ERROR: Type \"" << encType << "\" used as encoding type for enum \"" << prop::name(p) <<
+        log::error() << "Type \"" << encType << "\" used as encoding type for enum \"" << getName() <<
                      "\" doesn't specify primitiveType." << std::endl;
         return get::emptyString();
     }
@@ -181,36 +269,35 @@ const std::string& EnumType::getUnderlyingType(DB& db)
     return primitiveTypeToStdInt(primType);
 }
 
-bool EnumType::readValues(DB& db)
+bool EnumType::readValues()
 {
     static const std::string ElementStr("validValue");
     auto vals = xmlChildren(getNode(), ElementStr);
-    auto& p = props(db);
     if (vals.empty()) {
-        std::cerr << "ERROR: No validValue has been specified for enum \"" << prop::name(p) << "\"" << std::endl;
+        log::error() << "No validValue has been specified for enum \"" << getName() << "\"" << std::endl;
         return false;
     }
 
-    auto underlying = getUnderlyingType(db);
+    auto underlying = getUnderlyingType();
     bool isChar = (underlying == "char");
     std::set<std::string> processedNames;
     for (auto* v : vals) {
-        auto vProps = xmlParseNodeProps(v, db.getDoc());
+        auto vProps = xmlParseNodeProps(v, getDb().getDoc());
         auto& vName = prop::name(vProps);
         if (vName.empty()) {
-            std::cerr << "ERROR: The enum \"" << prop::name(p) << "\" has validValue without name." << std::endl;
+            log::error() << "The enum \"" << getName() << "\" has validValue without name." << std::endl;
             return false;
         }
 
         auto nameIter = processedNames.find(vName);
         if (nameIter != processedNames.end()) {
-            std::cerr << "ERROR: The enum \"" << prop::name(p) << "\" has at least two validValues with the same name (\"" << vName << "\")" << std::endl;
+            log::error() << "The enum \"" << getName() << "\" has at least two validValues with the same name (\"" << vName << "\")" << std::endl;
             return false;
         }
 
         auto text = xmlText(v);
         if (text.empty()) {
-            std::cerr << "ERROR: The validValue \"" << vName << "\" of enum \"" << prop::name(p) << "\" doesn't specify the numeric value." << std::endl;
+            log::error() << "The validValue \"" << vName << "\" of enum \"" << getName() << "\" doesn't specify the numeric value." << std::endl;
             return false;
         }
 
@@ -218,7 +305,7 @@ bool EnumType::readValues(DB& db)
         do {
             if (isChar) {
                 if (text.size() != 1U) {
-                    std::cerr << "ERROR: Only single character char enums are supported in \"" << vName << "\" of enum \"" << prop::name(p) << "\" doesn't specify the numeric value." << std::endl;
+                    log::error() << "Only single character char enums are supported in \"" << vName << "\" of enum \"" << getName() << "\" doesn't specify the numeric value." << std::endl;
                     return false;
                 }
 
@@ -228,7 +315,7 @@ bool EnumType::readValues(DB& db)
 
             auto numValPair = stringToInt(text);
             if (!numValPair.second) {
-                std::cerr << "ERROR: The validValue \"" << vName << "\" of enum \"" << prop::name(p) << "\" doesn't specify the numeric value." << std::endl;
+                log::error() << "The validValue \"" << vName << "\" of enum \"" << getName() << "\" doesn't specify the numeric value." << std::endl;
                 return false;
             }
 
@@ -238,42 +325,53 @@ bool EnumType::readValues(DB& db)
         m_values.insert(std::make_pair(numVal, vName));
         processedNames.insert(vName);
 
-        auto& desc = prop::description(p);
+        auto& desc = prop::description(vProps);
         if (!desc.empty()) {
             m_desc.insert(std::make_pair(vName, desc));
         }
     }
 
-    if (!prop::isOptional(p)) {
-        return true;
+    if (!isOptional()) {
+        return !m_values.empty();
     }
 
-    static const std::string NullValueName("NullValue");
     auto iter = processedNames.find(NullValueName);
     if (iter != processedNames.end()) {
-        std::cerr << "ERROR: Failed to introduce nullValue \"" << NullValueName <<
+        log::error() << "Failed to introduce nullValue \"" << NullValueName <<
                      "\" due to the name being in use by the validValue." << std::endl;
         return false;
     }
 
-    auto& nullValueStr = prop::nullValue(p);
-    if (nullValueStr.empty()) {
-        m_values.insert(std::make_pair(builtInIntNullValue(underlying), NullValueName));
-        return true;
-    }
+    std::intmax_t nullVal = 0;
+    do {
+        auto& nullValueStr = getNullValue();
+        assert(!nullValueStr.empty());
 
-    auto nullVal = stringToInt(nullValueStr);
-    if (!nullVal.second) {
-        std::cerr << "ERROR: Unknown nullValue format in enum \"" << prop::name(p) << "\"." << std::endl;
-        return false;
-    }
+        if (isChar) {
+            if (nullValueStr.size() != 1U) {
+                log::error() << "Only single character char enums are supported nullValue of enum \"" << getName() << "\" doesn't specify the numeric value." << std::endl;
+                return false;
+            }
 
-    m_values.insert(std::make_pair(nullVal.first, NullValueName));
+            nullVal = static_cast<std::int8_t>(nullValueStr[0]);
+            break;
+        }
+
+        auto nullValPair = stringToInt(nullValueStr);
+        if (!nullValPair.second) {
+            log::error() << "Unknown nullValue format in enum \"" << getName() << "\"." << std::endl;
+            return false;
+        }
+
+        nullVal = nullValPair.first;
+    } while (false);
+
+    m_values.insert(std::make_pair(nullVal, NullValueName));
     m_desc.insert(std::make_pair(NullValueName, "NULL value of optional field."));
-    return true;
+    return !m_values.empty();
 }
 
-EnumType::RangeInfosList EnumType::getValidRanges()
+EnumType::RangeInfosList EnumType::getValidRanges() const
 {
     RangeInfosList result;
     for (auto& v : m_values) {

@@ -49,6 +49,11 @@ public:
         return m_types;
     }
 
+    const TypesMap& getTypes() const
+    {
+        return m_types;
+    }
+
     MessagesMap& getMessages()
     {
         return m_messages;

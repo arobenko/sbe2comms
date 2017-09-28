@@ -33,6 +33,7 @@ public:
 
 protected:
     virtual Kind kindImpl() const override;
+    virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
     virtual std::size_t lengthImpl(DB& db) override;
 
@@ -42,9 +43,11 @@ private:
     using RangeInfo = std::pair<std::intmax_t, std::intmax_t>;
     using RangeInfosList = std::list<RangeInfo>;
 
-    const std::string& getUnderlyingType(DB& db);
-    bool readValues(DB& db);
-    RangeInfosList getValidRanges();
+    void writeSingle(std::ostream& out, unsigned indent, bool isElement = false);
+    void writeList(std::ostream& out, unsigned indent, unsigned count);
+    const std::string& getUnderlyingType() const;
+    bool readValues();
+    RangeInfosList getValidRanges() const;
 
     Values m_values;
     Descriptions m_desc;

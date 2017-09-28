@@ -138,6 +138,11 @@ protected:
         return m_db;
     }
 
+    const DB& getDb() const
+    {
+        return m_db;
+    }
+
     virtual Kind kindImpl() const = 0;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
