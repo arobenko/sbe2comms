@@ -22,6 +22,7 @@
 #include "DB.h"
 #include "prop.h"
 #include "output.h"
+#include "log.h"
 
 namespace sbe2comms
 {
@@ -31,67 +32,61 @@ RefType::Kind RefType::kindImpl() const
     return Kind::Ref;
 }
 
+bool RefType::parseImpl()
+{
+    if (!getReferenceType()) {
+        return false;
+    }
+
+    return true;
+}
+
 bool RefType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    auto& ptr = getReferenceType(db);
-    if (!ptr) {
-        return false;
-    }
+    static_cast<void>(db);
+    auto& ptr = getReferenceType();
+    assert(ptr);
+    assert(ptr->isWritten());
+    auto& name = getName();
+    assert(!name.empty());
 
-    auto& p = props(db);
-    auto& n = prop::name(p);
-    if (n.empty()) {
-        std::cerr << "ERROR: Unknown name of the \"ref\" element" << std::endl;
-        return false;
-    }
-
-    auto& refProps = ptr->props(db);
-    auto& refName = prop::name(refProps);
-    if (refName.empty()) {
-        std::cerr << "ERROR: Unknown reference type of \"" << n << "\" ref." << std::endl;
-        return false;
-    }
+    auto& refName = ptr->getName();
+    assert(!refName.empty());
 
     writeBrief(out, db, indent);
-    out << output::indent(indent) << "using " << n << " = field::" << refName << ";\n\n";
+    out << output::indent(indent) << "using " << name << " = field::" << refName << ";\n\n";
     return true;
 }
 
 std::size_t RefType::lengthImpl(DB& db)
 {
-    auto& ptr = getReferenceType(db);
-    if (!ptr) {
-        return 0U;
-    }
-
+    auto& ptr = getReferenceType();
+    assert(ptr);
     return ptr->length(db);
 }
 
 bool RefType::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    auto& ptr = getReferenceType(db);
-    if (!ptr) {
-        return false;
-    }
-
+    auto& ptr = getReferenceType();
+    assert(ptr);
     return ptr->write(out, db, indent);
 }
 
-const RefType::Ptr& RefType::getReferenceType(DB& db)
+const RefType::Ptr& RefType::getReferenceType() const
 {
-    auto& p = props(db);
+    auto& p = getProps();
     auto& t = prop::type(p);
 
     static const Ptr NoRef;
     if (t.empty()) {
-        std::cerr << "ERROR: Unknown reference type for ref \"" << prop::name(p) << "\"." << std::endl;
+        log::error() << "Unknown reference type for ref \"" << getName() << "\"." << std::endl;
         return NoRef;
     }
 
-    auto& types = db.getTypes();
+    auto& types = getDb().getTypes();
     auto iter = types.find(t);
     if (iter == types.end()) {
-        std::cerr << "ERROR: Unknown type \"" << t << "\" in ref \"" << prop::name(p) << "\"." << std::endl;
+        log::error() << "Unknown type \"" << t << "\" in ref \"" << getName() << "\"." << std::endl;
         return NoRef;
     }
 

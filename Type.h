@@ -111,6 +111,11 @@ public:
 
     bool write(std::ostream& out, DB& db, unsigned indent = 0);
 
+    bool isWritten() const
+    {
+        return m_written;
+    }
+
     const XmlPropsMap& props(DB& db);
 
     const XmlPropsMap& getProps() const

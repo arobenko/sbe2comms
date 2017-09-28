@@ -30,12 +30,13 @@ public:
 
 protected:
     virtual Kind kindImpl() const override;
+    virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
     virtual std::size_t lengthImpl(DB& db) override;
     virtual bool writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent) override;
 
 private:
-    const Ptr& getReferenceType(DB& db);
+    const Ptr& getReferenceType() const;
 };
 
 } // namespace sbe2comms
