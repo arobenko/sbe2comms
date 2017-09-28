@@ -33,6 +33,7 @@ namespace
 
 const std::string ElementSuffix("Element");
 const std::string NullValueName("NullValue");
+const std::size_t MaxRangesCount = 10;
 
 } // namespace
 
@@ -64,6 +65,11 @@ bool EnumType::parseImpl()
 
     if (!readValues()) {
         return false;
+    }
+
+    auto ranges = getValidRanges();
+    if (MaxRangesCount < ranges.size()) {
+        addExtraInclude("<algorithm>");
     }
 
     return true;
@@ -146,7 +152,6 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     }
     writeOptions(out, indent);
 
-    static const std::size_t MaxRangesCount = 10;
     auto ranges = getValidRanges();
     bool tooManyRanges = MaxRangesCount < ranges.size();
     bool asType = (!isOptional()) && (!tooManyRanges);
