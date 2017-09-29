@@ -18,6 +18,7 @@
 #include "CompositeType.h"
 
 #include <iostream>
+#include <numeric>
 
 #include "DB.h"
 #include "prop.h"
@@ -71,38 +72,16 @@ bool CompositeType::parseImpl()
 
 bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    do {
-        if (!dataUseRecorded()) {
-            break;
-        }
-
-        if (m_members.size() != StringEncIdx_numOfValues) {
-            log::error() << "The composite \"" << getName() << "\" type has "
-                            "been used to encode data field, must have " << StringEncIdx_numOfValues <<
-                            " members fields describing length and data." << std::endl;
-            return false;
-        }
-
-        if (m_members[StringEncIdx_data]->kind() != Kind::Basic) {
-            log::error() << "The composite \"" << getName() << "\" type has "
-                           "been used to encode data field, must have data field of basic type." << std::endl;
-            return false;
-        }
-
-        if (!m_members[StringEncIdx_data]->hasListOrString()) {
-            log::error() << "The composite \"" << getName() << "\" type has "
-                           "been used to encode data field, must have data field describing list or string-." << std::endl;
-            return false;
-        }
-
-    } while (false);
-
     assert(!m_members.empty());
     for (auto& m : m_members) {
         if (!m->writeDependencies(out, db, indent)) {
             log::error() << "Failed to write dependencies for composite \"" << getName() << "\"." << std::endl;
             return false;
         }
+    }
+
+    if (!checkDataValid()) {
+        return false;
     }
 
     bool hasExtraOpts =
@@ -127,8 +106,12 @@ bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 std::size_t CompositeType::lengthImpl(DB& db)
 {
     static_cast<void>(db);
-    // TODO
-    return 0U;
+    return std::accumulate(
+            m_members.begin(), m_members.end(), 0U,
+            [&db](std::size_t soFar, const TypePtr& t)
+            {
+                return soFar + t->length(db);
+            });
 }
 
 bool CompositeType::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
@@ -292,6 +275,7 @@ bool CompositeType::writeString(std::ostream& out, DB& db, unsigned indent)
            output::indent(indent + 2) << ">,\n" <<
            output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">;\n\n";
+
     return true;
 }
 
@@ -303,6 +287,47 @@ bool CompositeType::mustBeString() const
 
     // TODO: check semantic type(s)
     return true;
+}
+
+bool CompositeType::checkDataValid()
+{
+    if (!dataUseRecorded()) {
+        return true;
+    }
+
+    if (m_members.size() != StringEncIdx_numOfValues) {
+        log::error() << "The composite \"" << getName() << "\" type has "
+                        "been used to encode data field, must have " << StringEncIdx_numOfValues <<
+                        " members fields describing length and data." << std::endl;
+        return false;
+    }
+
+    if (m_members[StringEncIdx_length]->kind() != Kind::Basic) {
+        log::error() << "The composite \"" << getName() << "\" type has "
+                       "been used to encode data field, must have length field of basic type." << std::endl;
+        return false;
+    }
+
+    if (m_members[StringEncIdx_data]->kind() != Kind::Basic) {
+        log::error() << "The composite \"" << getName() << "\" type has "
+                       "been used to encode data field, must have data field of basic type." << std::endl;
+        return false;
+    }
+
+    if (!m_members[StringEncIdx_data]->hasListOrString()) {
+        log::error() << "The composite \"" << getName() << "\" type has "
+                       "been used to encode data field, must have data field describing list or string." << std::endl;
+        return false;
+    }
+
+    if (m_members[StringEncIdx_length]->isOptional()) {
+        log::error() << "The composite \"" << getName() << "\" type has "
+                       "been used to encode data field, mustn't have optional length field." << std::endl;
+        return false;
+    }
+
+    return true;
+
 }
 
 } // namespace sbe2comms

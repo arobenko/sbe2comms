@@ -34,10 +34,6 @@ RefType::Kind RefType::kindImpl() const
 
 bool RefType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    if (!getReferenceType()) {
-        return false;
-    }
-
     static_cast<void>(db);
     auto& ptr = getReferenceType();
     assert(ptr);
@@ -64,7 +60,10 @@ std::size_t RefType::lengthImpl(DB& db)
 bool RefType::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
 {
     auto& ptr = getReferenceType();
-    assert(ptr);
+    if (!getReferenceType()) {
+        return false;
+    }
+
     return ptr->write(out, db, indent);
 }
 

@@ -45,7 +45,7 @@ private:
     bool writeBundle(std::ostream& out, DB& db, unsigned indent, bool hasExtraOpts);
     bool writeString(std::ostream& out, DB& db, unsigned indent);
     bool mustBeString() const;
-
+    bool checkDataValid();
 
     std::vector<TypePtr> m_members;
 };
