@@ -120,6 +120,11 @@ std::size_t EnumType::lengthImpl(DB& db)
     return iter->second->length(getDb());
 }
 
+bool EnumType::hasListOrStringImpl() const
+{
+    return getLengthProp() != 1U;
+}
+
 void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 {
     auto& underlying = getUnderlyingType();

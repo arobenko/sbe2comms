@@ -130,6 +130,11 @@ std::size_t SetType::lengthImpl(DB& db)
     return iter->second->length(db);
 }
 
+bool SetType::hasListOrStringImpl() const
+{
+    return getLengthProp() != 1U;
+}
+
 void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 {
     auto name = getName();

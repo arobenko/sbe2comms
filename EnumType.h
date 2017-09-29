@@ -36,6 +36,7 @@ protected:
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
     virtual std::size_t lengthImpl(DB& db) override;
+    virtual bool hasListOrStringImpl() const override;
 
 private:
     using Values = std::multimap<std::intmax_t, std::string>;

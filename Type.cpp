@@ -298,6 +298,11 @@ bool Type::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
     return true;
 }
 
+bool Type::hasListOrStringImpl() const
+{
+    return false;
+}
+
 bool Type::isDeperated(DB& db)
 {
     auto& p = props(db);

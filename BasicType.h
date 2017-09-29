@@ -35,6 +35,7 @@ protected:
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
     virtual std::size_t lengthImpl(DB& db) override;
+    virtual bool hasListOrStringImpl() const override;
 
 private:
     bool writeSimpleType(

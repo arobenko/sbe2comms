@@ -22,6 +22,7 @@
 #include "DB.h"
 #include "prop.h"
 #include "output.h"
+#include "log.h"
 
 namespace sbe2comms
 {
@@ -45,23 +46,60 @@ CompositeType::Kind CompositeType::kindImpl() const
     return Kind::Composite;
 }
 
-bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool CompositeType::parseImpl()
 {
-    return true; // TODO: remove
-
-    if (!prepareMembers(db)) {
+    if (!prepareMembers()) {
         return false;
     }
 
-    auto& p = props(db);
+    return true;
+}
+
+bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+{
+    do {
+        if (!dataUseRecorded()) {
+            break;
+        }
+
+        if (m_members.size() != StringEncIdx_numOfValues) {
+            log::error() << "The composite \"" << getName() << "\" type has "
+                            "been used to encode data field, must have " << StringEncIdx_numOfValues <<
+                            " members fields describing length and data." << std::endl;
+            return false;
+        }
+
+        if (m_members[StringEncIdx_data]->kind() != Kind::Basic) {
+            log::error() << "The composite \"" << getName() << "\" type has "
+                           "been used to encode data field, must have data field of basic type." << std::endl;
+            return false;
+        }
+
+        if (!m_members[StringEncIdx_data]->hasListOrString()) {
+            log::error() << "The composite \"" << getName() << "\" type has "
+                           "been used to encode data field, must have data field describing list or string-." << std::endl;
+            return false;
+        }
+
+    } while (false);
+
+    assert(!m_members.empty());
     for (auto& m : m_members) {
         if (!m->writeDependencies(out, db, indent)) {
-            std::cerr << "ERROR: Failed to write dependencies for composite \"" << prop::name(p) << "\"." << std::endl;
+            log::error() << "Failed to write dependencies for composite \"" << getName() << "\"." << std::endl;
             return false;
         }
     }
 
-    if (!writeMembers(out, db, indent)) {
+    bool hasExtraOpts =
+            std::any_of(
+                m_members.begin(), m_members.end(),
+                [](const TypePtr& m)
+                {
+                   return m->hasListOrString();
+                });
+
+    if (!writeMembers(out, indent, hasExtraOpts)) {
         return false;
     }
 
@@ -69,7 +107,7 @@ bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
         return writeString(out, db, indent);
     }
 
-    return writeBundle(out, db, indent);
+    return writeBundle(out, db, indent, hasExtraOpts);
 }
 
 std::size_t CompositeType::lengthImpl(DB& db)
@@ -79,27 +117,62 @@ std::size_t CompositeType::lengthImpl(DB& db)
     return 0U;
 }
 
-bool CompositeType::prepareMembers(DB& db)
+bool CompositeType::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    auto& p = props(db);
+    bool result = true;
+    for (auto& m : m_members) {
+        result = m->writeDependencies(out, db, indent) && result;
+    }
+    return result;
+}
+
+bool CompositeType::hasListOrStringImpl() const
+{
+    return std::any_of(
+                m_members.begin(), m_members.end(),
+                [](const TypePtr& m)
+                {
+                    return m->hasListOrString();
+                });
+}
+
+bool CompositeType::prepareMembers()
+{
     auto children = xmlChildren(getNode());
     m_members.reserve(children.size());
     for (auto* c : children) {
         std::string cName(reinterpret_cast<const char*>(c->name));
-        m_members.push_back(Type::create(cName, getDb(), c));
-        if (!m_members.back()) {
-            m_members.pop_back();
-            std::cerr << "ERROR: Failed to create members of \"" << prop::name(p) << "\" composite." << std::endl;
+        auto mem = Type::create(cName, getDb(), c);
+        if (!mem) {
+            log::error() << "Failed to create members of \"" << getName() << "\" composite." << std::endl;
             return false;
         }
+
+        if (!mem->parse()) {
+            log::error() << "Failed to parse \"" << cName  << "\" member of \"" << getName() << "\" composite." << std::endl;
+            return false;
+        }
+
+        if (!mem->doesExist()) {
+            continue;
+        }
+
+        // TODO: add padding
+
+        m_members.push_back(std::move(mem));
     }
-    return !m_members.empty();
+
+    if (m_members.empty()) {
+        log::error() << "The composite \"" << getName() << "\" doesn't define any member types." << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
-bool CompositeType::writeMembers(std::ostream& out, DB& db, unsigned indent)
+bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts)
 {
-    auto& p = props(db);
-    auto& n = prop::name(p);
+    auto& n = getName();
     std::string membersStruct = n + MembersSuffix;
 
     out << output::indent(indent) << "/// \\brief Scope for all the members of the \\ref " << n << " field.\n" <<
@@ -107,21 +180,29 @@ bool CompositeType::writeMembers(std::ostream& out, DB& db, unsigned indent)
            output::indent(indent) << "{\n";
     bool result = true;
     for (auto& m : m_members) {
-        result = m->write(out, db, indent + 1) && result;
+        result = m->write(out, getDb(), indent + 1) && result;
     }
 
-    out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n" <<
-           output::indent(indent + 1) << "using All = std::tuple<\n";
+    out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n";
+    if (hasExtraOpts) {
+        out << output::indent(indent + 1) << "/// \\tparam TOpt Extra options for list/string fields.\n";
+        writeOptions(out, indent + 1);
+    }
+    out << output::indent(indent + 1) << "using All = std::tuple<\n";
     bool first = true;
     for (auto& m : m_members) {
         if (!first) {
             out << ",\n";
         }
         first = false;
-        auto& mProps = m->props(db);
-        auto& mName = prop::name(mProps);
-        if (!mName.empty()) {
-            out << output::indent(indent + 2) << mName;
+        auto& mName = m->getName();
+        assert(!mName.empty());
+        out << output::indent(indent + 2) << mName;
+        if (m->hasListOrString()) {
+            out << "<TOpt...>";
+        }
+        else {
+            out << "<>";
         }
     }
     out << '\n' <<
@@ -130,30 +211,31 @@ bool CompositeType::writeMembers(std::ostream& out, DB& db, unsigned indent)
     return result;
 }
 
-bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent)
+bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent, bool hasExtraOpts)
 {
-    writeBrief(out, db, indent);
-    auto& p = props(db);
-    auto& n = prop::name(p);
-    if (n.empty()) {
-        std::cerr << "ERROR: Unknown name of composite type" << std::endl;
-        return false;
-    }
-
-    out << output::indent(indent) << "struct " << n << " : public\n" <<
+    writeBrief(out, db, indent, true);
+    writeOptions(out, indent);
+    out << output::indent(indent) << "struct " << getName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << n << MembersSuffix << "::All\n" <<
-           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent + 2) << getName() << MembersSuffix << "::All";
+    if (hasExtraOpts) {
+        out << "<TOpt...>\n";
+    }
+    else {
+        out << ",\n" <<
+               output::indent(indent + 2) << "TOpt...\n";
+    }
+    out << output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << "/// \\brief Allow access to internal fields.\n" <<
            output::indent(indent + 1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
            output::indent(indent + 1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
            output::indent(indent + 1) << "///     for details.\\n\n" <<
            output::indent(indent + 1) << "///     The names are:\n";
-    auto memsScope = n + MembersSuffix + "::";
+    auto memsScope = getName() + MembersSuffix + "::";
     for (auto& m : m_members) {
-        auto& mProps = m->props(db);
+        auto& mProps = m->getProps();
         out << output::indent(indent + 1) << "///     \\li \\b " << prop::name(mProps) << " for \\ref " << memsScope << prop::name(mProps) << '.' << std::endl;
     }
     out << output::indent(indent + 1) << "COMMS_FIELD_MEMBERS_ACCESS(\n";
@@ -173,23 +255,21 @@ bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent)
 
 bool CompositeType::writeString(std::ostream& out, DB& db, unsigned indent)
 {
-    auto& p = props(db);
-    auto& n = prop::name(p);
-
     if (m_members.size() != StringEncIdx_numOfValues) {
-        std::cerr << "ERROR: The number of members in \"" << n << "\" composite is expected to be " << StringEncIdx_numOfValues << std::endl;
+        log::error() << "The number of members in \"" << getName() << "\" composite is expected to be " << StringEncIdx_numOfValues << std::endl;
         return false;
     }
 
     writeBrief(out, db, indent, true);
-    auto& lenProps = m_members[StringEncIdx_length]->props(db);
-    auto& dataProps = m_members[StringEncIdx_data]->props(db);
-    out << output::indent(indent) << "template <typename... TOpt>\n" <<
-           output::indent(indent) << "using " << n << " = \n" <<
-           output::indent(indent + 1) << n << MembersSuffix << "::" << prop::name(dataProps) << "<\n" <<
+    writeOptions(out, indent);
+    auto& lenMem = *m_members[StringEncIdx_length];
+    auto& dataMem = *m_members[StringEncIdx_data];
+    out << output::indent(indent) << "using " << getName() << " = \n" <<
+           output::indent(indent + 1) << getName() << MembersSuffix << "::" << dataMem.getName() << "<\n" <<
            output::indent(indent + 2) << "comms::option::SequenceSizeFieldPrefix<\n" <<
-           output::indent(indent + 3) << n << MembersSuffix << "::" << prop::name(lenProps) << '\n' <<
-           output::indent(indent + 2) << ">\n" <<
+           output::indent(indent + 3) << getName() << MembersSuffix << "::" << lenMem.getName() << '\n' <<
+           output::indent(indent + 2) << ">,\n" <<
+           output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">;\n\n";
     return true;
 }

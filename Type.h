@@ -133,6 +133,11 @@ public:
         return writeDependenciesImpl(out, db, indent);
     }
 
+    bool hasListOrString() const
+    {
+        return hasListOrStringImpl();
+    }
+
 protected:
     xmlNodePtr getNode() const
     {
@@ -154,6 +159,7 @@ protected:
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
     virtual std::size_t lengthImpl(DB& db) = 0;
     virtual bool writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent);
+    virtual bool hasListOrStringImpl() const;
 
     bool isDeperated(DB& db);
     bool isIntroduced(DB& db);

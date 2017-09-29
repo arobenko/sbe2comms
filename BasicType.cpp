@@ -139,6 +139,11 @@ std::size_t BasicType::lengthImpl(DB& db)
     auto count = getLengthProp();
     auto singleLen = primitiveLength(getPrimitiveType());
     return singleLen * count;
+}\
+
+bool BasicType::hasListOrStringImpl() const
+{
+    return (getLengthProp() != 1U) || (isConstString());
 }
 
 bool BasicType::writeSimpleType(std::ostream& out,
@@ -473,7 +478,8 @@ bool BasicType::writeFixedLengthString(
         out << output::indent(indent) << "using " << getName() << " = \n" <<
                output::indent(indent + 1) << "comms::field::String<\n" <<
                output::indent(indent + 2) << "FieldBase,\n" <<
-               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
+               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
+               output::indent(indent + 2) << "TOpt...\n" <<
                output::indent(indent + 1) << ">";
         return true;
     }
@@ -483,6 +489,7 @@ bool BasicType::writeFixedLengthString(
            output::indent(indent + 1) << "comms::field::String<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
            output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
+           output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << getName() << "()\n" <<

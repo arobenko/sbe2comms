@@ -32,17 +32,12 @@ RefType::Kind RefType::kindImpl() const
     return Kind::Ref;
 }
 
-bool RefType::parseImpl()
+bool RefType::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
     if (!getReferenceType()) {
         return false;
     }
 
-    return true;
-}
-
-bool RefType::writeImpl(std::ostream& out, DB& db, unsigned indent)
-{
     static_cast<void>(db);
     auto& ptr = getReferenceType();
     assert(ptr);
@@ -53,8 +48,9 @@ bool RefType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     auto& refName = ptr->getName();
     assert(!refName.empty());
 
-    writeBrief(out, db, indent);
-    out << output::indent(indent) << "using " << name << " = field::" << refName << ";\n\n";
+    writeBrief(out, db, indent, true);
+    writeOptions(out, indent);
+    out << output::indent(indent) << "using " << name << " = field::" << refName << "<TOpt...>;\n\n";
     return true;
 }
 
@@ -70,6 +66,13 @@ bool RefType::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
     auto& ptr = getReferenceType();
     assert(ptr);
     return ptr->write(out, db, indent);
+}
+
+bool RefType::hasListOrStringImpl() const
+{
+    auto& ptr = getReferenceType();
+    assert(ptr);
+    return ptr->hasListOrString();
 }
 
 const RefType::Ptr& RefType::getReferenceType() const
