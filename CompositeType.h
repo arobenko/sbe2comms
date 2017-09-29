@@ -30,6 +30,8 @@ class CompositeType : public Type
 public:
     explicit CompositeType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
+    bool isBundleOptional() const;
+
 protected:
     virtual Kind kindImpl() const override;
     virtual bool parseImpl() override;
@@ -42,7 +44,8 @@ private:
     bool writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts);
     bool writeBundle(std::ostream& out, DB& db, unsigned indent, bool hasExtraOpts);
     bool writeString(std::ostream& out, DB& db, unsigned indent);
-    bool mustBeString();
+    bool mustBeString() const;
+
 
     std::vector<TypePtr> m_members;
 };

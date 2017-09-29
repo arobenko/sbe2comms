@@ -41,6 +41,20 @@ enum StringEncIdx
 
 } // namespace
 
+bool CompositeType::isBundleOptional() const
+{
+    if (m_members.empty()) {
+        return false;
+    }
+
+    auto& mem = m_members[0];
+    if (mem->kind() != Kind::Composite) {
+        return mem->isOptional();
+    }
+
+    return static_cast<const CompositeType&>(*mem).isBundleOptional();
+}
+
 CompositeType::Kind CompositeType::kindImpl() const
 {
     return Kind::Composite;
@@ -247,9 +261,16 @@ bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent, bool
         auto& mProps = m->props(db);
         out << output::indent(indent + 2) << prop::name(mProps) << std::endl;
     }
-    out << output::indent(indent + 1) << ");\n" <<
-           output::indent(indent) << "};\n\n";
-
+    out << output::indent(indent + 1) << ");\n";
+    if (isBundleOptional()) {
+        out << "\n" <<
+               output::indent(indent + 1) << "/// \\brief Check the value of the first member is equivalent to \\b nullValue.\n" <<
+               output::indent(indent + 1) << "bool isNull() const\n" <<
+               output::indent(indent + 1) << "{\n" <<
+               output::indent(indent + 2) << "return field_" << m_members[0]->getName() << "().isNull();\n" <<
+               output::indent(indent + 1) << "}\n";
+    }
+    out << output::indent(indent) << "};\n\n";
     return true;
 }
 
@@ -274,7 +295,7 @@ bool CompositeType::writeString(std::ostream& out, DB& db, unsigned indent)
     return true;
 }
 
-bool CompositeType::mustBeString()
+bool CompositeType::mustBeString() const
 {
     if (!dataUseRecorded()) {
         return false;
