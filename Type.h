@@ -56,8 +56,6 @@ public:
 
     const std::string& getName() const;
     const std::string& getDescription() const;
-    bool isDeprecated() const;
-    bool isIntroduced() const;
     bool isRequired() const;
     bool isOptional() const;
     bool isConstant() const;

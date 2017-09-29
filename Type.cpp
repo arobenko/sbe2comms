@@ -88,29 +88,6 @@ const std::string& Type::getDescription() const
     return prop::description(m_props);
 }
 
-bool Type::isDeprecated() const
-{
-    assert(!m_props.empty());
-    if (!prop::hasDeprecated(m_props)) {
-        return false;
-    }
-
-    auto depVersion = prop::deprecated(m_props);
-    auto currVersion = m_db.getSchemaVersion();
-    return currVersion < depVersion;
-}
-
-bool Type::isIntroduced() const
-{
-    if (!prop::hasSinceVersion(m_props)) {
-        return true;
-    }
-
-    auto sinceVersion = prop::sinceVersion(m_props);
-    auto currVersion = m_db.getSchemaVersion();
-    return sinceVersion <= currVersion;
-}
-
 bool Type::isRequired() const
 {
     assert(!m_props.empty());
