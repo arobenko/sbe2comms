@@ -125,6 +125,12 @@ bool DB::parseSchema(std::string filename)
         cur = cur->next;
     }
 
+    for (auto& t : m_types) {
+        if (!t.second->parse()) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -235,13 +241,10 @@ bool DB::recordTypeRef(xmlNodePtr node)
         return false;
     }
 
-    if (!ptr->parse()) {
-        return false;
-    }
-
-    if (ptr->doesExist()) {
+    if (doesElementExist(prop::sinceVersion(props), prop::deprecated(props))) {
         m_types.insert(std::make_pair(name, std::move(ptr)));
     }
+
     return true;
 }
 
@@ -257,6 +260,7 @@ bool DB::parseTypes(xmlNodePtr node)
 
         cur = cur->next;
     }
+
     return true;
 }
 

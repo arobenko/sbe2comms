@@ -43,8 +43,7 @@ private:
     bool prepareMembers();
     bool writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts);
     bool writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts);
-    bool writeString(std::ostream& out, unsigned indent);
-    bool mustBeString() const;
+    bool writeData(std::ostream& out, unsigned indent);
     bool checkDataValid();
 
     std::vector<TypePtr> m_members;

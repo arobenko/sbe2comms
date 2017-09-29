@@ -18,6 +18,7 @@
 #include "xml_wrap.h"
 
 #include <cassert>
+#include <string>
 
 namespace sbe2comms
 {
@@ -77,6 +78,32 @@ std::list<xmlNodePtr> xmlChildren(xmlNodePtr node, const std::string& name)
         cur = cur->next;
     }
     return result;
+}
+
+XmlNodePtr xmlCreatePadding(unsigned idx, unsigned len)
+{
+    static const std::string type("type");
+    auto* typePtr = reinterpret_cast<const xmlChar*>(type.c_str());
+    XmlNodePtr ptr(xmlNewNode(nullptr, typePtr));
+
+    static const std::string nameStr("name");
+    auto* namePtr = reinterpret_cast<const xmlChar*>(nameStr.c_str());
+    auto nameVal = "pad" + std::to_string(idx) + '_';
+    auto* nameValPtr = reinterpret_cast<const xmlChar*>(nameVal.c_str());
+    xmlNewProp(ptr.get(), namePtr, nameValPtr);
+
+    static const std::string lengthStr("length");
+    auto* lengthPtr = reinterpret_cast<const xmlChar*>(lengthStr.c_str());
+    auto lengthVal = std::to_string(len);
+    auto* lengthValPtr = reinterpret_cast<const xmlChar*>(lengthVal.c_str());
+    xmlNewProp(ptr.get(), lengthPtr, lengthValPtr);
+
+    static const std::string primTypeStr("primitiveType");
+    auto* primTypePtr = reinterpret_cast<const xmlChar*>(primTypeStr.c_str());
+    static const std::string primTypeVal("uint8");
+    auto* primTypeValPtr = reinterpret_cast<const xmlChar*>(primTypeVal.c_str());
+    xmlNewProp(ptr.get(), primTypePtr, primTypeValPtr);
+    return ptr;
 }
 
 } // namespace sbe2comms

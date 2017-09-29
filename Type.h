@@ -61,6 +61,7 @@ public:
     bool isConstant() const;
     const std::string& getPresence() const;
     unsigned getLengthProp() const;
+    unsigned getOffset() const;
     const std::string& getMinValue() const;
     const std::string& getMaxValue() const;
     const std::string& getNullValue() const;

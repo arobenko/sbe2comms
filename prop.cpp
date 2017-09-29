@@ -37,6 +37,7 @@ const std::string Deprecated("deprecated");
 const std::string Version("version");
 const std::string SinceVersion("sinceVersion");
 const std::string Length("length");
+const std::string Offset("offset");
 const std::string PrimitiveType("primitiveType");
 const std::string SemanticType("semanticType");
 const std::string ByteOrder("byteOrder");
@@ -123,6 +124,11 @@ unsigned sinceVersion(const XmlPropsMap& map)
 unsigned length(const XmlPropsMap& map)
 {
     return getPropInt<unsigned>(map, Length, 1U);
+}
+
+unsigned offset(const XmlPropsMap& map)
+{
+    return getPropInt<unsigned>(map, Offset);
 }
 
 const std::string& primitiveType(const XmlPropsMap& map)

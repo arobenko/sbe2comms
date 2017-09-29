@@ -37,13 +37,13 @@ Type::Type(DB& db, xmlNodePtr node)
     m_node(node)
 {
     std::fill(m_uses.begin(), m_uses.end(), 0U);
+    m_props = xmlParseNodeProps(m_node, getDb().getDoc());
 }
 
 Type::~Type() noexcept = default;
 
 bool Type::parse()
 {
-    m_props = xmlParseNodeProps(m_node, getDb().getDoc());
     if (m_props.empty()) {
         log::error() << "No properties for \"" << getNodeName() << "\" type." << std::endl;
         return false;
@@ -116,6 +116,12 @@ unsigned Type::getLengthProp() const
 {
     assert(!m_props.empty());
     return prop::length(m_props);
+}
+
+unsigned Type::getOffset() const
+{
+    assert(!m_props.empty());
+    return prop::offset(m_props);
 }
 
 const std::string& Type::getMinValue() const

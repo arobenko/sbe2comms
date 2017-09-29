@@ -546,7 +546,8 @@ bool BasicType::writeFixedLengthRawDataArray(
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
            output::indent(indent + 2) << primitiveTypeToStdInt(primType) << ",\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
+           output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }

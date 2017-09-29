@@ -31,9 +31,17 @@ namespace sbe2comms
 
 struct XmlDocFree
 {
-    void operator()(xmlDocPtr p) const
+    void operator()(::xmlDocPtr p) const
     {
         xmlFree(p);
+    }
+};
+
+struct XmlNodeFree
+{
+    void operator()(::xmlNodePtr p) const
+    {
+        xmlFreeNode(p);
     }
 };
 
@@ -48,9 +56,11 @@ struct XmlCharFree
 using XmlDocPtr = std::unique_ptr<xmlDoc, XmlDocFree>;
 using XmlCharPtr = std::unique_ptr<xmlChar, XmlCharFree>;
 using XmlPropsMap = std::map<std::string, std::string>;
+using XmlNodePtr = std::unique_ptr<xmlNode, XmlNodeFree>;
 
 XmlPropsMap xmlParseNodeProps(xmlNodePtr node, xmlDocPtr doc);
 std::string xmlText(xmlNodePtr node);
 std::list<xmlNodePtr> xmlChildren(xmlNodePtr node, const std::string& name = std::string());
+XmlNodePtr xmlCreatePadding(unsigned idx, unsigned len);
 
 } // namespace sbe2comms

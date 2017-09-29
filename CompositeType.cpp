@@ -33,11 +33,11 @@ namespace
 
 const std::string MembersSuffix("Members");
 
-enum StringEncIdx
+enum DataEncIdx
 {
-    StringEncIdx_length,
-    StringEncIdx_data,
-    StringEncIdx_numOfValues
+    DataEncIdx_length,
+    DataEncIdx_data,
+    DataEncIdx_numOfValues
 };
 
 } // namespace
@@ -96,8 +96,8 @@ bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
         return false;
     }
 
-    if (mustBeString()) {
-        return writeString(out, indent);
+    if (dataUseRecorded()) {
+        return writeData(out, indent);
     }
 
     return writeBundle(out, indent, hasExtraOpts);
@@ -134,8 +134,11 @@ bool CompositeType::hasListOrStringImpl() const
 
 bool CompositeType::prepareMembers()
 {
+    assert(m_members.empty());
     auto children = xmlChildren(getNode());
     m_members.reserve(children.size());
+    unsigned expOffset = 0U;
+    unsigned padCount = 0;
     for (auto* c : children) {
         std::string cName(reinterpret_cast<const char*>(c->name));
         auto mem = Type::create(cName, getDb(), c);
@@ -153,8 +156,37 @@ bool CompositeType::prepareMembers()
             continue;
         }
 
-        // TODO: add padding
+        do {
+            auto offset = mem->getOffset();
+            if ((offset == 0U) || (offset == expOffset)) {
+                break;
+            }
 
+            if (offset < expOffset) {
+                log::error() << "Invalid offset of \"" << cName <<
+                                "\" member of \"" << getName() << "\" composite, causing overlap.\n" << std::endl;
+                return false;
+            }
+
+            auto padLen = offset - expOffset;
+            ++padCount;
+            auto padNode = xmlCreatePadding(padCount, padLen);
+            assert(padNode);
+            auto* padNodeName = reinterpret_cast<const char*>(padNode->name);
+            auto padMem = Type::create(padNodeName, getDb(), padNode.get());
+            assert(padMem);
+            if (!padMem->parse()) {
+                log::error() << "Failed to parse \"" << padNodeName  << "\" member of \"" << getName() << "\" composite." << std::endl;
+                return false;
+            }
+
+            assert(padMem->getSerializationLength() == padLen);
+            expOffset += padLen;
+            m_members.push_back(std::move(padMem));
+            xmlAddPrevSibling(c, padNode.release());
+        } while (false);
+
+        expOffset += mem->getSerializationLength();
         m_members.push_back(std::move(mem));
     }
 
@@ -256,17 +288,17 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent, bool hasExtr
     return true;
 }
 
-bool CompositeType::writeString(std::ostream& out, unsigned indent)
+bool CompositeType::writeData(std::ostream& out, unsigned indent)
 {
-    if (m_members.size() != StringEncIdx_numOfValues) {
-        log::error() << "The number of members in \"" << getName() << "\" composite is expected to be " << StringEncIdx_numOfValues << std::endl;
+    if (m_members.size() != DataEncIdx_numOfValues) {
+        log::error() << "The number of members in \"" << getName() << "\" composite is expected to be " << DataEncIdx_numOfValues << std::endl;
         return false;
     }
 
     writeBrief(out, indent, true);
     writeOptions(out, indent);
-    auto& lenMem = *m_members[StringEncIdx_length];
-    auto& dataMem = *m_members[StringEncIdx_data];
+    auto& lenMem = *m_members[DataEncIdx_length];
+    auto& dataMem = *m_members[DataEncIdx_data];
     out << output::indent(indent) << "using " << getName() << " = \n" <<
            output::indent(indent + 1) << getName() << MembersSuffix << "::" << dataMem.getName() << "<\n" <<
            output::indent(indent + 2) << "comms::option::SequenceSizeFieldPrefix<\n" <<
@@ -278,48 +310,38 @@ bool CompositeType::writeString(std::ostream& out, unsigned indent)
     return true;
 }
 
-bool CompositeType::mustBeString() const
-{
-    if (!dataUseRecorded()) {
-        return false;
-    }
-
-    // TODO: check semantic type(s)
-    return true;
-}
-
 bool CompositeType::checkDataValid()
 {
     if (!dataUseRecorded()) {
         return true;
     }
 
-    if (m_members.size() != StringEncIdx_numOfValues) {
+    if (m_members.size() != DataEncIdx_numOfValues) {
         log::error() << "The composite \"" << getName() << "\" type has "
-                        "been used to encode data field, must have " << StringEncIdx_numOfValues <<
-                        " members fields describing length and data." << std::endl;
+                        "been used to encode data field, must have " << DataEncIdx_numOfValues <<
+                        " members fields describing length and data. Has " << m_members.size() << std::endl;
         return false;
     }
 
-    if (m_members[StringEncIdx_length]->kind() != Kind::Basic) {
+    if (m_members[DataEncIdx_length]->kind() != Kind::Basic) {
         log::error() << "The composite \"" << getName() << "\" type has "
                        "been used to encode data field, must have length field of basic type." << std::endl;
         return false;
     }
 
-    if (m_members[StringEncIdx_data]->kind() != Kind::Basic) {
+    if (m_members[DataEncIdx_data]->kind() != Kind::Basic) {
         log::error() << "The composite \"" << getName() << "\" type has "
                        "been used to encode data field, must have data field of basic type." << std::endl;
         return false;
     }
 
-    if (!m_members[StringEncIdx_data]->hasListOrString()) {
+    if (!m_members[DataEncIdx_data]->hasListOrString()) {
         log::error() << "The composite \"" << getName() << "\" type has "
                        "been used to encode data field, must have data field describing list or string." << std::endl;
         return false;
     }
 
-    if (m_members[StringEncIdx_length]->isOptional()) {
+    if (m_members[DataEncIdx_length]->isOptional()) {
         log::error() << "The composite \"" << getName() << "\" type has "
                        "been used to encode data field, mustn't have optional length field." << std::endl;
         return false;
