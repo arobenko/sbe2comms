@@ -30,9 +30,9 @@ public:
 
 protected:
     virtual Kind kindImpl() const override;
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
-    virtual std::size_t lengthImpl(DB& db) override;
-    virtual bool writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent) override;
+    virtual std::size_t getSerializationLengthImpl() const override;
+    virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent) override;
     virtual bool hasListOrStringImpl() const override;
 
 private:

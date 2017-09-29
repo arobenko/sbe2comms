@@ -257,9 +257,8 @@ Type::Ptr Type::create(const std::string& name, DB& db, xmlNodePtr node)
     return createIter->second(db, node);
 }
 
-bool Type::write(std::ostream& out, DB& db, unsigned indent)
+bool Type::write(std::ostream& out, unsigned indent)
 {
-    static_cast<void>(db);
     assert(doesExist());
 
     if (m_written) {
@@ -272,17 +271,9 @@ bool Type::write(std::ostream& out, DB& db, unsigned indent)
     }
 
     m_writingInProgress = true;
-    m_written = writeImpl(out, db, indent);
+    m_written = writeImpl(out, indent);
     m_writingInProgress = false;
     return m_written;
-}
-
-const XmlPropsMap& Type::props(DB& db)
-{
-    if (m_props.empty()) {
-        m_props = xmlParseNodeProps(m_node, db.getDoc());
-    }
-    return m_props;
 }
 
 bool Type::parseImpl()
@@ -290,10 +281,9 @@ bool Type::parseImpl()
     return true;
 }
 
-bool Type::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
+bool Type::writeDependenciesImpl(std::ostream& out, unsigned indent)
 {
     static_cast<void>(out);
-    static_cast<void>(db);
     static_cast<void>(indent);
     return true;
 }
@@ -301,45 +291,6 @@ bool Type::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
 bool Type::hasListOrStringImpl() const
 {
     return false;
-}
-
-bool Type::isDeperated(DB& db)
-{
-    auto& p = props(db);
-    if (!prop::hasDeprecated(p)) {
-        return false;
-    }
-
-    auto depVersion = prop::deprecated(p);
-    auto currVersion = db.getSchemaVersion();
-    return currVersion < depVersion;
-}
-
-bool Type::isIntroduced(DB& db)
-{
-    auto& p = props(db);
-    if (!prop::hasSinceVersion(p)) {
-        return true;
-    }
-
-    auto sinceVersion = prop::sinceVersion(p);
-    auto currVersion = db.getSchemaVersion();
-    return sinceVersion <= currVersion;
-}
-
-void Type::writeBrief(std::ostream& out, DB& db, unsigned indent, bool extraOpts)
-{
-    auto& p = props(db);
-    out << output::indent(indent) << "/// \\brief Definition of \"" << prop::name(p) <<
-           "\" field\n";
-    auto& desc = prop::description(p);
-    if (!desc.empty()) {
-        out << output::indent(indent) << "/// \\details " << desc << "\n";
-    }
-
-    if (extraOpts) {
-        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
-    }
 }
 
 void Type::writeBrief(std::ostream& out, unsigned indent, bool extraOpts)

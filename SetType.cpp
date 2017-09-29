@@ -67,11 +67,10 @@ bool SetType::parseImpl()
         return false;
     }
 
-    if (length(getDb()) == 0U) {
+    if (getSerializationLength() == 0U) {
         log::error() << "Failed to identify length of the set \"" << getName() << "\", please check encoding type" << std::endl;
         return false;
     }
-
 
     if (!readChoices()) {
         return false;
@@ -80,10 +79,9 @@ bool SetType::parseImpl()
     return true;
 }
 
-bool SetType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool SetType::writeImpl(std::ostream& out, unsigned indent)
 {
-    static_cast<void>(db);
-    auto serLen = length(db);
+    auto serLen = getSerializationLengthImpl();
     assert(0U < serLen);
 
     auto count = getLengthProp();
@@ -101,9 +99,8 @@ bool SetType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     return true;
 }
 
-std::size_t SetType::lengthImpl(DB& db)
+std::size_t SetType::getSerializationLengthImpl() const
 {
-    static_cast<void>(db);
     auto& encType = getEncodingType();
     assert(!encType.empty());
 
@@ -127,7 +124,7 @@ std::size_t SetType::lengthImpl(DB& db)
         return 0U;
     }
 
-    return iter->second->length(db);
+    return iter->second->getSerializationLength();
 }
 
 bool SetType::hasListOrStringImpl() const
@@ -147,7 +144,7 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     }
     writeOptions(out, indent);
 
-    auto len = length(getDb());
+    auto len = getSerializationLengthImpl();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::BitmaskValue<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
@@ -203,7 +200,7 @@ bool SetType::readChoices()
         return false;
     }
 
-    std::size_t bitsCount = length(getDb()) * std::numeric_limits<std::uint8_t>::digits;
+    std::size_t bitsCount = getSerializationLength() * std::numeric_limits<std::uint8_t>::digits;
     assert(0U < bitsCount);
     std::set<std::string> processedNames;
     for (auto* c : choices) {

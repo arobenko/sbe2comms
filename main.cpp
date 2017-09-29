@@ -99,7 +99,7 @@ bool writeTypes(DB& db)
 
     bool result = true;
     for (auto& t : db.getTypes()) {
-        result = t.second->write(stream, db) && result;
+        result = t.second->write(stream) && result;
     }
 
     stream << "} // namespace field\n\n";

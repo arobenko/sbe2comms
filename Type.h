@@ -109,28 +109,26 @@ public:
         return kindImpl();
     }
 
-    bool write(std::ostream& out, DB& db, unsigned indent = 0);
+    bool write(std::ostream& out, unsigned indent = 0);
 
     bool isWritten() const
     {
         return m_written;
     }
 
-    const XmlPropsMap& props(DB& db);
-
     const XmlPropsMap& getProps() const
     {
         return m_props;
     }
 
-    std::size_t length(DB& db)
+    std::size_t getSerializationLength() const
     {
-        return lengthImpl(db);
+        return getSerializationLengthImpl();
     }
 
-    bool writeDependencies(std::ostream& out, DB& db, unsigned indent = 0)
+    bool writeDependencies(std::ostream& out, unsigned indent = 0)
     {
-        return writeDependenciesImpl(out, db, indent);
+        return writeDependenciesImpl(out, indent);
     }
 
     bool hasListOrString() const
@@ -156,15 +154,11 @@ protected:
 
     virtual Kind kindImpl() const = 0;
     virtual bool parseImpl();
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
-    virtual std::size_t lengthImpl(DB& db) = 0;
-    virtual bool writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent);
+    virtual bool writeImpl(std::ostream& out, unsigned indent) = 0;
+    virtual std::size_t getSerializationLengthImpl() const = 0;
+    virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent);
     virtual bool hasListOrStringImpl() const;
 
-    bool isDeperated(DB& db);
-    bool isIntroduced(DB& db);
-
-    void writeBrief(std::ostream& out, DB& db, unsigned indent, bool extraOpts = false);
     void writeBrief(std::ostream& out, unsigned indent, bool extraOpts = true);
     void writeBriefElement(std::ostream& out, unsigned indent);
     static void writeOptions(std::ostream& out, unsigned indent);

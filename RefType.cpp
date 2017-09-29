@@ -32,9 +32,8 @@ RefType::Kind RefType::kindImpl() const
     return Kind::Ref;
 }
 
-bool RefType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool RefType::writeImpl(std::ostream& out, unsigned indent)
 {
-    static_cast<void>(db);
     auto& ptr = getReferenceType();
     assert(ptr);
     assert(ptr->isWritten());
@@ -44,27 +43,27 @@ bool RefType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     auto& refName = ptr->getName();
     assert(!refName.empty());
 
-    writeBrief(out, db, indent, true);
+    writeBrief(out, indent, true);
     writeOptions(out, indent);
     out << output::indent(indent) << "using " << name << " = field::" << refName << "<TOpt...>;\n\n";
     return true;
 }
 
-std::size_t RefType::lengthImpl(DB& db)
+std::size_t RefType::getSerializationLengthImpl() const
 {
     auto& ptr = getReferenceType();
     assert(ptr);
-    return ptr->length(db);
+    return ptr->getSerializationLength();
 }
 
-bool RefType::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
+bool RefType::writeDependenciesImpl(std::ostream& out, unsigned indent)
 {
     auto& ptr = getReferenceType();
     if (!getReferenceType()) {
         return false;
     }
 
-    return ptr->write(out, db, indent);
+    return ptr->write(out, indent);
 }
 
 bool RefType::hasListOrStringImpl() const

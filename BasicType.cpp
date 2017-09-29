@@ -96,9 +96,8 @@ bool BasicType::parseImpl()
     return true;
 }
 
-bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool BasicType::writeImpl(std::ostream& out, unsigned indent)
 {
-    static_cast<void>(db);
     auto len = getLengthProp();
     if ((len != 1) && (!isString()) && (!isRawData())) {
         writeBriefElement(out, indent);
@@ -129,9 +128,8 @@ bool BasicType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     return result;
 }
 
-std::size_t BasicType::lengthImpl(DB& db)
+std::size_t BasicType::getSerializationLengthImpl() const
 {
-    static_cast<void>(db);
     if (isConstant()) {
         return false;
     }

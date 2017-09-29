@@ -75,9 +75,8 @@ bool EnumType::parseImpl()
     return true;
 }
 
-bool EnumType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool EnumType::writeImpl(std::ostream& out, unsigned indent)
 {
-    static_cast<void>(db);
     auto count = getLengthProp();
     if (count != 1U) {
         writeSingle(out, indent, true);
@@ -93,9 +92,8 @@ bool EnumType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     return true;
 }
 
-std::size_t EnumType::lengthImpl(DB& db)
+std::size_t EnumType::getSerializationLengthImpl() const
 {
-    static_cast<void>(db);
     auto& encType = getEncodingType();
     assert(!encType.empty());
 
@@ -117,7 +115,7 @@ std::size_t EnumType::lengthImpl(DB& db)
         return 0U;
     }
 
-    return iter->second->length(getDb());
+    return iter->second->getSerializationLength();
 }
 
 bool EnumType::hasListOrStringImpl() const

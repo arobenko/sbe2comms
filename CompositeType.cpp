@@ -70,11 +70,11 @@ bool CompositeType::parseImpl()
     return true;
 }
 
-bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
 {
     assert(!m_members.empty());
     for (auto& m : m_members) {
-        if (!m->writeDependencies(out, db, indent)) {
+        if (!m->writeDependencies(out, indent)) {
             log::error() << "Failed to write dependencies for composite \"" << getName() << "\"." << std::endl;
             return false;
         }
@@ -97,28 +97,27 @@ bool CompositeType::writeImpl(std::ostream& out, DB& db, unsigned indent)
     }
 
     if (mustBeString()) {
-        return writeString(out, db, indent);
+        return writeString(out, indent);
     }
 
-    return writeBundle(out, db, indent, hasExtraOpts);
+    return writeBundle(out, indent, hasExtraOpts);
 }
 
-std::size_t CompositeType::lengthImpl(DB& db)
+std::size_t CompositeType::getSerializationLengthImpl() const
 {
-    static_cast<void>(db);
     return std::accumulate(
             m_members.begin(), m_members.end(), 0U,
-            [&db](std::size_t soFar, const TypePtr& t)
+            [](std::size_t soFar, const TypePtr& t)
             {
-                return soFar + t->length(db);
+                return soFar + t->getSerializationLength();
             });
 }
 
-bool CompositeType::writeDependenciesImpl(std::ostream& out, DB& db, unsigned indent)
+bool CompositeType::writeDependenciesImpl(std::ostream& out, unsigned indent)
 {
     bool result = true;
     for (auto& m : m_members) {
-        result = m->writeDependencies(out, db, indent) && result;
+        result = m->writeDependencies(out, indent) && result;
     }
     return result;
 }
@@ -177,7 +176,7 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExt
            output::indent(indent) << "{\n";
     bool result = true;
     for (auto& m : m_members) {
-        result = m->write(out, getDb(), indent + 1) && result;
+        result = m->write(out, indent + 1) && result;
     }
 
     out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n";
@@ -208,9 +207,9 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExt
     return result;
 }
 
-bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent, bool hasExtraOpts)
+bool CompositeType::writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts)
 {
-    writeBrief(out, db, indent, true);
+    writeBrief(out, indent, true);
     writeOptions(out, indent);
     out << output::indent(indent) << "struct " << getName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
@@ -241,7 +240,7 @@ bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent, bool
         if (!first) {
             out << ",\n";
         }
-        auto& mProps = m->props(db);
+        auto& mProps = m->getProps();
         out << output::indent(indent + 2) << prop::name(mProps) << std::endl;
     }
     out << output::indent(indent + 1) << ");\n";
@@ -257,14 +256,14 @@ bool CompositeType::writeBundle(std::ostream& out, DB& db, unsigned indent, bool
     return true;
 }
 
-bool CompositeType::writeString(std::ostream& out, DB& db, unsigned indent)
+bool CompositeType::writeString(std::ostream& out, unsigned indent)
 {
     if (m_members.size() != StringEncIdx_numOfValues) {
         log::error() << "The number of members in \"" << getName() << "\" composite is expected to be " << StringEncIdx_numOfValues << std::endl;
         return false;
     }
 
-    writeBrief(out, db, indent, true);
+    writeBrief(out, indent, true);
     writeOptions(out, indent);
     auto& lenMem = *m_members[StringEncIdx_length];
     auto& dataMem = *m_members[StringEncIdx_data];
