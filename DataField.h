@@ -26,7 +26,7 @@ class DataField : public Field
 {
     using Base = Field;
 public:
-    DataField(xmlNodePtr node, const std::string& msgName) : Base(node, msgName) {}
+    DataField(DB& db, xmlNodePtr node, const std::string& msgName) : Base(db, node, msgName) {}
 
 protected:
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;

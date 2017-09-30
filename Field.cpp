@@ -26,9 +26,65 @@
 #include "BasicField.h"
 #include "GroupField.h"
 #include "DataField.h"
+#include "log.h"
 
 namespace sbe2comms
 {
+
+bool Field::parse()
+{
+    m_props = xmlParseNodeProps(m_node, m_db.getDoc());
+    if ((m_props.empty()) || (getName().empty())) {
+        log::error() << "Unexpected field properties" << std::endl;
+        return false;
+    }
+
+    return parseImpl();
+}
+
+bool Field::doesExist() const
+{
+    return m_db.doesElementExist(prop::sinceVersion(m_props), prop::deprecated(m_props));
+}
+
+const std::string& Field::getName() const
+{
+    assert(!m_props.empty());
+    return prop::name(m_props);
+}
+
+Field::Ptr Field::create(DB& db, xmlNodePtr node, const std::string& msgName)
+{
+    using FieldCreateFunc = std::function<Ptr (DB&, xmlNodePtr, const std::string&)>;
+    static const std::map<std::string, FieldCreateFunc> CreateMap = {
+        std::make_pair(
+            "field",
+            [](DB& d, xmlNodePtr n, const std::string& msg)
+            {
+                return Ptr(new BasicField(d, n, msg));
+            }),
+        std::make_pair(
+            "group",
+            [](DB& d, xmlNodePtr n, const std::string& msg)
+            {
+                return Ptr(new GroupField(d, n, msg));
+            }),
+        std::make_pair(
+            "data",
+            [](DB& d, xmlNodePtr n, const std::string& msg)
+            {
+                return Ptr(new DataField(d, n, msg));
+            })
+    };
+
+    std::string kind(reinterpret_cast<const char*>(node->name));
+    auto iter = CreateMap.find(kind);
+    if (iter == CreateMap.end()) {
+        return Ptr();
+    }
+
+    return iter->second(db, node, msgName);
+}
 
 bool Field::write(std::ostream& out, DB& db, unsigned indent)
 {
@@ -42,45 +98,13 @@ bool Field::write(std::ostream& out, DB& db, unsigned indent)
 
 const XmlPropsMap& Field::props(DB& db)
 {
-    if (!m_props.empty()) {
-        return m_props;
-    }
-
-    m_props = xmlParseNodeProps(m_node, db.getDoc());
+    static_cast<void>(db);
     return m_props;
 }
 
-Field::Ptr Field::create(xmlNodePtr node, const std::string& msgName)
+bool Field::parseImpl()
 {
-    using FieldCreateFunc = std::function<Ptr (xmlNodePtr, const std::string&)>;
-    static const std::map<std::string, FieldCreateFunc> CreateMap = {
-        std::make_pair(
-            "field",
-            [](xmlNodePtr n, const std::string& msg)
-            {
-                return Ptr(new BasicField(n, msg));
-            }),
-        std::make_pair(
-            "group",
-            [](xmlNodePtr n, const std::string& msg)
-            {
-                return Ptr(new GroupField(n, msg));
-            }),
-        std::make_pair(
-            "data",
-            [](xmlNodePtr n, const std::string& msg)
-            {
-                return Ptr(new DataField(n, msg));
-            })
-    };
-
-    std::string kind(reinterpret_cast<const char*>(node->name));
-    auto iter = CreateMap.find(kind);
-    if (iter == CreateMap.end()) {
-        return Ptr();
-    }
-
-    return iter->second(node, msgName);
+    return true;
 }
 
 bool Field::startWrite(std::ostream& out, DB& db, unsigned indent)

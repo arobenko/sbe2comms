@@ -131,6 +131,12 @@ bool DB::parseSchema(std::string filename)
         }
     }
 
+    for (auto& m : m_messages) {
+        if (!m.second.parse()) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -280,11 +286,10 @@ bool DB::parseMessage(xmlNodePtr node)
     }
 
     Message msg(*this, node);
-    if (!msg.parse()) {
-        return false;
+    if (doesElementExist(prop::sinceVersion(props), prop::deprecated(props))) {
+        m_messages.insert(std::make_pair(name, std::move(msg)));
     }
 
-    m_messages.insert(std::make_pair(name, std::move(msg)));
     return true;
 }
 

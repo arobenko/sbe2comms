@@ -31,22 +31,31 @@ class Field
 public:
     using Ptr = std::unique_ptr<Field>;
     explicit Field(
+        DB& db,
         xmlNodePtr node,
         const std::string& msgName)
-      : m_node(node),
+      : m_db(db),
+        m_node(node),
         m_msgName(msgName)
     {
     }
 
     virtual ~Field() noexcept {}
 
-    static Ptr create(xmlNodePtr node, const std::string& msgName);
+    bool parse();
+
+    bool doesExist() const;
+
+    const std::string& getName() const;
+
+    static Ptr create(DB& db, xmlNodePtr node, const std::string& msgName);
 
     bool write(std::ostream& out, DB& db, unsigned indent = 0);
 
     const XmlPropsMap& props(DB& db);
 
 protected:
+    virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
 
     bool startWrite(std::ostream& out, DB& db, unsigned indent);
@@ -63,7 +72,7 @@ protected:
 
     std::string extraOptionsString(DB& db);
 private:
-
+    DB& m_db;
     xmlNodePtr m_node = nullptr;
     const std::string& m_msgName;
     XmlPropsMap m_props;

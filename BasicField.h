@@ -26,7 +26,7 @@ class BasicField : public Field
 {
     using Base = Field;
 public:
-    BasicField(xmlNodePtr node, const std::string& msgName) : Base(node, msgName) {}
+    BasicField(DB& db, xmlNodePtr node, const std::string& msgName) : Base(db, node, msgName) {}
 
     const std::string& name(DB& db);
 

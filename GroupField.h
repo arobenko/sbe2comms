@@ -27,8 +27,8 @@ class GroupField : public Field
 {
     using Base = Field;
 public:
-    GroupField(xmlNodePtr node, const std::string& msgName)
-      : Base(node, msgName)
+    GroupField(DB& db, xmlNodePtr node, const std::string& msgName)
+      : Base(db, node, msgName)
     {
     }
 

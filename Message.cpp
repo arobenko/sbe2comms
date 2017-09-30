@@ -27,6 +27,7 @@
 #include "prop.h"
 #include "output.h"
 #include "DB.h"
+#include "log.h"
 
 namespace bf = boost::filesystem;
 
@@ -112,16 +113,20 @@ Message::Message(DB& db, xmlNodePtr node)
 
 bool Message::parse()
 {
-    // TODO
+    m_props = xmlParseNodeProps(m_node, m_db.getDoc());
+    if (getName().empty()) {
+        return false;
+    }
+
+    if (!createFields()) {
+        return false;
+    }
+
     return true;
 }
 
 bool Message::write(DB& db)
 {
-    if (!createFields(db)) {
-        return false;
-    }
-
     bf::path root(db.getRootPath());
     bf::path protocolRelDir(db.getProtocolRelDir());
     bf::path messagesDir(root / protocolRelDir / get::messageDirName());
@@ -135,7 +140,7 @@ bool Message::write(DB& db)
     }
 
     const std::string Ext(".h");
-    auto filename = name(db) + Ext;
+    auto filename = getName() + Ext;
     auto relPath = protocolRelDir / get::messageDirName() / filename;
     auto filePath = messagesDir / filename;
 
@@ -143,59 +148,42 @@ bool Message::write(DB& db)
     return writeMessageDef(filePath.string(), db);
 }
 
-const std::string& Message::name(DB& db)
+const std::string& Message::getName() const
 {
-    retrieveProps(db);
+    assert(!m_props.empty());
     return prop::name(m_props);
 }
 
-bool Message::createFields(DB& db)
+bool Message::createFields()
 {
-    if (m_fields) {
-        return true;
-    }
-
-    auto& msgName = name(db);
-    assert(m_node != nullptr);
-    auto* child = m_node->children;
-    while (child != nullptr) {
-        if (child->type == XML_ELEMENT_NODE) {
-            auto fieldPtr = Field::create(child, msgName);
-            if (!fieldPtr) {
-                std::cerr << "ERROR: Unknown field kind \"" << child->name << "\"!" << std::endl;
-                return false;
-            }
-
-            if (!insertField(std::move(fieldPtr), db)) {
-                return false;
-            }
+    assert(m_fields.empty());
+    auto children = xmlChildren(m_node);
+    for (auto c : children) {
+        auto fieldPtr = Field::create(m_db, c, getName());
+        if (!fieldPtr) {
+            log::error() << "Unknown field kind \"" << c->name << "\"!" << std::endl;
+            return false;
         }
 
-        child = child->next;
+        if (!fieldPtr->parse()) {
+            return false;
+        }
+
+        if (!fieldPtr->doesExist()) {
+            continue;
+        }
+
+        m_fields.push_back(std::move(fieldPtr));
     }
-
-    return true;
-}
-
-bool Message::insertField(FieldPtr field, DB& db)
-{
-    if (!m_fields) {
-        m_fields = FieldsList();
-    }
-    static_cast<void>(db);
-    // TODO: do padding
-
-    (*m_fields).push_back(std::move(field));
     return true;
 }
 
 bool Message::writeFields(std::ostream& out, DB& db)
 {
-    auto& msgName = name(db);
+    auto& msgName = getName();
     openFieldsDef(out, msgName);
-    assert(m_fields);
     bool result = true;
-    for (auto& f : *m_fields) {
+    for (auto& f : m_fields) {
         result = f->write(out, db, 1) && result;
     }
 
@@ -212,7 +200,7 @@ bool Message::writeAllFieldsDef(std::ostream& out, DB& db)
         "using All = std::tuple<\n";
 
     bool first = true;
-    for (auto& f : *m_fields) {
+    for (auto& f : m_fields) {
         if (!first) {
             out << ",\n";
         }
@@ -229,7 +217,7 @@ bool Message::writeAllFieldsDef(std::ostream& out, DB& db)
 
 bool Message::writeMessageClass(std::ostream& out, DB& db)
 {
-    auto& n = name(db);
+    auto& n = getName();
     out <<
         "/// \\brief Definition of " << n << " message\n"
         "/// \\details Inherits from \\b comms::MessageBase\n"
@@ -255,7 +243,7 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
         output::indent(1) << "///     for details.\n" <<
         output::indent(1) << "///     \n" <<
         output::indent(1) << "///     The field names are:\n";
-    for (auto& f : *m_fields) {
+    for (auto& f : m_fields) {
         auto& p = f->props(db);
         auto& fieldName = prop::name(p);
         out << output::indent(1) <<
@@ -265,7 +253,7 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
     }
     out << output::indent(1) << "COMMS_MSG_FIELDS_ACCESS(\n";
     bool firstField = true;
-    for (auto& f : *m_fields) {
+    for (auto& f : m_fields) {
         if (!firstField) {
             out << ",\n";
         }
@@ -282,25 +270,15 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
     return true;
 }
 
-void Message::retrieveProps(DB& db)
-{
-    if (!m_props.empty()) {
-        return;
-    }
-
-    m_props = xmlParseNodeProps(m_node, db.getDoc());
-    assert(!m_props.empty());
-}
-
 bool Message::writeMessageDef(const std::string& filename, DB& db)
 {
     std::ofstream stream(filename);
     if (!stream) {
-        std::cerr << "ERROR: Failed to create " << filename;
+        log::error() << "Failed to create " << filename;
         return false;
     }
 
-    auto& msgName = name(db);
+    auto& msgName = getName();
     writeFileHeader(stream, msgName);
     writeIncludes(stream, db, msgName);
     openNamespaces(stream, db);
@@ -312,7 +290,7 @@ bool Message::writeMessageDef(const std::string& filename, DB& db)
 
     bool written = stream.good();
     if (!written) {
-        std::cerr << "ERROR: Failed to write message file" << std::endl;
+        log::error() << "Failed to write message file" << std::endl;
     }
 
     return result && written;

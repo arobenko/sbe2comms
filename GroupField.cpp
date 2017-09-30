@@ -106,10 +106,14 @@ bool GroupField::createFields(DB& db)
     auto* child = node->children;
     while (child != nullptr) {
         if (child->type == XML_ELEMENT_NODE) {
-            auto fieldPtr = Field::create(child, getMsgName());
+            auto fieldPtr = Field::create(db, child, getMsgName());
             if (!fieldPtr) {
                 std::cerr << "ERROR: Unknown field kind \"" << child->name << "\"!" << std::endl;
                 return false;
+            }
+
+            if (!fieldPtr->parse()) {
+                std::cerr << "ERROR: Failed to parse \"" << child->name << "\"!" << std::endl;
             }
 
             if (!insertField(std::move(fieldPtr), db)) {
