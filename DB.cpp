@@ -276,6 +276,11 @@ const Type* DB::getBuiltInType(const std::string& name)
     return result;
 }
 
+bool DB::isRecordedBuiltInType(const std::string& name) const
+{
+    return m_builtInTypes.find(name) != m_builtInTypes.end();
+}
+
 bool DB::recordTypeRef(xmlNodePtr node)
 {
     auto props = xmlParseNodeProps(node, m_doc.get());

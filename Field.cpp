@@ -59,6 +59,12 @@ const std::string& Field::getName() const
     return prop::name(m_props);
 }
 
+const std::string& Field::getDescription() const
+{
+    assert(!m_props.empty());
+    return prop::description(m_props);
+}
+
 Field::Ptr Field::create(DB& db, xmlNodePtr node, const std::string& msgName)
 {
     using FieldCreateFunc = std::function<Ptr (DB&, xmlNodePtr, const std::string&)>;
@@ -132,6 +138,18 @@ bool Field::isConstant() const
     return prop::isConstant(m_props);
 }
 
+unsigned Field::getDeprecated() const
+{
+    assert(!m_props.empty());
+    return prop::deprecated(m_props);
+}
+
+unsigned Field::getSinceVersion() const
+{
+    assert(!m_props.empty());
+    return prop::sinceVersion(m_props);
+}
+
 bool Field::parseImpl()
 {
     return true;
@@ -154,6 +172,29 @@ bool Field::startWrite(std::ostream& out, DB& db, unsigned indent)
     }
 
     return true;
+}
+
+bool Field::writeBrief(std::ostream& out, unsigned indent, bool extraOpts)
+{
+    auto& name = getName();
+    assert(!name.empty());
+
+    out << output::indent(indent) << "/// \\brief Definition of \"" << name << "\" field.\n";
+    auto& desc = getDescription();
+    if (!desc.empty()) {
+        out << output::indent(indent) << "/// \\details " << desc << '\n';
+    }
+
+    if (extraOpts) {
+        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
+    }
+
+    return true;
+}
+
+void Field::writeOptions(std::ostream& out, unsigned indent)
+{
+    out << output::indent(indent) << "template <typename... TOpt>\n";
 }
 
 std::string Field::extraOptionsString(DB& db)

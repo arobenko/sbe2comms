@@ -41,6 +41,11 @@ private:
     bool checkOptional() const;
     bool checkConstant() const;
     const Type* getTypeFromValueRef() const;
+    const std::string& getDefaultOptMode();
+    bool isSimpleAlias() const;
+    void writeSimpleAlias(std::ostream& out, unsigned indent, bool wrapped);
+    void writeFieldDef(std::ostream& out, unsigned indent, bool wrapped = false);
+    void writeWrappedFieldBrief(std::ostream& out, unsigned indent, bool extraOpts);
 
     const Type* m_type = nullptr;
 };

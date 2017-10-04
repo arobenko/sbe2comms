@@ -26,6 +26,7 @@
 #include "prop.h"
 #include "output.h"
 #include "log.h"
+#include "get.h"
 #include "EnumType.h"
 
 namespace ba = boost::algorithm;
@@ -36,41 +37,7 @@ namespace sbe2comms
 namespace
 {
 
-bool writeBuiltInTypeInt(std::ostream& out, const std::string& type)
-{
-    static const std::set<std::string> Set = {
-        "int8", "uint8", "int16", "uint16",
-        "int32", "uint32", "int64", "uint64"
-    };
-
-    auto iter = Set.find(type);
-    if (iter == Set.end()) {
-        return false;
-    }
-
-    out << "sbe2comms::" << *iter << "<field::FieldBase>;\n\n";
-    return true;
-}
-
-bool writeBuiltInTypeFloat(std::ostream& out, const std::string& type)
-{
-    static const std::set<std::string> Set = {
-        "float", "double"
-    };
-
-    auto iter = Set.find(type);
-    if (iter == Set.end()) {
-        return false;
-    }
-
-    out << "sbe2comms::" << *iter << "Field<field::FieldBase>;\n\n";
-    return true;
-}
-
-bool writeBuiltInType(std::ostream& out, const std::string& type)
-{
-    return writeBuiltInTypeInt(out, type) || writeBuiltInTypeFloat(out, type);
-}
+const std::string FieldSuffix("Field");
 
 } // namespace
 
@@ -140,47 +107,20 @@ bool BasicField::parseImpl()
 
 bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
-    if (!startWrite(out, db, indent)) {
-        return false;
+    static_cast<void>(db);
+    assert(m_type != nullptr);
+
+    auto& optMode = getDefaultOptMode();
+    if (optMode.empty()) {
+        writeFieldDef(out, indent, false);
+        return true;
     }
 
-    auto& p = props(db);
-    auto& name = prop::name(p);
-    assert(!name.empty());
+    log::error() << "The optional wrapper field " << getName() << " write is not supported yet!" << std::endl;
+    return true;
 
-    out << output::indent(indent) << "using " << name << " = ";
-
-    auto& type = prop::type(p);
-    if (type.empty()) {
-        out << " ???;\n\n";
-        std::cerr << output::indent(1) <<
-            "ERROR: Field \"" << name << "\" does NOT specify type." << std::endl;
-        return false;
-    }
-
-    auto& types = db.getTypes();
-    auto typeIter = types.find(type);
-    if (typeIter == types.end()) {
-        bool builtIn = writeBuiltInType(out, type);
-        if (builtIn) {
-            return true;
-        }
-
-        out << " ???;\n\n";
-        std::cerr << output::indent(1) <<
-            "ERROR: Unknown type \"" << type << "\" for field \"" << name << "\"" << std::endl;
-        return false;
-    }
-
-    // TODO: check presence
-
-    assert(typeIter->second);
-    typeIter->second->recordNormalUse();
-
-    out << '\n' <<
-        output::indent(indent + 1) << "field::" << type << "<\n" <<
-        output::indent(indent + 2) << extraOptionsString(db) << '\n' <<
-        output::indent(indent + 1) << ">;\n\n";
+    writeFieldDef(out, indent, true);
+    // TODO: write optional wrapper
     return true;
 }
 
@@ -226,6 +166,11 @@ bool BasicField::checkConstant() const
         return false;
     }
 
+    if (m_type->isOptional()) {
+        log::error() << "Referencing optional enum type in constant \"" << getName() << "\" field is not supported." << std::endl;
+        return false;
+    }
+
     auto sep = ba::find_first(valueRef, ".");
     if (!sep) {
         log::error() << "Failed to split valueRef into <type.value> pair." << std::endl;
@@ -264,5 +209,113 @@ const Type* BasicField::getTypeFromValueRef() const
     }
     return type;
 }
+
+const std::string& BasicField::getDefaultOptMode()
+{
+    if (getDeprecated() <= getDb().getSchemaVersion()) {
+        static const std::string Mode("comms::field::OptionalMode::Missing");
+        return Mode;
+    }
+
+    if (getDb().getMinRemoteVersion() < getSinceVersion()) {
+        static const std::string Mode("comms::field::OptionalMode::Exists");
+        return Mode;
+    }
+
+    return get::emptyString();
+}
+
+bool BasicField::isSimpleAlias() const
+{
+    if ((!hasPresence()) || isRequired()) {
+        return true;
+    }
+
+    if (isOptional() && m_type->isOptional()) {
+        return true;
+    }
+
+    if (isConstant() && m_type->isConstant() && getValueRef().empty()) {
+        return true;
+    }
+
+    return false;
+}
+
+void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, bool wrapped)
+{
+    bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
+
+    static const std::string FieldNamespace("field::");
+    static const std::string BuiltInNamespace("sbe2comms::");
+    std::string ns;
+    if (builtIn) {
+        ns = BuiltInNamespace;
+    }
+    else {
+        ns = FieldNamespace;
+    }
+
+    auto name = getName();
+    if (wrapped) {
+        name += FieldSuffix;
+    }
+
+    bool extraOpts = m_type->hasListOrString();
+    out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<";
+    if (builtIn) {
+        out << FieldNamespace << "FieldBase";
+    }
+
+    if (extraOpts) {
+        if (builtIn) {
+            out << ", ";
+        }
+        out << "TOpt...";
+    }
+
+    out << ">;\n\n";
+}
+
+void BasicField::writeFieldDef(std::ostream& out, unsigned indent, bool wrapped)
+{
+    assert(m_type != nullptr);
+    bool extraOpts = m_type->hasListOrString();
+    if (wrapped) {
+        writeWrappedFieldBrief(out, indent, extraOpts);
+    }
+    else {
+        writeBrief(out, indent, extraOpts);
+    }
+
+    if (extraOpts) {
+        writeOptions(out, indent);
+    }
+
+    if (isSimpleAlias()) {
+        writeSimpleAlias(out, indent, wrapped);
+        return;
+    }
+
+    // TODO:
+    log::error() << "The definition of \"" << getName() << "\" not implemented yet!" << std::endl;
+}
+
+void BasicField::writeWrappedFieldBrief(std::ostream& out, unsigned indent, bool extraOpts)
+{
+    auto& name = getName();
+    assert(!name.empty());
+
+    out << output::indent(indent) << "/// \\brief Definition of inner field of the optional \\ref " << name << " field.\n";
+    auto& desc = getDescription();
+    if (!desc.empty()) {
+        out << output::indent(indent) << "/// \\details " << desc << '\n';
+    }
+
+    if (extraOpts) {
+        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
+    }
+}
+
 
 } // namespace sbe2comms

@@ -77,6 +77,8 @@ public:
 
     const Type* getBuiltInType(const std::string& name);
 
+    bool isRecordedBuiltInType(const std::string& name) const;
+
 private:
     struct BuiltInTypeInfo
     {

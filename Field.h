@@ -48,6 +48,8 @@ public:
 
     const std::string& getName() const;
 
+    const std::string& getDescription() const;
+
     static Ptr create(DB& db, xmlNodePtr node, const std::string& msgName);
 
     bool write(std::ostream& out, DB& db, unsigned indent = 0);
@@ -63,12 +65,15 @@ public:
     bool isRequired() const;
     bool isOptional() const;
     bool isConstant() const;
-
+    unsigned getDeprecated() const;
+    unsigned getSinceVersion() const;
 protected:
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
 
     bool startWrite(std::ostream& out, DB& db, unsigned indent);
+    bool writeBrief(std::ostream& out, unsigned indent, bool extraOpts = false);
+    static void writeOptions(std::ostream& out, unsigned indent);
 
     xmlNodePtr getNode() const
     {
