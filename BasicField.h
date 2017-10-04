@@ -18,6 +18,7 @@
 #pragma once
 
 #include "Field.h"
+#include "Type.h"
 
 namespace sbe2comms
 {
@@ -28,10 +29,20 @@ class BasicField : public Field
 public:
     BasicField(DB& db, xmlNodePtr node, const std::string& msgName) : Base(db, node, msgName) {}
 
-    const std::string& name(DB& db);
+    const std::string& getType() const;
+    const std::string& getValueRef() const;
 
 protected:
+    virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
+
+private:
+    bool checkRequired() const;
+    bool checkOptional() const;
+    bool checkConstant() const;
+    const Type* getTypeFromValueRef() const;
+
+    const Type* m_type = nullptr;
 };
 
 } // namespace sbe2comms

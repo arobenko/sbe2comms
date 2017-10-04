@@ -55,6 +55,8 @@ public:
     const char* getNodeName() const;
 
     const std::string& getName() const;
+    const std::string& getReferenceName() const;
+
     const std::string& getDescription() const;
     bool isRequired() const;
     bool isOptional() const;
@@ -71,7 +73,7 @@ public:
     std::pair<std::string, bool> getFailOnInvalid() const;
     void updateExtraIncludes(ExtraIncludes& extraIncludes);
 
-    static Ptr create(const std::string& name, DB& db, xmlNodePtr node);
+    static Ptr create(DB& db, xmlNodePtr node);
 
     bool normalUseRecorded() const
     {

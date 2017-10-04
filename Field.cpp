@@ -39,6 +39,12 @@ bool Field::parse()
         return false;
     }
 
+    unsigned deprecated = prop::deprecated(m_props);
+    unsigned sinceVer = prop::sinceVersion(m_props);
+    if (deprecated <= sinceVer) {
+        log::error() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
+        return false;
+    }
     return parseImpl();
 }
 
@@ -100,6 +106,30 @@ const XmlPropsMap& Field::props(DB& db)
 {
     static_cast<void>(db);
     return m_props;
+}
+
+bool Field::hasPresence() const
+{
+    assert(!m_props.empty());
+    return !prop::presence(m_props).empty();
+}
+
+bool Field::isRequired() const
+{
+    assert(!m_props.empty());
+    return prop::isRequired(m_props);
+}
+
+bool Field::isOptional() const
+{
+    assert(!m_props.empty());
+    return prop::isOptional(m_props);
+}
+
+bool Field::isConstant() const
+{
+    assert(!m_props.empty());
+    return prop::isConstant(m_props);
 }
 
 bool Field::parseImpl()

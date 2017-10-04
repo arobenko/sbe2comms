@@ -73,7 +73,19 @@ public:
 
     bool doesElementExist(unsigned introducedSince, unsigned deprecatedSince);
 
+    const Type* findType(const std::string& name) const;
+
+    const Type* getBuiltInType(const std::string& name);
+
 private:
+    struct BuiltInTypeInfo
+    {
+        XmlNodePtr m_node;
+        TypePtr m_type;
+    };
+
+    using BuiltInTypeMap = std::map<std::string, BuiltInTypeInfo>;
+
     bool recordTypeRef(xmlNodePtr node);
     bool parseTypes(xmlNodePtr node);
     bool parseMessage(xmlNodePtr node);
@@ -81,6 +93,7 @@ private:
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
     TypesMap m_types;
+    BuiltInTypeMap m_builtInTypes;
     MessagesMap m_messages;
     std::list<std::string> m_groups;
 

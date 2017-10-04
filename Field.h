@@ -54,6 +54,16 @@ public:
 
     const XmlPropsMap& props(DB& db);
 
+    const XmlPropsMap& getProps() const
+    {
+        return m_props;
+    }
+
+    bool hasPresence() const;
+    bool isRequired() const;
+    bool isOptional() const;
+    bool isConstant() const;
+
 protected:
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
@@ -71,6 +81,18 @@ protected:
     }
 
     std::string extraOptionsString(DB& db);
+
+    DB& getDb()
+    {
+        return m_db;
+    }
+
+    const DB& getDb() const
+    {
+        return m_db;
+    }
+
+
 private:
     DB& m_db;
     xmlNodePtr m_node = nullptr;

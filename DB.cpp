@@ -224,6 +224,58 @@ bool DB::doesElementExist(unsigned introducedSince, unsigned deprecatedSince)
          (getMinRemoteVersion() < deprecatedSince));
 }
 
+const Type* DB::findType(const std::string& name) const
+{
+    auto iter = m_types.find(name);
+    if (iter == m_types.end()) {
+        return nullptr;
+    }
+
+    assert(iter->second);
+    return iter->second.get();
+}
+
+const Type* DB::getBuiltInType(const std::string& name)
+{
+    auto iter = m_builtInTypes.find(name);
+    if (iter != m_builtInTypes.end()) {
+        assert(iter->second.m_type);
+        return iter->second.m_type.get();
+    }
+
+    static const std::set<std::string> BuiltIns = {
+        "int8",
+        "uint8",
+        "int16",
+        "uint16",
+        "int32",
+        "uint32",
+        "int64",
+        "uint64",
+        "float",
+        "double"
+    };
+
+    auto setIter = BuiltIns.find(name);
+    if (setIter == BuiltIns.end()) {
+        return nullptr;
+    }
+
+    BuiltInTypeInfo info;
+    info.m_node = xmlCreateBuiltInType(name);
+    info.m_type = Type::create(*this, info.m_node.get());
+    assert(info.m_type);
+
+    if (!info.m_type->parse()) {
+        assert(!"Failed to parse builtIn type");
+        return nullptr;
+    }
+
+    auto* result = info.m_type.get();
+    m_builtInTypes.insert(std::make_pair(name, std::move(info)));
+    return result;
+}
+
 bool DB::recordTypeRef(xmlNodePtr node)
 {
     auto props = xmlParseNodeProps(node, m_doc.get());
@@ -241,8 +293,7 @@ bool DB::recordTypeRef(xmlNodePtr node)
         return false;
     }
 
-    std::string kind(reinterpret_cast<const char*>(node->name));
-    auto ptr = Type::create(kind, *this, node);
+    auto ptr = Type::create(*this, node);
     if (!ptr) {
         return false;
     }

@@ -31,6 +31,7 @@ class EnumType : public Type
 public:
     explicit EnumType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
+    bool hasValue(const std::string& name) const;
 protected:
     virtual Kind kindImpl() const override;
     virtual bool parseImpl() override;

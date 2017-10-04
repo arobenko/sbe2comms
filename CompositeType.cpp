@@ -140,13 +140,13 @@ bool CompositeType::prepareMembers()
     unsigned expOffset = 0U;
     unsigned padCount = 0;
     for (auto* c : children) {
-        std::string cName(reinterpret_cast<const char*>(c->name));
-        auto mem = Type::create(cName, getDb(), c);
+        auto mem = Type::create(getDb(), c);
         if (!mem) {
             log::error() << "Failed to create members of \"" << getName() << "\" composite." << std::endl;
             return false;
         }
 
+        std::string cName(reinterpret_cast<const char*>(c->name));
         if (!mem->parse()) {
             log::error() << "Failed to parse \"" << cName  << "\" member of \"" << getName() << "\" composite." << std::endl;
             return false;
@@ -172,9 +172,9 @@ bool CompositeType::prepareMembers()
             ++padCount;
             auto padNode = xmlCreatePadding(padCount, padLen);
             assert(padNode);
-            auto* padNodeName = reinterpret_cast<const char*>(padNode->name);
-            auto padMem = Type::create(padNodeName, getDb(), padNode.get());
+            auto padMem = Type::create(getDb(), padNode.get());
             assert(padMem);
+            auto* padNodeName = reinterpret_cast<const char*>(padNode->name);
             if (!padMem->parse()) {
                 log::error() << "Failed to parse \"" << padNodeName  << "\" member of \"" << getName() << "\" composite." << std::endl;
                 return false;
@@ -200,8 +200,8 @@ bool CompositeType::prepareMembers()
 
 bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts)
 {
-    auto& n = getName();
-    std::string membersStruct = n + MembersSuffix;
+    auto& n = getReferenceName();
+    std::string membersStruct = getName() + MembersSuffix;
 
     out << output::indent(indent) << "/// \\brief Scope for all the members of the \\ref " << n << " field.\n" <<
            output::indent(indent) << "struct " << membersStruct << '\n' <<
@@ -223,7 +223,7 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExt
             out << ",\n";
         }
         first = false;
-        auto& mName = m->getName();
+        auto& mName = m->getReferenceName();
         assert(!mName.empty());
         out << output::indent(indent + 2) << mName;
         if (m->hasListOrString()) {
@@ -243,7 +243,7 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent, bool hasExtr
 {
     writeBrief(out, indent, true);
     writeOptions(out, indent);
-    out << output::indent(indent) << "struct " << getName() << " : public\n" <<
+    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
            output::indent(indent + 2) << getName() << MembersSuffix << "::All";
@@ -299,10 +299,10 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
     writeOptions(out, indent);
     auto& lenMem = *m_members[DataEncIdx_length];
     auto& dataMem = *m_members[DataEncIdx_data];
-    out << output::indent(indent) << "using " << getName() << " = \n" <<
-           output::indent(indent + 1) << getName() << MembersSuffix << "::" << dataMem.getName() << "<\n" <<
+    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+           output::indent(indent + 1) << getName() << MembersSuffix << "::" << dataMem.getReferenceName() << "<\n" <<
            output::indent(indent + 2) << "comms::option::SequenceSizeFieldPrefix<\n" <<
-           output::indent(indent + 3) << getName() << MembersSuffix << "::" << lenMem.getName() << '\n' <<
+           output::indent(indent + 3) << getName() << MembersSuffix << "::" << lenMem.getReferenceName() << '\n' <<
            output::indent(indent + 2) << ">,\n" <<
            output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">;\n\n";

@@ -106,4 +106,22 @@ XmlNodePtr xmlCreatePadding(unsigned idx, unsigned len)
     return ptr;
 }
 
+XmlNodePtr xmlCreateBuiltInType(const std::string& name)
+{
+    static const std::string type("type");
+    auto* typePtr = reinterpret_cast<const xmlChar*>(type.c_str());
+    XmlNodePtr ptr(xmlNewNode(nullptr, typePtr));
+
+    static const std::string nameStr("name");
+    auto* namePtr = reinterpret_cast<const xmlChar*>(nameStr.c_str());
+    auto* nameValPtr = reinterpret_cast<const xmlChar*>(name.c_str());
+    xmlNewProp(ptr.get(), namePtr, nameValPtr);
+
+    static const std::string primTypeStr("primitiveType");
+    auto* primTypePtr = reinterpret_cast<const xmlChar*>(primTypeStr.c_str());
+    auto* primTypeValPtr = reinterpret_cast<const xmlChar*>(name.c_str());
+    xmlNewProp(ptr.get(), primTypePtr, primTypeValPtr);
+    return ptr;
+}
+
 } // namespace sbe2comms

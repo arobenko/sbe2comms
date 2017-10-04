@@ -82,6 +82,22 @@ const std::string& Type::getName() const
     return prop::name(m_props);
 }
 
+const std::string& Type::getReferenceName() const
+{
+    auto& name = getName();
+    static const std::map<std::string, std::string> Names = {
+        std::make_pair("float", "float_"),
+        std::make_pair("double", "double_")
+    };
+
+    auto iter = Names.find(name);
+    if (iter == Names.end()) {
+        return name;
+    }
+
+    return iter->second;
+}
+
 const std::string& Type::getDescription() const
 {
     assert(!m_props.empty());
@@ -195,8 +211,9 @@ void Type::updateExtraIncludes(ExtraIncludes& extraIncludes)
     }
 }
 
-Type::Ptr Type::create(const std::string& name, DB& db, xmlNodePtr node)
+Type::Ptr Type::create(DB& db, xmlNodePtr node)
 {
+    std::string name(reinterpret_cast<const char*>(node->name));
     using TypeCreateFunc = std::function<Ptr (DB&, xmlNodePtr)>;
     static const std::map<std::string, TypeCreateFunc> Map = {
         std::make_pair(

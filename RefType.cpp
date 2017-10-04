@@ -40,7 +40,7 @@ bool RefType::writeImpl(std::ostream& out, unsigned indent)
     auto& name = getName();
     assert(!name.empty());
 
-    auto& refName = ptr->getName();
+    auto& refName = ptr->getReferenceName();
     assert(!refName.empty());
 
     writeBrief(out, indent, true);

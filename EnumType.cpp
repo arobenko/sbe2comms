@@ -38,6 +38,16 @@ const std::size_t MaxRangesCount = 10;
 } // namespace
 
 
+bool EnumType::hasValue(const std::string& name) const
+{
+    for (auto& v : m_values) {
+        if (v.second == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
 EnumType::Kind EnumType::kindImpl() const
 {
     return Kind::Enum;

@@ -49,6 +49,7 @@ const std::string& maxValue(const XmlPropsMap& map);
 const std::string& nullValue(const XmlPropsMap& map);
 const std::string& encodingType(const XmlPropsMap& map);
 const std::string& characterEncoding(const XmlPropsMap& map);
+const std::string& valueRef(const XmlPropsMap& map);
 const std::string& ccFailInvalid(const XmlPropsMap& map);
 
 } // namespace prop

@@ -47,6 +47,7 @@ const std::string MaxValue("maxValue");
 const std::string NullValue("nullValue");
 const std::string EncodingType("encodingType");
 const std::string CharacterEncoding("characterEncoding");
+const std::string ValueRef("valueRef");
 const std::string FailInvalid("cc_fail_invalid");
 
 const std::string& getProp(const XmlPropsMap& map, const std::string propName)
@@ -203,6 +204,11 @@ const std::string& encodingType(const XmlPropsMap& map)
 const std::string& characterEncoding(const XmlPropsMap& map)
 {
     return getProp(map, CharacterEncoding);
+}
+
+const std::string& valueRef(const XmlPropsMap& map)
+{
+    return getProp(map, ValueRef);
 }
 
 const std::string& ccFailInvalid(const XmlPropsMap& map)

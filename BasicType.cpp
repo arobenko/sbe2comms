@@ -318,9 +318,12 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
     const std::string& fpType,
     bool isElement)
 {
-    auto name = getName();
+    std::string name;
     if (isElement) {
-        name += ElementSuffix;
+        name = getName() + ElementSuffix;
+    }
+    else {
+        name = getReferenceName();
     }
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<

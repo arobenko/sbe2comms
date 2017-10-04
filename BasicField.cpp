@@ -20,9 +20,15 @@
 #include <iostream>
 #include <set>
 
+#include <boost/algorithm/string.hpp>
+
 #include "DB.h"
 #include "prop.h"
 #include "output.h"
+#include "log.h"
+#include "EnumType.h"
+
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -68,6 +74,70 @@ bool writeBuiltInType(std::ostream& out, const std::string& type)
 
 } // namespace
 
+const std::string& BasicField::getType() const
+{
+    auto& p = getProps();
+    assert(!p.empty());
+    return prop::type(p);
+}
+
+const std::string& BasicField::getValueRef() const
+{
+    auto& p = getProps();
+    assert(!p.empty());
+    return prop::valueRef(p);
+}
+
+bool BasicField::parseImpl()
+{
+    do {
+        if (isConstant()) {
+            auto& valueRef = getValueRef();
+            if (!valueRef.empty()) {
+                m_type = getTypeFromValueRef();
+                break;
+            }
+        }
+
+        auto& typeName = getType();
+        if (typeName.empty()) {
+            log::error() << "The field \"" << getName() << "\" doesn't specify its type." << std::endl;
+            return false;
+        }
+
+        m_type = getDb().findType(typeName);
+        if (m_type != nullptr) {
+            break;
+        }
+
+        m_type = getDb().getBuiltInType(typeName);
+    } while (false);
+
+    if (m_type == nullptr) {
+        log::error() << "Unknown or invalid type for field \"" << getName() << "\"." << std::endl;
+        return false;
+    }
+
+    if (!hasPresence()) {
+        return true;
+    }
+
+    if (isRequired()) {
+        return checkRequired();
+    }
+
+    if (isOptional()) {
+        return checkOptional();
+    }
+
+    if (isConstant()) {
+        return checkConstant();
+    }
+
+    log::error() << "Unknown presence token for field \"" << getName() << "\"." << std::endl;
+    return false;
+}
+
 bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
     if (!startWrite(out, db, indent)) {
@@ -112,6 +182,87 @@ bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
         output::indent(indent + 2) << extraOptionsString(db) << '\n' <<
         output::indent(indent + 1) << ">;\n\n";
     return true;
+}
+
+bool BasicField::checkRequired() const
+{
+    assert(m_type != nullptr);
+    if (!m_type->isRequired()) {
+        log::error() << "Required field \"" << getName() << "\" references "
+                        "optional/constant type " << m_type->getName() << "\"." << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool BasicField::checkOptional() const
+{
+    assert(m_type != nullptr);
+    if (m_type->isConstant()) {
+        log::error() << "Optional field \"" << getName() << "\" references "
+                        "constant type " << m_type->getName() << "\"." << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool BasicField::checkConstant() const
+{
+    assert(m_type != nullptr);
+    if (m_type->isConstant()) {
+        return true;
+    }
+
+    if (m_type->kind() != Type::Kind::Enum) {
+        log::error() << "Constant field \"" << getName() << "\" can reference only const types or non-const enum." << std::endl;
+        return false;
+    }
+
+    auto& valueRef = getValueRef();
+    if (valueRef.empty()) {
+        log::error() << "The constant field \"" << getName() << "\" must specify valueRef property." << std::endl;
+        return false;
+    }
+
+    auto sep = ba::find_first(valueRef, ".");
+    if (!sep) {
+        log::error() << "Failed to split valueRef into <type.value> pair." << std::endl;
+        return false;
+    }
+
+    std::string valueStr(sep.end(), valueRef.end());
+    if (!static_cast<const EnumType*>(m_type)->hasValue(valueStr)) {
+        log::error() << "The field \"" << getName() << "\" references invalid value \"" << valueRef << "\"." << std::endl;
+        return false;
+    }
+    return true;
+}
+
+const Type* BasicField::getTypeFromValueRef() const
+{
+    auto& valueRef = getValueRef();
+    assert(!valueRef.empty());
+
+    auto sep = ba::find_first(valueRef, ".");
+    if (!sep) {
+        log::error() << "Failed to split valueRef into <type.value> pair." << std::endl;
+        return nullptr;
+    }
+
+    std::string enumName(valueRef.begin(), sep.begin());
+    auto* type = getDb().findType(enumName);
+    if (type == nullptr) {
+        log::error() << "Enum type \"" << enumName << "\" referenced by field \"" << getName() << "\" does not exist." << std::endl;
+        return nullptr;
+    }
+
+    if (type->kind() != Type::Kind::Enum) {
+        log::error() << "Type \"" << enumName << "\" rerences by field \"" << getName() << "\" is not an enum." << std::endl;
+        return nullptr;
+    }
+    return type;
 }
 
 } // namespace sbe2comms
