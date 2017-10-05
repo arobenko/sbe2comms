@@ -32,6 +32,8 @@ public:
     explicit EnumType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
     bool hasValue(const std::string& name) const;
+    std::intmax_t getNumericValue(const std::string& name) const;
+
 protected:
     virtual Kind kindImpl() const override;
     virtual bool parseImpl() override;
@@ -50,6 +52,7 @@ private:
     const std::string& getUnderlyingType() const;
     bool readValues();
     RangeInfosList getValidRanges() const;
+    Values::const_iterator findValue(const std::string& name) const;
 
     Values m_values;
     Descriptions m_desc;

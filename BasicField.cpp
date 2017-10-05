@@ -38,6 +38,17 @@ namespace
 {
 
 const std::string FieldSuffix("Field");
+const std::string ValSuffix("Val");
+const std::string FieldNamespace("field::");
+const std::string BuiltInNamespace("sbe2comms::");
+
+const std::string& getNamespaceForType(const DB& db, const std::string& name)
+{
+    if (db.isRecordedBuiltInType(name)) {
+        return BuiltInNamespace;
+    }
+    return FieldNamespace;
+}
 
 } // namespace
 
@@ -58,16 +69,16 @@ const std::string& BasicField::getValueRef() const
 bool BasicField::parseImpl()
 {
     do {
-        if (isConstant()) {
-            auto& valueRef = getValueRef();
-            if (!valueRef.empty()) {
-                m_type = getTypeFromValueRef();
-                break;
-            }
-        }
-
         auto& typeName = getType();
         if (typeName.empty()) {
+            if (isConstant()) {
+                auto& valueRef = getValueRef();
+                if (!valueRef.empty()) {
+                    m_type = getTypeFromValueRef();
+                    break;
+                }
+            }
+
             log::error() << "The field \"" << getName() << "\" doesn't specify its type." << std::endl;
             return false;
         }
@@ -150,35 +161,51 @@ bool BasicField::checkOptional() const
 
 bool BasicField::checkConstant() const
 {
+    auto& valueRef = getValueRef();
     assert(m_type != nullptr);
     if (m_type->isConstant()) {
+        if (!valueRef.empty()) {
+            log::error() << "The constant field \"" << getName() << "\" references constant type while providing valueRef." << std::endl;
+            return false;
+        }
         return true;
     }
 
-    if (m_type->kind() != Type::Kind::Enum) {
-        log::error() << "Constant field \"" << getName() << "\" can reference only const types or non-const enum." << std::endl;
+    if (m_type->isOptional()) {
+        log::error() << "Referencing optional type in constant \"" << getName() << "\" field is not supported." << std::endl;
         return false;
     }
 
-    auto& valueRef = getValueRef();
     if (valueRef.empty()) {
         log::error() << "The constant field \"" << getName() << "\" must specify valueRef property." << std::endl;
         return false;
     }
 
-    if (m_type->isOptional()) {
-        log::error() << "Referencing optional enum type in constant \"" << getName() << "\" field is not supported." << std::endl;
+    auto sep = ba::find_first(valueRef, ".");
+    if (!sep) {
+        log::error() << "Failed to split valueRef of \"" << getName() << "\" into <type.value> pair." << std::endl;
         return false;
     }
 
-    auto sep = ba::find_first(valueRef, ".");
-    if (!sep) {
-        log::error() << "Failed to split valueRef into <type.value> pair." << std::endl;
+    std::string enumTypeStr(valueRef.begin(), sep.begin());
+    if (enumTypeStr.empty()) {
+        log::error() << "valueRef property of \"" << getName() << "\" field does not provide enum name." << std::endl;
+        return false;
+    }
+
+    auto* enumType = getDb().findType(enumTypeStr);
+    if (enumType == nullptr) {
+        log::error() << "Enum type \"" << enumTypeStr << "\" referenced by \"" << getName() << "\" field is not defined." << std::endl;
+        return false;
+    }
+
+    if (enumType->kind() != Type::Kind::Enum) {
+        log::error() << "valueRef property of constant field \"" << getName() << "\" must specify enum type." << std::endl;
         return false;
     }
 
     std::string valueStr(sep.end(), valueRef.end());
-    if (!static_cast<const EnumType*>(m_type)->hasValue(valueStr)) {
+    if (!static_cast<const EnumType*>(enumType)->hasValue(valueStr)) {
         log::error() << "The field \"" << getName() << "\" references invalid value \"" << valueRef << "\"." << std::endl;
         return false;
     }
@@ -242,25 +269,10 @@ bool BasicField::isSimpleAlias() const
     return false;
 }
 
-void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, bool wrapped)
+void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std::string& name)
 {
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
-
-    static const std::string FieldNamespace("field::");
-    static const std::string BuiltInNamespace("sbe2comms::");
-    std::string ns;
-    if (builtIn) {
-        ns = BuiltInNamespace;
-    }
-    else {
-        ns = FieldNamespace;
-    }
-
-    auto name = getName();
-    if (wrapped) {
-        name += FieldSuffix;
-    }
-
+    auto& ns = getNamespaceForType(getDb(), m_type->getName());
     bool extraOpts = m_type->hasListOrString();
     out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<";
     if (builtIn) {
@@ -275,6 +287,23 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, bool wrapp
     }
 
     out << ">;\n\n";
+}
+
+void BasicField::writeConstantEnum(std::ostream& out, unsigned indent, const std::string& name)
+{
+    assert(m_type != nullptr);
+    auto& valueRef = getValueRef();
+    auto sep = ba::find_first(valueRef, ".");
+    assert(sep);
+    std::string enumType(valueRef.begin(), sep.begin());
+    enumType += ValSuffix;
+    std::string valueStr(sep.end(), valueRef.end());
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    out << output::indent(indent) << "using " << name << " =\n" <<
+           output::indent(indent + 1) << fieldRefName << "<\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << FieldNamespace << enumType << "::" << valueStr << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
+           output::indent(indent + 1) << ">;\n\n";
 }
 
 void BasicField::writeFieldDef(std::ostream& out, unsigned indent, bool wrapped)
@@ -292,8 +321,18 @@ void BasicField::writeFieldDef(std::ostream& out, unsigned indent, bool wrapped)
         writeOptions(out, indent);
     }
 
+    auto name = getName();
+    if (wrapped) {
+        name += FieldSuffix;
+    }
+
     if (isSimpleAlias()) {
-        writeSimpleAlias(out, indent, wrapped);
+        writeSimpleAlias(out, indent, name);
+        return;
+    }
+
+    if (isConstant()) {
+        writeConstantEnum(out, indent, name);
         return;
     }
 

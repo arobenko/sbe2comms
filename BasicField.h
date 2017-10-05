@@ -43,7 +43,8 @@ private:
     const Type* getTypeFromValueRef() const;
     const std::string& getDefaultOptMode();
     bool isSimpleAlias() const;
-    void writeSimpleAlias(std::ostream& out, unsigned indent, bool wrapped);
+    void writeSimpleAlias(std::ostream& out, unsigned indent, const std::string& name);
+    void writeConstantEnum(std::ostream& out, unsigned indent, const std::string& name);
     void writeFieldDef(std::ostream& out, unsigned indent, bool wrapped = false);
     void writeWrappedFieldBrief(std::ostream& out, unsigned indent, bool extraOpts);
 

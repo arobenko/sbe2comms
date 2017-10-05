@@ -40,12 +40,17 @@ const std::size_t MaxRangesCount = 10;
 
 bool EnumType::hasValue(const std::string& name) const
 {
-    for (auto& v : m_values) {
-        if (v.second == name) {
-            return true;
-        }
+    return findValue(name) != m_values.end();
+}
+
+std::intmax_t EnumType::getNumericValue(const std::string& name) const
+{
+    auto iter = findValue(name);
+    if (iter == m_values.end()) {
+        assert(!"Mustn't happen");
+        return 0;
     }
-    return false;
+    return iter->first;
 }
 
 EnumType::Kind EnumType::kindImpl() const
@@ -409,6 +414,17 @@ EnumType::RangeInfosList EnumType::getValidRanges() const
         result.push_back(std::make_pair(v.first, v.first));
     }
     return result;
+}
+
+EnumType::Values::const_iterator EnumType::findValue(const std::string& name) const
+{
+    for (auto iter = m_values.begin(); iter != m_values.end(); ++iter) {
+        if (iter->second == name) {
+            return iter;
+        }
+    }
+
+    return m_values.end();
 }
 
 } // namespace sbe2comms
