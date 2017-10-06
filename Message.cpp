@@ -40,14 +40,13 @@ namespace
 void writeFileHeader(std::ostream& out, const std::string& name)
 {
     out << "/// \\file\n"
-           "/// \\brief Contains definition of " << name << " message and its fields.\n\n";
+           "/// \\brief Contains definition of " << name << " message and its fields.\n\n"
+           "#pragma once\n\n";
 }
 
 void writeIncludes(std::ostream& out, DB& db, const std::string& msgName)
 {
     out <<
-        "#pragma once\n"
-        "\n"
         "#include \"comms/MessageBase.h\"\n"
         "#include \"" << db.getProtocolNamespace() << '/' << get::fieldsDefFileName() << "\"\n"
         "#include \"" << "details/" << msgName << ".h\"\n"
@@ -280,6 +279,7 @@ bool Message::writeMessageDef(const std::string& filename, DB& db)
 
     auto& msgName = getName();
     writeFileHeader(stream, msgName);
+    writeExtraDefHeaders(stream);
     writeIncludes(stream, db, msgName);
     openNamespaces(stream, db);
     bool result =
@@ -294,6 +294,23 @@ bool Message::writeMessageDef(const std::string& filename, DB& db)
     }
 
     return result && written;
+}
+
+void Message::writeExtraDefHeaders(std::ostream& out)
+{
+    std::set<std::string> extraHeaders;
+    for (auto& f : m_fields) {
+        f->updateExtraHeaders(extraHeaders);
+    }
+
+    if (extraHeaders.empty()) {
+        return;
+    }
+
+    for (auto& h : extraHeaders) {
+        out << "#include " << h << '\n';
+    }
+    out << '\n';
 }
 
 } // namespace sbe2comms

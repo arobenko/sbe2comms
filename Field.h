@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <iosfwd>
+#include <set>
 
 #include "xml_wrap.h"
 
@@ -67,6 +68,9 @@ public:
     bool isConstant() const;
     unsigned getDeprecated() const;
     unsigned getSinceVersion() const;
+    const std::string& getType() const;
+    void updateExtraHeaders(std::set<std::string>& headers);
+
 protected:
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
@@ -74,6 +78,7 @@ protected:
     bool startWrite(std::ostream& out, DB& db, unsigned indent);
     bool writeBrief(std::ostream& out, unsigned indent, bool extraOpts = false);
     static void writeOptions(std::ostream& out, unsigned indent);
+    void recordExtraHeader(const std::string& header);
 
     xmlNodePtr getNode() const
     {
@@ -103,6 +108,7 @@ private:
     xmlNodePtr m_node = nullptr;
     const std::string& m_msgName;
     XmlPropsMap m_props;
+    std::set<std::string> m_extraHeaders;
 };
 
 using FieldPtr = Field::Ptr;

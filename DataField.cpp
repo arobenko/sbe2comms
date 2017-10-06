@@ -26,6 +26,15 @@
 namespace sbe2comms
 {
 
+bool DataField::parseImpl()
+{
+    auto& type = getType();
+    if (type.empty()) {
+        // TODO:
+    }
+    return true;
+}
+
 bool DataField::writeImpl(std::ostream& out, DB& db, unsigned indent)
 {
     if (!startWrite(out, db, indent)) {

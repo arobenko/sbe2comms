@@ -150,6 +150,23 @@ unsigned Field::getSinceVersion() const
     return prop::sinceVersion(m_props);
 }
 
+const std::string& Field::getType() const
+{
+    assert(!m_props.empty());
+    return prop::type(m_props);
+}
+
+void Field::updateExtraHeaders(std::set<std::string>& headers)
+{
+    for (auto& h : m_extraHeaders) {
+        if (headers.find(h) != headers.end()) {
+            continue;
+        }
+
+        headers.insert(h);
+    }
+}
+
 bool Field::parseImpl()
 {
     return true;
@@ -195,6 +212,15 @@ bool Field::writeBrief(std::ostream& out, unsigned indent, bool extraOpts)
 void Field::writeOptions(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "template <typename... TOpt>\n";
+}
+
+void Field::recordExtraHeader(const std::string& header)
+{
+    auto iter = m_extraHeaders.find(header);
+    if (iter != m_extraHeaders.end()) {
+        return;
+    }
+    m_extraHeaders.insert(header);
 }
 
 std::string Field::extraOptionsString(DB& db)

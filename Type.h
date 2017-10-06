@@ -90,11 +90,6 @@ public:
         return 0U < m_uses[Use_Data];
     }
 
-    void recordNormalUse()
-    {
-        ++m_uses[Use_Normal];
-    }
-
     void recordGroupSizeUse()
     {
         ++m_uses[Use_GroupSize];

@@ -53,13 +53,6 @@ const std::string& getNamespaceForType(const DB& db, const std::string& name)
 
 } // namespace
 
-const std::string& BasicField::getType() const
-{
-    auto& p = getProps();
-    assert(!p.empty());
-    return prop::type(p);
-}
-
 const std::string& BasicField::getValueRef() const
 {
     auto& p = getProps();
@@ -106,6 +99,13 @@ bool BasicField::parseImpl()
     }
 
     if (isOptional()) {
+        if (m_type->kind() == Type::Kind::Basic) {
+            auto* basicType = static_cast<const BasicType*>(m_type);
+            if (basicType->isFpType()) {
+                recordExtraHeader("<cmath>");
+                recordExtraHeader("<limits>");
+            }
+        }
         return checkOptional();
     }
 

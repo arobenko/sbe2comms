@@ -29,7 +29,6 @@ class BasicField : public Field
 public:
     BasicField(DB& db, xmlNodePtr node, const std::string& msgName) : Base(db, node, msgName) {}
 
-    const std::string& getType() const;
     const std::string& getValueRef() const;
 
 protected:

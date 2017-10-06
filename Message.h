@@ -51,6 +51,7 @@ private:
     bool writeAllFieldsDef(std::ostream& out, DB& db);
     bool writeMessageClass(std::ostream& out, DB& db);
     bool writeMessageDef(const std::string& filename, DB& db);
+    void writeExtraDefHeaders(std::ostream& out);
 
     DB& m_db;
     xmlNodePtr m_node = nullptr;
