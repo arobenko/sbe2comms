@@ -44,7 +44,12 @@ private:
     const std::string& getDefaultOptMode();
     bool isSimpleAlias() const;
     void writeSimpleAlias(std::ostream& out, unsigned indent, const std::string& name);
-    void writeConstantEnum(std::ostream& out, unsigned indent, const std::string& name);
+    void writeConstant(std::ostream& out, unsigned indent, const std::string& name);
+    void writeOptional(std::ostream& out, unsigned indent, const std::string& name);
+    void writeOptionalBasic(std::ostream& out, unsigned indent, const std::string& name);
+    void writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name);
+    void writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name);
+    void writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name);
     void writeFieldDef(std::ostream& out, unsigned indent, bool wrapped = false);
     void writeWrappedFieldBrief(std::ostream& out, unsigned indent, bool extraOpts);
 

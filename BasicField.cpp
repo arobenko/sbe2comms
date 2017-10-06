@@ -27,6 +27,7 @@
 #include "output.h"
 #include "log.h"
 #include "get.h"
+#include "BasicType.h"
 #include "EnumType.h"
 
 namespace ba = boost::algorithm;
@@ -153,6 +154,20 @@ bool BasicField::checkOptional() const
     if (m_type->isConstant()) {
         log::error() << "Optional field \"" << getName() << "\" references "
                         "constant type " << m_type->getName() << "\"." << std::endl;
+        return false;
+    }
+
+    auto kind = m_type->kind();
+    if ((kind != Type::Kind::Basic) &&
+        (kind != Type::Kind::Enum)) {
+        log::error() << "Optional field \"" << getName() << "\" can reference only "
+                        "basic or enum type." << std::endl;
+        return false;
+    }
+
+    if (m_type->hasListOrString()) {
+        log::error() << "Optional field \"" << getName() << "\" can reference only "
+                        "non-string or non-list types" << std::endl;
         return false;
     }
 
@@ -289,7 +304,7 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
     out << ">;\n\n";
 }
 
-void BasicField::writeConstantEnum(std::ostream& out, unsigned indent, const std::string& name)
+void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
     auto& valueRef = getValueRef();
@@ -304,6 +319,102 @@ void BasicField::writeConstantEnum(std::ostream& out, unsigned indent, const std
            output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << FieldNamespace << enumType << "::" << valueStr << ">,\n" <<
            output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
            output::indent(indent + 1) << ">;\n\n";
+}
+
+void BasicField::writeOptional(std::ostream& out, unsigned indent, const std::string& name)
+{
+    assert(m_type != nullptr);
+    if (m_type->kind() == Type::Kind::Basic) {
+        writeOptionalBasic(out, indent, name);
+        return;
+    }
+
+    assert(m_type->kind() == Type::Kind::Enum);
+    writeOptionalEnum(out, indent, name);
+}
+
+void BasicField::writeOptionalBasic(std::ostream& out, unsigned indent, const std::string& name)
+{
+    assert(m_type != nullptr);
+    assert(m_type->kind() == Type::Kind::Basic);
+    auto* basicType = static_cast<const BasicType*>(m_type);
+    if (basicType->isIntType()) {
+        writeOptionalBasicInt(out, indent, name);
+        return;
+    }
+
+    assert(basicType->isFpType());
+    writeOptionalBasicFp(out, indent, name);
+}
+
+void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name)
+{
+    assert(m_type != nullptr);
+    assert(m_type->kind() == Type::Kind::Basic);
+    auto* basicType = static_cast<const BasicType*>(m_type);
+    assert(basicType->isIntType());
+    std::intmax_t nullValue = basicType->getDefultIntNullValue();
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
+           output::indent(indent + 1) << fieldRefName << "<\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << nullValue << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::ValidNumValue<" << nullValue << ">\n" <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
+           output::indent(indent + 1) << "bool isNull() const\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
+           output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
+           output::indent(indent + 1) << "}\n" <<
+           output::indent(indent) << "};\n\n";
+}
+
+void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name)
+{
+    assert(m_type != nullptr);
+    assert(m_type->kind() == Type::Kind::Basic);
+    auto* basicType = static_cast<const BasicType*>(m_type);
+    assert(basicType->isFpType());
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    out << output::indent(indent) << "struct " << name << " : public " << fieldRefName << "<>\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "/// \\brief Default constructor.\n" <<
+           output::indent(indent + 1) << "/// \\details Initializes field to NaN.\n" <<
+           output::indent(indent + 1) << name << "::" << name << "()\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
+           output::indent(indent + 2) << "Base::value() = std::numeric_limits<typename Base::ValueType>::quiet_NaN();\n" <<
+           output::indent(indent + 1) << "}\n\n" <<
+           output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
+           output::indent(indent + 1) << "bool isNull() const\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
+           output::indent(indent + 2) << "return std::isnan(Base::value());\n" <<
+           output::indent(indent + 1) << "}\n" <<
+           output::indent(indent) << "};\n\n";
+}
+
+void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name)
+{
+    assert(m_type != nullptr);
+    assert(m_type->kind() == Type::Kind::Enum);
+    auto* enumType = static_cast<const EnumType*>(m_type);
+    std::intmax_t nullValue = enumType->getDefultNullValue();
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
+           output::indent(indent + 1) << fieldRefName << "<\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << nullValue << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::ValidNumValue<" << nullValue << ">\n" <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
+           output::indent(indent + 1) << "bool isNull() const\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
+           output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
+           output::indent(indent + 1) << "}\n" <<
+           output::indent(indent) << "};\n\n";
 }
 
 void BasicField::writeFieldDef(std::ostream& out, unsigned indent, bool wrapped)
@@ -332,7 +443,12 @@ void BasicField::writeFieldDef(std::ostream& out, unsigned indent, bool wrapped)
     }
 
     if (isConstant()) {
-        writeConstantEnum(out, indent, name);
+        writeConstant(out, indent, name);
+        return;
+    }
+
+    if (isOptional()) {
+        writeOptional(out, indent, name);
         return;
     }
 

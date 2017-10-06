@@ -33,6 +33,7 @@ public:
 
     bool hasValue(const std::string& name) const;
     std::intmax_t getNumericValue(const std::string& name) const;
+    std::intmax_t getDefultNullValue() const;
 
 protected:
     virtual Kind kindImpl() const override;

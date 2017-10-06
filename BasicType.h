@@ -29,6 +29,9 @@ public:
     explicit BasicType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
     const std::string& getPrimitiveType() const;
+    std::intmax_t getDefultIntNullValue() const;
+    bool isIntType() const;
+    bool isFpType() const;
 
 protected:
     virtual Kind kindImpl() const override;

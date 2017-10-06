@@ -61,6 +61,31 @@ const std::string& BasicType::getPrimitiveType() const
     return prop::primitiveType(getProps());
 }
 
+std::intmax_t BasicType::getDefultIntNullValue() const
+{
+    auto& primType = getPrimitiveType();
+    assert(!primType.empty());
+    auto& intType = primitiveTypeToStdInt(primType);
+    assert(!intType.empty());
+    return builtInIntNullValue(intType);
+}
+
+bool BasicType::isIntType() const
+{
+    auto& primType = getPrimitiveType();
+    assert(!primType.empty());
+    auto& intType = primitiveTypeToStdInt(primType);
+    return !intType.empty();
+}
+
+bool BasicType::isFpType() const
+{
+    auto& primType = getPrimitiveType();
+    assert(!primType.empty());
+    auto& fpType = primitiveFloatToStd(primType);
+    return !fpType.empty();
+}
+
 BasicType::Kind BasicType::kindImpl() const
 {
     return Kind::Basic;
@@ -295,6 +320,7 @@ bool BasicType::writeSimpleInt(std::ostream& out,
                    output::indent(indent) << "{\n" <<
                    output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
                    output::indent(indent + 1) << "bool isNull() const\n" <<
+                   output::indent(indent + 1) << "{\n" <<
                    output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
                    output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
                    output::indent(indent + 1) << "}\n" <<
@@ -370,7 +396,7 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
         }
         
         if (isOptional()) {
-            writeConstractorFunc(indent + 1, "std::numeric_limits<Base::ValueType>::quiet_NaN()");
+            writeConstractorFunc(indent + 1, "std::numeric_limits<typename Base::ValueType>::quiet_NaN()");
             out << '\n' <<
                    output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
                    output::indent(indent + 1) << "bool isNull() const\n" <<

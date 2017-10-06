@@ -53,6 +53,13 @@ std::intmax_t EnumType::getNumericValue(const std::string& name) const
     return iter->first;
 }
 
+std::intmax_t EnumType::getDefultNullValue() const
+{
+    auto& underlying = getUnderlyingType();
+    assert(!underlying.empty());
+    return builtInIntNullValue(underlying);
+}
+
 EnumType::Kind EnumType::kindImpl() const
 {
     return Kind::Enum;
@@ -227,6 +234,9 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
             out << output::indent(indent + 3) << enumName << "::" << v.second << ",\n";
         }
         out << output::indent(indent + 2) << "};\n\n" <<
+               output::indent(indent + 2) << "if (!Base::valid()) {\n" <<
+               output::indent(indent + 3) << "return false;\n" <<
+               output::indent(indent + 2) << "}\n\n" <<
                output::indent(indent + 2) << "auto iter = std::lower_bound(std::begin(Values), std::end(Values), Base::value());\n" <<
                output::indent(indent + 2) << "return (iter != std::end(Values)) && (*iter == Base::value());\n" <<
                output::indent(indent + 1) << "}\n\n";
