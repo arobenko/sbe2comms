@@ -33,7 +33,7 @@ public:
     }
 
 protected:
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) override;
 
 private:
     bool createFields(DB& db);

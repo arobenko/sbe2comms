@@ -33,14 +33,14 @@ public:
 
 protected:
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) override;
+    virtual bool hasListOrStringImpl() const override;
 
 private:
     bool checkRequired() const;
     bool checkOptional() const;
     bool checkConstant() const;
     const Type* getTypeFromValueRef() const;
-    const std::string& getDefaultOptMode();
     bool isSimpleAlias() const;
     void writeSimpleAlias(std::ostream& out, unsigned indent, const std::string& name);
     void writeConstant(std::ostream& out, unsigned indent, const std::string& name);
@@ -49,8 +49,6 @@ private:
     void writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name);
-    void writeFieldDef(std::ostream& out, unsigned indent, bool wrapped = false);
-    void writeWrappedFieldBrief(std::ostream& out, unsigned indent, bool extraOpts);
 
     const Type* m_type = nullptr;
 };

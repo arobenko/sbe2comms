@@ -100,12 +100,33 @@ Field::Ptr Field::create(DB& db, xmlNodePtr node, const std::string& msgName)
 
 bool Field::write(std::ostream& out, DB& db, unsigned indent)
 {
-//    if ((isDeperated(db)) || (!isIntroduced(db))) {
-//        // Don't write anything if type is deprecated or was introduced in later version
-//        return true;
-//    }
+    auto& optMode = getDefaultOptMode();
+    if (optMode.empty()) {
+        return writeImpl(out, db, indent, get::emptyString());
+    }
 
-    return writeImpl(out, db, indent);
+    static const std::string OptFieldSuffix("Field");
+    bool result = writeImpl(out, db, indent, OptFieldSuffix);
+    if (!result) {
+        return false;
+    }
+
+    auto extraOpts = hasListOrString();
+    writeBrief(out, indent, get::emptyString(), extraOpts);
+    if (extraOpts) {
+        writeOptions(out, indent);
+    }
+
+    out << output::indent(indent) << "using " << getName() << " =\n" <<
+           output::indent(indent + 1) << "comms::field::Optional<\n" <<
+           output::indent(indent + 2) << getName() << OptFieldSuffix;
+    if (extraOpts) {
+        out << "<TOpt...>";
+    }
+    out << ",\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
+           output::indent(indent + 1) << ">;\n\n";
+    return true;
 }
 
 const XmlPropsMap& Field::props(DB& db)
@@ -172,6 +193,11 @@ bool Field::parseImpl()
     return true;
 }
 
+bool Field::hasListOrStringImpl() const
+{
+    return false;
+}
+
 bool Field::startWrite(std::ostream& out, DB& db, unsigned indent)
 {
     auto& p = props(db);
@@ -191,12 +217,18 @@ bool Field::startWrite(std::ostream& out, DB& db, unsigned indent)
     return true;
 }
 
-bool Field::writeBrief(std::ostream& out, unsigned indent, bool extraOpts)
+bool Field::writeBrief(std::ostream& out, unsigned indent, const std::string& suffix, bool extraOpts)
 {
     auto& name = getName();
     assert(!name.empty());
 
-    out << output::indent(indent) << "/// \\brief Definition of \"" << name << "\" field.\n";
+    if (suffix.empty()) {
+        out << output::indent(indent) << "/// \\brief Definition of \"" << name << "\" field.\n";
+    }
+    else {
+        out << output::indent(indent) << "/// \\brief Definition of inner field of the optional \\ref " << name << " field.\n";
+    }
+
     auto& desc = getDescription();
     if (!desc.empty()) {
         out << output::indent(indent) << "/// \\details " << desc << '\n';
@@ -227,6 +259,21 @@ std::string Field::extraOptionsString(DB& db)
 {
     auto& name = prop::name(props(db));
     return "details::" + m_msgName + "Fields::ExtraOptionsFor_" + name + "<TOpt>";
+}
+
+const std::string& Field::getDefaultOptMode()
+{
+    if (getDeprecated() <= m_db.getSchemaVersion()) {
+        static const std::string Mode("comms::field::OptionalMode::Missing");
+        return Mode;
+    }
+
+    if (m_db.getMinRemoteVersion() < getSinceVersion()) {
+        static const std::string Mode("comms::field::OptionalMode::Exists");
+        return Mode;
+    }
+
+    return get::emptyString();
 }
 
 } // namespace sbe2comms

@@ -35,8 +35,9 @@ bool DataField::parseImpl()
     return true;
 }
 
-bool DataField::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool DataField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix)
 {
+    static_cast<void>(suffix);
     if (!startWrite(out, db, indent)) {
         return false;
     }

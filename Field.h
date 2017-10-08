@@ -70,13 +70,18 @@ public:
     unsigned getSinceVersion() const;
     const std::string& getType() const;
     void updateExtraHeaders(std::set<std::string>& headers);
+    bool hasListOrString() const
+    {
+        return hasListOrStringImpl();
+    }
 
 protected:
     virtual bool parseImpl();
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent) = 0;
+    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) = 0;
+    virtual bool hasListOrStringImpl() const;
 
     bool startWrite(std::ostream& out, DB& db, unsigned indent);
-    bool writeBrief(std::ostream& out, unsigned indent, bool extraOpts = false);
+    bool writeBrief(std::ostream& out, unsigned indent, const std::string& suffix, bool extraOpts = false);
     static void writeOptions(std::ostream& out, unsigned indent);
     void recordExtraHeader(const std::string& header);
 
@@ -92,6 +97,7 @@ protected:
 
     std::string extraOptionsString(DB& db);
 
+
     DB& getDb()
     {
         return m_db;
@@ -104,6 +110,8 @@ protected:
 
 
 private:
+    const std::string& getDefaultOptMode();
+
     DB& m_db;
     xmlNodePtr m_node = nullptr;
     const std::string& m_msgName;

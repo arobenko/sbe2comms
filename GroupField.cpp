@@ -27,8 +27,9 @@
 namespace sbe2comms
 {
 
-bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix)
 {
+    static_cast<void>(suffix);
     if (!createFields(db)) {
         return false;
     }

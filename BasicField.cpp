@@ -117,23 +117,43 @@ bool BasicField::parseImpl()
     return false;
 }
 
-bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent)
+bool BasicField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix)
 {
     static_cast<void>(db);
     assert(m_type != nullptr);
+    bool extraOpts = m_type->hasListOrString();
+    writeBrief(out, indent, suffix, extraOpts);
 
-    auto& optMode = getDefaultOptMode();
-    if (optMode.empty()) {
-        writeFieldDef(out, indent, false);
+    if (extraOpts) {
+        writeOptions(out, indent);
+    }
+
+    auto name = getName() + suffix;
+
+    if (isSimpleAlias()) {
+        writeSimpleAlias(out, indent, name);
         return true;
     }
 
-    log::error() << "The optional wrapper field " << getName() << " write is not supported yet!" << std::endl;
-    return true;
+    if (isConstant()) {
+        writeConstant(out, indent, name);
+        return true;
+    }
 
-    writeFieldDef(out, indent, true);
-    // TODO: write optional wrapper
-    return true;
+    if (isOptional()) {
+        writeOptional(out, indent, name);
+        return true;
+    }
+
+    log::error() << "The definition of \"" << getName() << "\" not implemented yet!" << std::endl;
+    assert(!"Should not happen");
+    return false;
+}
+
+bool BasicField::hasListOrStringImpl() const
+{
+    assert(m_type != nullptr);
+    return (m_type != nullptr) && (m_type->hasListOrString());
 }
 
 bool BasicField::checkRequired() const
@@ -250,21 +270,6 @@ const Type* BasicField::getTypeFromValueRef() const
         return nullptr;
     }
     return type;
-}
-
-const std::string& BasicField::getDefaultOptMode()
-{
-    if (getDeprecated() <= getDb().getSchemaVersion()) {
-        static const std::string Mode("comms::field::OptionalMode::Missing");
-        return Mode;
-    }
-
-    if (getDb().getMinRemoteVersion() < getSinceVersion()) {
-        static const std::string Mode("comms::field::OptionalMode::Exists");
-        return Mode;
-    }
-
-    return get::emptyString();
 }
 
 bool BasicField::isSimpleAlias() const
@@ -416,61 +421,5 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
            output::indent(indent + 1) << "}\n" <<
            output::indent(indent) << "};\n\n";
 }
-
-void BasicField::writeFieldDef(std::ostream& out, unsigned indent, bool wrapped)
-{
-    assert(m_type != nullptr);
-    bool extraOpts = m_type->hasListOrString();
-    if (wrapped) {
-        writeWrappedFieldBrief(out, indent, extraOpts);
-    }
-    else {
-        writeBrief(out, indent, extraOpts);
-    }
-
-    if (extraOpts) {
-        writeOptions(out, indent);
-    }
-
-    auto name = getName();
-    if (wrapped) {
-        name += FieldSuffix;
-    }
-
-    if (isSimpleAlias()) {
-        writeSimpleAlias(out, indent, name);
-        return;
-    }
-
-    if (isConstant()) {
-        writeConstant(out, indent, name);
-        return;
-    }
-
-    if (isOptional()) {
-        writeOptional(out, indent, name);
-        return;
-    }
-
-    // TODO:
-    log::error() << "The definition of \"" << getName() << "\" not implemented yet!" << std::endl;
-}
-
-void BasicField::writeWrappedFieldBrief(std::ostream& out, unsigned indent, bool extraOpts)
-{
-    auto& name = getName();
-    assert(!name.empty());
-
-    out << output::indent(indent) << "/// \\brief Definition of inner field of the optional \\ref " << name << " field.\n";
-    auto& desc = getDescription();
-    if (!desc.empty()) {
-        out << output::indent(indent) << "/// \\details " << desc << '\n';
-    }
-
-    if (extraOpts) {
-        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
-    }
-}
-
 
 } // namespace sbe2comms
