@@ -49,13 +49,18 @@ const std::string NullValue("nullValue");
 const std::string EncodingType("encodingType");
 const std::string CharacterEncoding("characterEncoding");
 const std::string ValueRef("valueRef");
+const std::string DimensionType("dimensionType");
+const std::string GroupSizeEncoding("groupSizeEncoding");
 const std::string FailInvalid("cc_fail_invalid");
 
-const std::string& getProp(const XmlPropsMap& map, const std::string propName)
+const std::string& getProp(
+    const XmlPropsMap& map,
+    const std::string propName,
+    const std::string& defValue = EmptyStr)
 {
     auto iter = map.find(propName);
     if (iter == map.end()) {
-        return EmptyStr;
+        return defValue;
     }
 
     return iter->second;
@@ -215,6 +220,11 @@ const std::string& characterEncoding(const XmlPropsMap& map)
 const std::string& valueRef(const XmlPropsMap& map)
 {
     return getProp(map, ValueRef);
+}
+
+const std::string& dimensionType(const XmlPropsMap& map)
+{
+    return getProp(map, DimensionType, GroupSizeEncoding);
 }
 
 const std::string& ccFailInvalid(const XmlPropsMap& map)

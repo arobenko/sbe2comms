@@ -20,6 +20,7 @@
 #include <list>
 #include <vector>
 #include "Field.h"
+#include "Type.h"
 
 namespace sbe2comms
 {
@@ -37,16 +38,18 @@ protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) override;
+    virtual bool hasListOrStringImpl() const;
 
 private:
-    bool createFields(DB& db);
-    bool insertField(FieldPtr field, DB& db);
     bool prepareMembers();
     unsigned getBlockLength() const;
     bool writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts);
+    void writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts);
+    const std::string& getDimensionType() const;
 
     std::list<FieldPtr> m_fields;
     std::vector<FieldPtr> m_members;
+    const Type* m_type = nullptr;
 };
 
 } // namespace sbe2comms

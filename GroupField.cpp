@@ -26,13 +26,16 @@
 #include "get.h"
 #include "log.h"
 #include "BasicField.h"
+#include "CompositeType.h"
 
 namespace sbe2comms
 {
 
 namespace
 {
+
 const std::string MembersSuffix("Members");
+const std::string ElementSuffix("Element");
 
 } // namespace
 
@@ -44,6 +47,24 @@ Field::Kind GroupField::getKindImpl() const
 bool GroupField::parseImpl()
 {
     if (!prepareMembers()) {
+        return false;
+    }
+
+    auto& dimType = getDimensionType();
+    m_type = getDb().findType(dimType);
+    if (m_type == nullptr) {
+        log::error() << "Failed to find dimentionType \"" << dimType << "\" for group \"" << getName() << "\"." << std::endl;
+        return false;
+    }
+
+    if (m_type->kind() != Type::Kind::Composite) {
+        log::error() << "The dimentionType \"" << dimType << "\" of group \"" << getName() << "\" must be composite." << std::endl;
+        return false;
+    }
+
+    auto* compType = static_cast<const CompositeType*>(m_type);
+    if (!compType->isValidDimensionType()) {
+        log::error() << "The dimentionType \"" << dimType << "\" of group \"" << getName() << "\" is not of valid format." << std::endl;
         return false;
     }
 
@@ -67,111 +88,27 @@ bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std
         return false;
     }
 
-    // TODO:
-    return true;
 
-    bool result = false;
-    auto& p = props(db);
-    auto& name = prop::name(p);
-    if (name.empty()) {
-        std::cerr << "ERROR: Unknown name for group field" << std::endl;
-        return false;
+    writeBundle(out, indent, hasExtraOpts);
+
+    writeBrief(out, indent, suffix, true);
+    writeOptions(out, indent);
+
+    out << output::indent(indent) << "using " << getName() << " =\n" <<
+           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
+           output::indent(indent + 2) << "field::FieldBase,\n" <<
+           output::indent(indent + 2) << getName() << ElementSuffix;
+    if (hasExtraOpts) {
+        out << "<TOpt...>";
     }
-
-    std::string elemName(name + "Element");
-    out << output::indent(indent) << "/// \\brief Definition of the element type for the \\ref \"" << name << "\" list.\n";
-    out << output::indent(indent) << "struct " << elemName << " : public \n" <<
-           output::indent(indent + 1) << "comms::field::Bundle<\n" <<
-           output::indent(indent + 2) << "field::FieldBase,\n" <<
-           output::indent(indent + 2) << "std::tuple<\n";
-
-    auto listFieldsFunc =
-        [this, indent, &out, &db](unsigned extraIndent)
-        {
-            bool firstField = true;
-            for (auto& f : m_fields) {
-                auto& fp = f->props(db);
-                auto& fieldName = prop::name(fp);
-                assert(!fieldName.empty());
-                if (!firstField) {
-                    out << ",\n";
-                }
-                else {
-                    firstField = false;
-                }
-                out << output::indent(indent + extraIndent) << fieldName;
-            }
-            out << "\n";
-        };
-
-    listFieldsFunc(3);
-
-    out << output::indent(indent + 2) << ">\n" <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << "/// \\brief Allow access to internal fields.\n" <<
-           output::indent(indent + 1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
-           output::indent(indent + 1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
-           output::indent(indent + 1) << "///     for details.\n" <<
-           output::indent(indent + 1) << "COMMS_FIELD_MEMBERS_ACCESS(\n";
-    listFieldsFunc(2);
-    out << output::indent(indent + 1) << ");\n" <<
-           output::indent(indent) << "};\n\n";
-
-    result = startWrite(out, db, indent) && result;
-    out << output::indent(indent) << "using " << name << " = \n" <<
-           output::indent(indent + 1) << "sbe2comms::groupList<\n" <<
-           output::indent(indent + 2) << "field::FieldBase,\n" <<
-           output::indent(indent + 2) << elemName << ",\n" <<
-           output::indent(indent + 2) << extraOptionsString(db) << '\n' <<
+    out << ",\n" <<
+           output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">;\n\n";
-    return result;
-}
-
-bool GroupField::createFields(DB& db)
-{
-    if (!m_fields.empty()) {
-        return true;
-    }
-
-    auto* node = getNode();
-    assert(node != nullptr);
-    auto* child = node->children;
-    while (child != nullptr) {
-        if (child->type == XML_ELEMENT_NODE) {
-            auto fieldPtr = Field::create(db, child, getMsgName());
-            if (!fieldPtr) {
-                std::cerr << "ERROR: Unknown field kind \"" << child->name << "\"!" << std::endl;
-                return false;
-            }
-
-            if (!fieldPtr->parse()) {
-                std::cerr << "ERROR: Failed to parse \"" << child->name << "\"!" << std::endl;
-            }
-
-            if (!insertField(std::move(fieldPtr), db)) {
-                return false;
-            }
-        }
-
-        child = child->next;
-    }
-
-    if (m_fields.empty()) {
-        std::cerr << "ERROR: Group " << node->name << " does NOT have any member fields" << std::endl;
-        return false;
-    }
-
     return true;
 }
 
-bool GroupField::insertField(FieldPtr field, DB& db)
+bool GroupField::hasListOrStringImpl() const
 {
-
-    static_cast<void>(db);
-    // TODO: do padding
-
-    m_fields.push_back(std::move(field));
     return true;
 }
 
@@ -321,6 +258,53 @@ bool GroupField::writeMembers(std::ostream& out, unsigned indent, bool hasExtraO
            output::indent(indent + 1) << ">;\n" <<
            output::indent(indent) << "};\n\n";
     return result;
+}
+
+void GroupField::writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts)
+{
+    out << output::indent(indent) << "/// \\brief Element of \\ref " << getName() << " list.\n";
+    if (hasExtraOpts) {
+        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
+        writeOptions(out, indent);
+    }
+
+    out << output::indent(indent) << "struct " << getName() << ElementSuffix << " : public\n" <<
+           output::indent(indent + 1) << "comms::field::Bundle<\n" <<
+           output::indent(indent + 2) << "field::FieldBase,\n" <<
+           output::indent(indent + 2) << getName() << MembersSuffix << "::All";
+    if (hasExtraOpts) {
+        out << "<TOpt...>";
+    }
+
+    out << '\n' <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n"<<
+           output::indent(indent + 1) << "/// \\brief Allow access to internal fields.\n" <<
+           output::indent(indent + 1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
+           output::indent(indent + 1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
+           output::indent(indent + 1) << "///     for details.\n" <<
+           output::indent(indent + 1) << "COMMS_FIELD_MEMBERS_ACCESS(\n";
+
+    bool first = true;
+    for (auto& m : m_members) {
+        if (!first) {
+            out << ",\n";
+        }
+        else {
+            first = false;
+        }
+
+        out << output::indent(indent + 2) << m->getName();
+    }
+
+    out << '\n' <<
+           output::indent(indent + 1) << ");\n" <<
+           output::indent(indent) << "};\n\n";
+}
+
+const std::string& GroupField::getDimensionType() const
+{
+    return prop::dimensionType(getProps());
 }
 
 

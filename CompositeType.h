@@ -31,6 +31,7 @@ public:
     explicit CompositeType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
     bool isBundleOptional() const;
+    bool isValidDimensionType() const;
 
 protected:
     virtual Kind kindImpl() const override;

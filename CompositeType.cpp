@@ -56,6 +56,22 @@ bool CompositeType::isBundleOptional() const
     return static_cast<const CompositeType&>(*mem).isBundleOptional();
 }
 
+bool CompositeType::isValidDimensionType() const
+{
+    auto verifyMemberFunc =
+        [](const Type& t) -> bool
+        {
+            return t.kind() == Kind::Basic &&
+                   t.getLengthProp() == 1U &&
+                   t.isRequired();
+        };
+
+    return
+        ((m_members.size() == 2) &&
+         verifyMemberFunc(*m_members[0]) &&
+         verifyMemberFunc(*m_members[1]));
+}
+
 CompositeType::Kind CompositeType::kindImpl() const
 {
     return Kind::Composite;
