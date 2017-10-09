@@ -27,6 +27,11 @@
 namespace sbe2comms
 {
 
+Field::Kind DataField::getKindImpl() const
+{
+    return Kind::Data;
+}
+
 bool DataField::parseImpl()
 {
     auto& type = getType();

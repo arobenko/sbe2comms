@@ -18,6 +18,7 @@
 #pragma once
 
 #include <list>
+#include <vector>
 #include "Field.h"
 
 namespace sbe2comms
@@ -33,13 +34,19 @@ public:
     }
 
 protected:
+    virtual Kind getKindImpl() const override;
+    virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) override;
 
 private:
     bool createFields(DB& db);
     bool insertField(FieldPtr field, DB& db);
+    bool prepareMembers();
+    unsigned getBlockLength() const;
+    bool writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts);
 
     std::list<FieldPtr> m_fields;
+    std::vector<FieldPtr> m_members;
 };
 
 } // namespace sbe2comms

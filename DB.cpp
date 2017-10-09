@@ -266,7 +266,7 @@ const Type* DB::getBuiltInType(const std::string& name)
         return nullptr;
     }
 
-    BuiltInTypeInfo info;
+    GeneratedTypeInfo info;
     info.m_node = xmlCreateBuiltInType(name);
     info.m_type = Type::create(*this, info.m_node.get());
     assert(info.m_type);
@@ -284,6 +284,45 @@ const Type* DB::getBuiltInType(const std::string& name)
 bool DB::isRecordedBuiltInType(const std::string& name) const
 {
     return m_builtInTypes.find(name) != m_builtInTypes.end();
+}
+
+const Type* DB::getPaddingType(unsigned len)
+{
+    auto name = "padding" + std::to_string(len);
+    auto iter = m_paddingTypes.find(name);
+    if (iter != m_paddingTypes.end()) {
+        assert(iter->second.m_type);
+        return iter->second.m_type.get();
+    }
+
+    GeneratedTypeInfo info;
+    info.m_node = xmlCreateRawDataType(name, len);
+    info.m_type = Type::create(*this, info.m_node.get());
+    assert(info.m_type);
+
+    if (!info.m_type->parse()) {
+        assert(!"Failed to parse padding type");
+        return nullptr;
+    }
+
+    auto* result = info.m_type.get();
+    m_paddingTypes.insert(std::make_pair(name, std::move(info)));
+    return result;
+}
+
+const Type* DB::findPaddingType(const std::string& name) const
+{
+    auto iter = m_paddingTypes.find(name);
+    if (iter != m_paddingTypes.end()) {
+        assert(iter->second.m_type);
+        return iter->second.m_type.get();
+    }
+    return nullptr;
+}
+
+bool DB::isRecordedPaddingType(const std::string& name) const
+{
+    return findPaddingType(name) != nullptr;
 }
 
 bool DB::recordTypeRef(xmlNodePtr node)

@@ -82,14 +82,18 @@ std::list<xmlNodePtr> xmlChildren(xmlNodePtr node, const std::string& name)
 
 XmlNodePtr xmlCreatePadding(unsigned idx, unsigned len)
 {
+    return xmlCreateRawDataType("pad" + std::to_string(idx) + '_', len);
+}
+
+XmlNodePtr xmlCreateRawDataType(const std::string& name, unsigned len)
+{
     static const std::string type("type");
     auto* typePtr = reinterpret_cast<const xmlChar*>(type.c_str());
     XmlNodePtr ptr(xmlNewNode(nullptr, typePtr));
 
     static const std::string nameStr("name");
     auto* namePtr = reinterpret_cast<const xmlChar*>(nameStr.c_str());
-    auto nameVal = "pad" + std::to_string(idx) + '_';
-    auto* nameValPtr = reinterpret_cast<const xmlChar*>(nameVal.c_str());
+    auto* nameValPtr = reinterpret_cast<const xmlChar*>(name.c_str());
     xmlNewProp(ptr.get(), namePtr, nameValPtr);
 
     static const std::string lengthStr("length");
@@ -123,5 +127,25 @@ XmlNodePtr xmlCreateBuiltInType(const std::string& name)
     xmlNewProp(ptr.get(), primTypePtr, primTypeValPtr);
     return ptr;
 }
+
+XmlNodePtr xmlCreatePaddingField(unsigned idx, const std::string& typeName)
+{
+    static const std::string fieldStr("field");
+    auto* fieldStrPtr = reinterpret_cast<const xmlChar*>(fieldStr.c_str());
+    XmlNodePtr ptr(xmlNewNode(nullptr, fieldStrPtr));
+
+    static const std::string nameStr("name");
+    auto* namePtr = reinterpret_cast<const xmlChar*>(nameStr.c_str());
+    std::string nameVal("pad" + std::to_string(idx) + '_');
+    auto* nameValPtr = reinterpret_cast<const xmlChar*>(nameVal.c_str());
+    xmlNewProp(ptr.get(), namePtr, nameValPtr);
+
+    static const std::string typeStr("type");
+    auto* typePtr = reinterpret_cast<const xmlChar*>(typeStr.c_str());
+    auto* typeValPtr = reinterpret_cast<const xmlChar*>(typeName.c_str());
+    xmlNewProp(ptr.get(), typePtr, typeValPtr);
+    return ptr;
+}
+
 
 } // namespace sbe2comms

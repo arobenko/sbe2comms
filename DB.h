@@ -81,14 +81,20 @@ public:
 
     bool isRecordedBuiltInType(const std::string& name) const;
 
+    const Type* getPaddingType(unsigned len);
+
+    const Type* findPaddingType(const std::string& name) const;
+
+    bool isRecordedPaddingType(const std::string& name) const;
+
 private:
-    struct BuiltInTypeInfo
+    struct GeneratedTypeInfo
     {
         XmlNodePtr m_node;
         TypePtr m_type;
     };
 
-    using BuiltInTypeMap = std::map<std::string, BuiltInTypeInfo>;
+    using GeneratedTypeMap = std::map<std::string, GeneratedTypeInfo>;
 
     bool recordTypeRef(xmlNodePtr node);
     bool parseTypes(xmlNodePtr node);
@@ -97,7 +103,8 @@ private:
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
     TypesMap m_types;
-    BuiltInTypeMap m_builtInTypes;
+    GeneratedTypeMap m_builtInTypes;
+    GeneratedTypeMap m_paddingTypes;
     MessagesMap m_messages;
     std::list<std::string> m_groups;
 

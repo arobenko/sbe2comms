@@ -30,8 +30,14 @@ public:
     BasicField(DB& db, xmlNodePtr node, const std::string& msgName) : Base(db, node, msgName) {}
 
     const std::string& getValueRef() const;
+    unsigned getSerializationLength() const;
+    void setGeneratedPadding()
+    {
+        m_generatedPadding = true;
+    }
 
 protected:
+    virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) override;
     virtual bool hasListOrStringImpl() const override;
@@ -51,6 +57,7 @@ private:
     void writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name);
 
     const Type* m_type = nullptr;
+    bool m_generatedPadding = false;
 };
 
 } // namespace sbe2comms

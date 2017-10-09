@@ -41,6 +41,13 @@ public:
     {
     }
 
+    enum class Kind
+    {
+        Basic,
+        Group,
+        Data
+    };
+
     virtual ~Field() noexcept {}
 
     bool parse();
@@ -69,13 +76,20 @@ public:
     unsigned getDeprecated() const;
     unsigned getSinceVersion() const;
     const std::string& getType() const;
+    unsigned getOffset() const;
     void updateExtraHeaders(std::set<std::string>& headers);
     bool hasListOrString() const
     {
         return hasListOrStringImpl();
     }
 
+    Kind getKind() const
+    {
+        return getKindImpl();
+    }
+
 protected:
+    virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) = 0;
     virtual bool hasListOrStringImpl() const;

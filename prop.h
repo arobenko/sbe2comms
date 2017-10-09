@@ -35,6 +35,7 @@ bool hasSinceVersion(const XmlPropsMap& map);
 unsigned sinceVersion(const XmlPropsMap& map);
 unsigned length(const XmlPropsMap& map);
 unsigned offset(const XmlPropsMap& map);
+unsigned blockLength(const XmlPropsMap& map);
 const std::string& primitiveType(const XmlPropsMap& map);
 const std::string& semanticType(const XmlPropsMap& map);
 const std::string& byteOrder(const XmlPropsMap& map);

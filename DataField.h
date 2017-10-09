@@ -30,6 +30,7 @@ public:
     DataField(DB& db, xmlNodePtr node, const std::string& msgName) : Base(db, node, msgName) {}
 
 protected:
+    virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) override;
     virtual bool hasListOrStringImpl() const;

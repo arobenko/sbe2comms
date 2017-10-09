@@ -38,6 +38,7 @@ const std::string Version("version");
 const std::string SinceVersion("sinceVersion");
 const std::string Length("length");
 const std::string Offset("offset");
+const std::string BlockLength("blockLength");
 const std::string PrimitiveType("primitiveType");
 const std::string SemanticType("semanticType");
 const std::string ByteOrder("byteOrder");
@@ -130,6 +131,11 @@ unsigned length(const XmlPropsMap& map)
 unsigned offset(const XmlPropsMap& map)
 {
     return getPropInt<unsigned>(map, Offset);
+}
+
+unsigned blockLength(const XmlPropsMap& map)
+{
+    return getPropInt<unsigned>(map, BlockLength);
 }
 
 const std::string& primitiveType(const XmlPropsMap& map)

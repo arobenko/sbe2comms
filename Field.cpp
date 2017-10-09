@@ -177,6 +177,12 @@ const std::string& Field::getType() const
     return prop::type(m_props);
 }
 
+unsigned Field::getOffset() const
+{
+    assert(!m_props.empty());
+    return prop::offset(m_props);
+}
+
 void Field::updateExtraHeaders(std::set<std::string>& headers)
 {
     for (auto& h : m_extraHeaders) {

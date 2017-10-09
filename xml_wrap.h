@@ -62,6 +62,8 @@ XmlPropsMap xmlParseNodeProps(xmlNodePtr node, xmlDocPtr doc);
 std::string xmlText(xmlNodePtr node);
 std::list<xmlNodePtr> xmlChildren(xmlNodePtr node, const std::string& name = std::string());
 XmlNodePtr xmlCreatePadding(unsigned idx, unsigned len);
+XmlNodePtr xmlCreateRawDataType(const std::string& name, unsigned len);
 XmlNodePtr xmlCreateBuiltInType(const std::string& name);
+XmlNodePtr xmlCreatePaddingField(unsigned idx, const std::string& typeName);
 
 } // namespace sbe2comms

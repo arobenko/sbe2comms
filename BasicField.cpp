@@ -45,7 +45,7 @@ const std::string BuiltInNamespace("sbe2comms::");
 
 const std::string& getNamespaceForType(const DB& db, const std::string& name)
 {
-    if (db.isRecordedBuiltInType(name)) {
+    if ((db.isRecordedBuiltInType(name)) || db.isRecordedPaddingType(name)) {
         return BuiltInNamespace;
     }
     return FieldNamespace;
@@ -60,6 +60,17 @@ const std::string& BasicField::getValueRef() const
     return prop::valueRef(p);
 }
 
+unsigned BasicField::getSerializationLength() const
+{
+    assert(m_type != nullptr);
+    return m_type->getSerializationLength();
+}
+
+Field::Kind BasicField::getKindImpl() const
+{
+    return Kind::Basic;
+}
+
 bool BasicField::parseImpl()
 {
     do {
@@ -68,6 +79,7 @@ bool BasicField::parseImpl()
             if (isConstant()) {
                 auto& valueRef = getValueRef();
                 if (!valueRef.empty()) {
+                    assert(!m_generatedPadding);
                     m_type = getTypeFromValueRef();
                     break;
                 }
@@ -77,12 +89,23 @@ bool BasicField::parseImpl()
             return false;
         }
 
+        if (m_generatedPadding) {
+            m_type = getDb().findPaddingType(typeName);
+            log::error() << "Failed to find padding type: " << typeName << std::endl;
+            assert(m_type != nullptr);
+            break;
+        }
+
         m_type = getDb().findType(typeName);
         if (m_type != nullptr) {
             break;
         }
 
         m_type = getDb().getBuiltInType(typeName);
+        if (m_type != nullptr) {
+            break;
+        }
+
     } while (false);
 
     if (m_type == nullptr) {

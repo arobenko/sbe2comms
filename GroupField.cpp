@@ -18,27 +18,59 @@
 #include "GroupField.h"
 
 #include <iostream>
+#include <algorithm>
 
 #include "DB.h"
 #include "prop.h"
 #include "output.h"
 #include "get.h"
+#include "log.h"
+#include "BasicField.h"
 
 namespace sbe2comms
 {
 
-bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix)
+namespace
 {
-    static_cast<void>(suffix);
-    if (!createFields(db)) {
+const std::string MembersSuffix("Members");
+
+} // namespace
+
+Field::Kind GroupField::getKindImpl() const
+{
+    return Kind::Group;
+}
+
+bool GroupField::parseImpl()
+{
+    if (!prepareMembers()) {
         return false;
     }
 
-    bool result = true;
-    for (auto& f : m_fields) {
-        result = f->write(out, db, indent) && result;
+    return true;
+}
+
+bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix)
+{
+    static_cast<void>(db);
+    static_cast<void>(suffix);
+
+    bool hasExtraOpts =
+            std::any_of(
+                m_members.begin(), m_members.end(),
+                [](const FieldPtr& m)
+                {
+                   return m->hasListOrString();
+                });
+
+    if (!writeMembers(out, indent, hasExtraOpts)) {
+        return false;
     }
 
+    // TODO:
+    return true;
+
+    bool result = false;
     auto& p = props(db);
     auto& name = prop::name(p);
     if (name.empty()) {
@@ -142,5 +174,154 @@ bool GroupField::insertField(FieldPtr field, DB& db)
     m_fields.push_back(std::move(field));
     return true;
 }
+
+bool GroupField::prepareMembers()
+{
+    assert(m_members.empty());
+    auto children = xmlChildren(getNode());
+    m_members.reserve(children.size());
+    unsigned expOffset = 0U;
+    unsigned padCount = 0;
+    bool rootBlock = true;
+    bool dataMembers = false;
+    for (auto* c : children) {
+        auto mem = Field::create(getDb(), c, std::string());
+        if (!mem) {
+            log::error() << "Failed to create members of \"" << getName() << "\" group." << std::endl;
+            return false;
+        }
+
+        std::string cName(reinterpret_cast<const char*>(c->name));
+        if (!mem->parse()) {
+            log::error() << "Failed to parse \"" << cName  << "\" member of \"" << getName() << "\" group." << std::endl;
+            return false;
+        }
+
+        if (!mem->doesExist()) {
+            continue;
+        }
+
+        if ((!rootBlock) && (mem->getKind() == Kind::Basic)) {
+            log::error() << "Basic member \"" << cName << "\" of \"" << getName() << "\" group cannot follow other group or data" << std::endl;
+            return false;
+        }
+
+        if ((dataMembers) && (mem->getKind() != Kind::Data)) {
+            log::error() << "member \"" << cName << "\" of \"" << getName() << "\" group cannot follow other group or data" << std::endl;
+            return false;
+        }
+
+        if (mem->getKind() == Kind::Data) {
+            rootBlock = false;
+            dataMembers = true;
+        }
+
+        do {
+            if (!rootBlock) {
+                break;
+            }
+
+            auto offset = mem->getOffset();
+            if (mem->getKind() != Kind::Basic) {
+                rootBlock = false;
+                offset = std::max(offset, getBlockLength());
+            }
+
+            if ((offset == 0U) || (offset == expOffset)) {
+                break;
+            }
+
+            if (offset < expOffset) {
+                log::error() << "Invalid offset of \"" << cName <<
+                                "\" member of \"" << getName() << "\" group, causing overlap.\n" << std::endl;
+                return false;
+            }
+
+            auto padLen = offset - expOffset;
+            ++padCount;
+            auto* padType = getDb().getPaddingType(padLen);
+            if (padType == nullptr) {
+                log::error() << "Failed to generate padding type for \"" << getName() << "\" group." << std::endl;
+                return false;
+            }
+
+            auto padNode = xmlCreatePaddingField(padCount, padType->getName());
+            assert(padNode);
+            auto padMem = Field::create(getDb(), padNode.get(), std::string());
+            assert(padMem);
+            assert(padMem->getKind() == Field::Kind::Basic);
+            auto* castedPadMem = static_cast<BasicField*>(padMem.get());
+            castedPadMem->setGeneratedPadding();
+
+            auto* padNodeName = reinterpret_cast<const char*>(padNode->name);
+            if (!padMem->parse()) {
+                log::error() << "Failed to parse \"" << padNodeName  << "\" member of \"" << getName() << "\" group." << std::endl;
+                return false;
+            }
+
+            assert(castedPadMem->getSerializationLength() == padLen);
+            expOffset += padLen;
+            m_members.push_back(std::move(padMem));
+            xmlAddPrevSibling(c, padNode.release());
+        } while (false);
+
+        if (rootBlock) {
+            assert(mem->getKind() == Kind::Basic);
+            expOffset += static_cast<const BasicField*>(mem.get())->getSerializationLength();
+        }
+        m_members.push_back(std::move(mem));
+    }
+
+    if (m_members.empty()) {
+        log::error() << "The composite \"" << getName() << "\" doesn't define any member types." << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+unsigned GroupField::getBlockLength() const
+{
+    return prop::blockLength(getProps());
+}
+
+bool GroupField::writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts)
+{
+    auto& n = getName();
+    std::string membersStruct = getName() + MembersSuffix;
+
+    out << output::indent(indent) << "/// \\brief Scope for all the members of the \\ref " << n << " field.\n" <<
+           output::indent(indent) << "struct " << membersStruct << '\n' <<
+           output::indent(indent) << "{\n";
+    bool result = true;
+    for (auto& m : m_members) {
+        result = m->write(out, getDb(), indent + 1) && result;
+    }
+
+    out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n";
+    if (hasExtraOpts) {
+        out << output::indent(indent + 1) << "/// \\tparam TOpt Extra options for list/string fields.\n";
+        writeOptions(out, indent + 1);
+    }
+    out << output::indent(indent + 1) << "using All = std::tuple<\n";
+    bool first = true;
+    for (auto& m : m_members) {
+        if (!first) {
+            out << ",\n";
+        }
+        first = false;
+        auto& mName = m->getName();
+        assert(!mName.empty());
+        out << output::indent(indent + 2) << mName;
+        if (m->hasListOrString()) {
+            out << "<TOpt...>";
+        }
+    }
+    out << '\n' <<
+           output::indent(indent + 1) << ">;\n" <<
+           output::indent(indent) << "};\n\n";
+    return result;
+}
+
 
 } // namespace sbe2comms
