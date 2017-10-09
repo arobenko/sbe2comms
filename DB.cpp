@@ -235,6 +235,11 @@ const Type* DB::findType(const std::string& name) const
     return iter->second.get();
 }
 
+Type* DB::findType(const std::string& name)
+{
+    return const_cast<Type*>(static_cast<const DB*>(this)->findType(name));
+}
+
 const Type* DB::getBuiltInType(const std::string& name)
 {
     auto iter = m_builtInTypes.find(name);

@@ -22,6 +22,7 @@
 #include "DB.h"
 #include "prop.h"
 #include "output.h"
+#include "log.h"
 
 namespace sbe2comms
 {
@@ -30,47 +31,40 @@ bool DataField::parseImpl()
 {
     auto& type = getType();
     if (type.empty()) {
-        // TODO:
+        log::error() << "The field \"" << getName() << "\" doesn't specify its type." << std::endl;
+        return false;
     }
+
+    auto* typePtr = getDb().findType(type);
+    if (typePtr == nullptr) {
+        log::error() << "Type \"" << type << "\" required by field \"" << getName() << "\" hasn't been found." << std::endl;
+        return false;
+    }
+
+    if (typePtr->kind() != Type::Kind::Composite) {
+        log::error() << "Type \"" << type << "\" references by field \"" << getName() << "\" is expected to be composite." << std::endl;
+        return false;
+    }
+
+    typePtr->recordDataUse();
+    m_type = typePtr;
     return true;
 }
 
 bool DataField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix)
 {
-    static_cast<void>(suffix);
-    if (!startWrite(out, db, indent)) {
-        return false;
-    }
+    static_cast<void>(db);
+    assert(m_type != nullptr);
+    assert(m_type->hasListOrString());
+    writeBrief(out, indent, suffix, true);
+    writeOptions(out, indent);
+    out << output::indent(indent) << "using " << getName() << suffix << " = " <<
+           "field::" << m_type->getReferenceName() << "<TOpt...>;\n\n";
+    return true;
+}
 
-    auto& p = props(db);
-    auto& name = prop::name(p);
-    assert(!name.empty());
-
-    out << output::indent(indent) << "using " << name << " = ";
-
-    auto& type = prop::type(p);
-    if (type.empty()) {
-        out << " ???;\n\n";
-        std::cerr << output::indent(1) <<
-            "ERROR: Data field \"" << name << "\" does NOT specify type." << std::endl;
-        return false;
-    }
-
-    auto& types = db.getTypes();
-    auto typeIter = types.find(type);
-    if (typeIter == types.end()) {
-        out << " ???;\n\n";
-        std::cerr << output::indent(1) <<
-            "ERROR: Unknown type \"" << type << "\" for data field \"" << name << "\"" << std::endl;
-        return false;
-    }
-
-    // TODO: check presence
-
-    assert(typeIter->second);
-    typeIter->second->recordDataUse();
-
-    out << "field::" << type << "<TOpt>;\n\n";
+bool DataField::hasListOrStringImpl() const
+{
     return true;
 }
 

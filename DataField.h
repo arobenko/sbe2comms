@@ -18,6 +18,7 @@
 #pragma once
 
 #include "Field.h"
+#include "Type.h"
 
 namespace sbe2comms
 {
@@ -31,6 +32,10 @@ public:
 protected:
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) override;
+    virtual bool hasListOrStringImpl() const;
+
+private:
+    const Type* m_type = nullptr;
 };
 
 } // namespace sbe2comms

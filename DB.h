@@ -75,6 +75,8 @@ public:
 
     const Type* findType(const std::string& name) const;
 
+    Type* findType(const std::string& name);
+
     const Type* getBuiltInType(const std::string& name);
 
     bool isRecordedBuiltInType(const std::string& name) const;
