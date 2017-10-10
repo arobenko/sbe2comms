@@ -62,7 +62,7 @@ std::intmax_t EnumType::getDefultNullValue() const
     return builtInIntNullValue(underlying);
 }
 
-EnumType::Kind EnumType::kindImpl() const
+EnumType::Kind EnumType::getKindImpl() const
 {
     return Kind::Enum;
 }
@@ -133,7 +133,7 @@ std::size_t EnumType::getSerializationLengthImpl() const
     }
 
     assert(iter->second);
-    auto k = iter->second->kind();
+    auto k = iter->second->getKind();
     if (k != Kind::Basic) {
         log::error() << "Only basic type can be used as encodingType for enum \"" << getName() << "\"" << std::endl;
         return 0U;
@@ -171,11 +171,11 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 
     auto name = getName();
     if (isElement) {
-        writeBriefElement(out, indent);
+        writeElementHeader(out, indent);
         name += ElementSuffix;
     }
     else {
-        writeBrief(out, indent, true);
+        writeHeader(out, indent, true);
     }
     writeOptions(out, indent);
 
@@ -189,10 +189,10 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
             for (auto& r : ranges) {
                 out << output::indent(ind);
                 if (r.first == r.second) {
-                    out << "comms::option::ValidNumValue<" << toString(r.first) << ">,\n";
+                    out << "comms::option::ValidNumValue<" << common::num(r.first) << ">,\n";
                 }
                 else {
-                    out << "comms::option::ValidNumValueRange<" << toString(r.first) << ", " << toString(r.second) << ">,\n";
+                    out << "comms::option::ValidNumValueRange<" << common::num(r.first) << ", " << common::num(r.second) << ">,\n";
                 }
             }
         };
@@ -258,7 +258,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 
 void EnumType::writeList(std::ostream& out, unsigned indent, unsigned count)
 {
-    writeBrief(out, indent, true);
+    writeHeader(out, indent, true);
     writeOptions(out, indent);
 
     out << output::indent(indent) << "using " << getName() << " = \n" <<
@@ -287,7 +287,7 @@ const std::string& EnumType::getUnderlyingType() const
     }
 
     assert(typeIter->second);
-    if (typeIter->second->kind() != Kind::Basic) {
+    if (typeIter->second->getKind() != Kind::Basic) {
         log::error() << "Only basic type can be used as encodingType for enum \"" << getName() << "\"" << std::endl;
         return common::emptyString();
     }

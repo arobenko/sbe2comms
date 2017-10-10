@@ -56,7 +56,7 @@ bool GroupField::parseImpl()
         return false;
     }
 
-    if (m_type->kind() != Type::Kind::Composite) {
+    if (m_type->getKind() != Type::Kind::Composite) {
         log::error() << "The dimentionType \"" << dimType << "\" of group \"" << getName() << "\" must be composite." << std::endl;
         return false;
     }

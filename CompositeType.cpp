@@ -49,7 +49,7 @@ bool CompositeType::isBundleOptional() const
     }
 
     auto& mem = m_members[0];
-    if (mem->kind() != Kind::Composite) {
+    if (mem->getKind() != Kind::Composite) {
         return mem->isOptional();
     }
 
@@ -61,7 +61,7 @@ bool CompositeType::isValidDimensionType() const
     auto verifyMemberFunc =
         [](const Type& t) -> bool
         {
-            return t.kind() == Kind::Basic &&
+            return t.getKind() == Kind::Basic &&
                    t.getLengthProp() == 1U &&
                    t.isRequired();
         };
@@ -72,7 +72,7 @@ bool CompositeType::isValidDimensionType() const
          verifyMemberFunc(*m_members[1]));
 }
 
-CompositeType::Kind CompositeType::kindImpl() const
+CompositeType::Kind CompositeType::getKindImpl() const
 {
     return Kind::Composite;
 }
@@ -257,7 +257,7 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExt
 
 bool CompositeType::writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts)
 {
-    writeBrief(out, indent, true);
+    writeHeader(out, indent, true);
     writeOptions(out, indent);
     out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
@@ -311,7 +311,7 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
         return false;
     }
 
-    writeBrief(out, indent, true);
+    writeHeader(out, indent, true);
     writeOptions(out, indent);
     auto& lenMem = *m_members[DataEncIdx_length];
     auto& dataMem = *m_members[DataEncIdx_data];
@@ -339,13 +339,13 @@ bool CompositeType::checkDataValid()
         return false;
     }
 
-    if (m_members[DataEncIdx_length]->kind() != Kind::Basic) {
+    if (m_members[DataEncIdx_length]->getKind() != Kind::Basic) {
         log::error() << "The composite \"" << getName() << "\" type has "
                        "been used to encode data field, must have length field of basic type." << std::endl;
         return false;
     }
 
-    if (m_members[DataEncIdx_data]->kind() != Kind::Basic) {
+    if (m_members[DataEncIdx_data]->getKind() != Kind::Basic) {
         log::error() << "The composite \"" << getName() << "\" type has "
                        "been used to encode data field, must have data field of basic type." << std::endl;
         return false;

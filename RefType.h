@@ -29,7 +29,7 @@ public:
     explicit RefType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
 protected:
-    virtual Kind kindImpl() const override;
+    virtual Kind getKindImpl() const override;
     virtual bool writeImpl(std::ostream& out, unsigned indent) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent) override;

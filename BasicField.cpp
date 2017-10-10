@@ -121,7 +121,7 @@ bool BasicField::parseImpl()
     }
 
     if (isOptional()) {
-        if (m_type->kind() == Type::Kind::Basic) {
+        if (m_type->getKind() == Type::Kind::Basic) {
             auto* basicType = static_cast<const BasicType*>(m_type);
             if (basicType->isFpType()) {
                 recordExtraHeader("<cmath>");
@@ -198,7 +198,7 @@ bool BasicField::checkOptional() const
         return false;
     }
 
-    auto kind = m_type->kind();
+    auto kind = m_type->getKind();
     if ((kind != Type::Kind::Basic) &&
         (kind != Type::Kind::Enum)) {
         log::error() << "Optional field \"" << getName() << "\" can reference only "
@@ -255,7 +255,7 @@ bool BasicField::checkConstant() const
         return false;
     }
 
-    if (enumType->kind() != Type::Kind::Enum) {
+    if (enumType->getKind() != Type::Kind::Enum) {
         log::error() << "valueRef property of constant field \"" << getName() << "\" must specify enum type." << std::endl;
         return false;
     }
@@ -286,7 +286,7 @@ const Type* BasicField::getTypeFromValueRef() const
         return nullptr;
     }
 
-    if (type->kind() != Type::Kind::Enum) {
+    if (type->getKind() != Type::Kind::Enum) {
         log::error() << "Type \"" << enumName << "\" rerences by field \"" << getName() << "\" is not an enum." << std::endl;
         return nullptr;
     }
@@ -350,19 +350,19 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
 void BasicField::writeOptional(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
-    if (m_type->kind() == Type::Kind::Basic) {
+    if (m_type->getKind() == Type::Kind::Basic) {
         writeOptionalBasic(out, indent, name);
         return;
     }
 
-    assert(m_type->kind() == Type::Kind::Enum);
+    assert(m_type->getKind() == Type::Kind::Enum);
     writeOptionalEnum(out, indent, name);
 }
 
 void BasicField::writeOptionalBasic(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
-    assert(m_type->kind() == Type::Kind::Basic);
+    assert(m_type->getKind() == Type::Kind::Basic);
     auto* basicType = static_cast<const BasicType*>(m_type);
     if (basicType->isIntType()) {
         writeOptionalBasicInt(out, indent, name);
@@ -376,7 +376,7 @@ void BasicField::writeOptionalBasic(std::ostream& out, unsigned indent, const st
 void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
-    assert(m_type->kind() == Type::Kind::Basic);
+    assert(m_type->getKind() == Type::Kind::Basic);
     auto* basicType = static_cast<const BasicType*>(m_type);
     assert(basicType->isIntType());
     std::intmax_t nullValue = basicType->getDefultIntNullValue();
@@ -399,7 +399,7 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
 void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
-    assert(m_type->kind() == Type::Kind::Basic);
+    assert(m_type->getKind() == Type::Kind::Basic);
     auto* basicType = static_cast<const BasicType*>(m_type);
     assert(basicType->isFpType());
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
@@ -424,7 +424,7 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
 void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
-    assert(m_type->kind() == Type::Kind::Enum);
+    assert(m_type->getKind() == Type::Kind::Enum);
     auto* enumType = static_cast<const EnumType*>(m_type);
     std::intmax_t nullValue = enumType->getDefultNullValue();
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();

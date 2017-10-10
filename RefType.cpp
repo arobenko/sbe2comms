@@ -27,7 +27,7 @@
 namespace sbe2comms
 {
 
-RefType::Kind RefType::kindImpl() const
+RefType::Kind RefType::getKindImpl() const
 {
     return Kind::Ref;
 }
@@ -43,7 +43,7 @@ bool RefType::writeImpl(std::ostream& out, unsigned indent)
     auto& refName = ptr->getReferenceName();
     assert(!refName.empty());
 
-    writeBrief(out, indent, true);
+    writeHeader(out, indent, true);
     writeOptions(out, indent);
     out << output::indent(indent) << "using " << name << " = field::" << refName << "<TOpt...>;\n\n";
     return true;

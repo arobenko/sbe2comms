@@ -36,7 +36,7 @@ public:
     std::intmax_t getDefultNullValue() const;
 
 protected:
-    virtual Kind kindImpl() const override;
+    virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent) override;
     virtual std::size_t getSerializationLengthImpl() const override;

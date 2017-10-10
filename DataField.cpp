@@ -46,7 +46,7 @@ bool DataField::parseImpl()
         return false;
     }
 
-    if (typePtr->kind() != Type::Kind::Composite) {
+    if (typePtr->getKind() != Type::Kind::Composite) {
         log::error() << "Type \"" << type << "\" references by field \"" << getName() << "\" is expected to be composite." << std::endl;
         return false;
     }

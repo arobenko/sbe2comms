@@ -100,9 +100,9 @@ public:
         ++m_uses[Use_Data];
     }
 
-    Kind kind() const
+    Kind getKind() const
     {
-        return kindImpl();
+        return getKindImpl();
     }
 
     bool write(std::ostream& out, unsigned indent = 0);
@@ -148,15 +148,17 @@ protected:
         return m_db;
     }
 
-    virtual Kind kindImpl() const = 0;
+    virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, unsigned indent) = 0;
     virtual std::size_t getSerializationLengthImpl() const = 0;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent);
     virtual bool hasListOrStringImpl() const;
 
-    void writeBrief(std::ostream& out, unsigned indent, bool extraOpts = true);
-    void writeBriefElement(std::ostream& out, unsigned indent);
+    void writeBrief(std::ostream& out, unsigned indent);
+    void writeHeader(std::ostream& out, unsigned indent, bool extraOpts = true);
+    void writeElementBrief(std::ostream& out, unsigned indent);
+    void writeElementHeader(std::ostream& out, unsigned indent);
     static void writeOptions(std::ostream& out, unsigned indent);
     static void writeBaseDef(std::ostream& out, unsigned indent);
     void writeFailOnInvalid(std::ostream& out, unsigned indent);
@@ -168,7 +170,6 @@ protected:
     static std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value);
     static std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value);
     static std::intmax_t builtInIntNullValue(const std::string& type);
-    static std::string toString(std::intmax_t val);
 
 
 private:

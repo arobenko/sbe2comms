@@ -18,6 +18,9 @@
 #pragma once
 
 #include <string>
+#include <iosfwd>
+#include <set>
+#include <cstdint>
 
 namespace sbe2comms
 {
@@ -29,6 +32,20 @@ const std::string& messageDirName();
 const std::string& includeDirName();
 const std::string& fieldsDefFileName();
 const std::string& emptyString();
+const std::string& renameKeyword(const std::string& value);
+const std::string& extraOptionsDocStr();
+const std::string& elementSuffixStr();
+const std::string& extraOptionsTemplParamStr();
+const std::string& fieldBaseStr();
+const std::string& fieldBaseDefStr();
+std::string num(std::intmax_t val);
+
+void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
+void writeExtraOptionsDoc(std::ostream& out, unsigned indent);
+void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent);
+void writeIntIsNullFunc(std::ostream& out, unsigned indent, intmax_t val);
+void writeFpIsNullFunc(std::ostream& out, unsigned indent);
+void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders);
 
 } // namespace common
 

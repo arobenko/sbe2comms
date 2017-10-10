@@ -84,18 +84,7 @@ const std::string& Type::getName() const
 
 const std::string& Type::getReferenceName() const
 {
-    auto& name = getName();
-    static const std::map<std::string, std::string> Names = {
-        std::make_pair("float", "float_"),
-        std::make_pair("double", "double_")
-    };
-
-    auto iter = Names.find(name);
-    if (iter == Names.end()) {
-        return name;
-    }
-
-    return iter->second;
+    return common::renameKeyword(getName());
 }
 
 const std::string& Type::getDescription() const
@@ -260,7 +249,6 @@ Type::Ptr Type::create(DB& db, xmlNodePtr node)
 bool Type::write(std::ostream& out, unsigned indent)
 {
     assert(doesExist());
-
     if (m_written) {
         return true;
     }
@@ -293,23 +281,29 @@ bool Type::hasListOrStringImpl() const
     return false;
 }
 
-void Type::writeBrief(std::ostream& out, unsigned indent, bool extraOpts)
+void Type::writeBrief(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
-    auto& desc = getDescription();
-    if (!desc.empty()) {
-        out << output::indent(indent) << "/// \\details " << desc << "\n";
-    }
+}
 
+void Type::writeHeader(std::ostream& out, unsigned indent, bool extraOpts)
+{
+    writeBrief(out, indent);
+    common::writeDetails(out, indent, prop::description(m_props));
     if (extraOpts) {
-        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
+        common::writeExtraOptionsDoc(out, indent);
     }
 }
 
-void Type::writeBriefElement(std::ostream& out, unsigned indent)
+void Type::writeElementBrief(std::ostream& out, unsigned indent)
 {
-    out << output::indent(indent) << "/// \\brief Element of \\ref " << getName() << " list field.\n" <<
-           output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
+    out << output::indent(indent) << "/// \\brief Element of \\ref " << getName() << " list field.\n";
+}
+
+void Type::writeElementHeader(std::ostream& out, unsigned indent)
+{
+    writeElementBrief(out, indent);
+    common::writeExtraOptionsDoc(out, indent);
 }
 
 void Type::writeOptions(std::ostream& out, unsigned indent)
@@ -340,11 +334,7 @@ std::string Type::nodeText()
 
 void Type::addExtraInclude(const std::string& val)
 {
-    auto iter = m_extraIncludes.lower_bound(val);
-    if ((iter == m_extraIncludes.end()) ||
-        (*iter != val)) {
-        m_extraIncludes.insert(iter, val);
-    }
+    common::recordExtraHeader(val, m_extraIncludes);
 }
 
 std::size_t Type::primitiveLength(const std::string& type)
@@ -472,19 +462,5 @@ std::intmax_t Type::builtInIntNullValue(const std::string& type)
     assert(iter != Map.end());
     return iter->second;
 }
-
-std::string Type::toString(std::intmax_t val) {
-    auto str = std::to_string(val);
-    if ((std::numeric_limits<std::int32_t>::max() < val) || (val < std::numeric_limits<std::int32_t>::min())) {
-        return str + "LL";
-    }
-
-    if ((std::numeric_limits<std::int16_t>::max() < val) || (val < std::numeric_limits<std::int16_t>::min())) {
-        return str + "L";
-    }
-
-    return str;
-}
-
 
 } // namespace sbe2comms

@@ -49,7 +49,7 @@ std::uintmax_t getLenMask(unsigned len)
 
 } // namespace
 
-SetType::Kind SetType::kindImpl() const
+SetType::Kind SetType::getKindImpl() const
 {
     return Kind::Set;
 }
@@ -117,7 +117,7 @@ std::size_t SetType::getSerializationLengthImpl() const
     }
 
     assert(iter->second);
-    auto k = iter->second->kind();
+    auto k = iter->second->getKind();
     if (k != Kind::Basic) {
         log::error() << "Only basic type can be used as encodingType for set \"" <<
                         getName() << "\"" << std::endl;
@@ -136,11 +136,11 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 {
     auto name = getName();
     if (isElement) {
-        writeBriefElement(out, indent);
+        writeElementHeader(out, indent);
         name += ElementSuffix;
     }
     else {
-        writeBrief(out, indent, true);
+        writeHeader(out, indent, true);
     }
     writeOptions(out, indent);
 
@@ -177,7 +177,7 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 
 void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
 {
-    writeBrief(out, indent, true);
+    writeHeader(out, indent, true);
     writeOptions(out, indent);
 
     out << output::indent(indent) << "using " << getName() << " = \n" <<
