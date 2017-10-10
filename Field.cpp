@@ -22,7 +22,7 @@
 #include "DB.h"
 #include "output.h"
 #include "prop.h"
-#include "get.h"
+#include "common.h"
 #include "BasicField.h"
 #include "GroupField.h"
 #include "DataField.h"
@@ -102,7 +102,7 @@ bool Field::write(std::ostream& out, unsigned indent)
 {
     auto& optMode = getDefaultOptMode();
     if (optMode.empty()) {
-        return writeImpl(out, indent, get::emptyString());
+        return writeImpl(out, indent, common::emptyString());
     }
 
     static const std::string OptFieldSuffix("Field");
@@ -112,7 +112,7 @@ bool Field::write(std::ostream& out, unsigned indent)
     }
 
     auto extraOpts = hasListOrString();
-    writeBrief(out, indent, get::emptyString(), extraOpts);
+    writeBrief(out, indent, common::emptyString(), extraOpts);
     if (extraOpts) {
         writeOptions(out, indent);
     }
@@ -248,7 +248,7 @@ const std::string& Field::getDefaultOptMode()
         return Mode;
     }
 
-    return get::emptyString();
+    return common::emptyString();
 }
 
 } // namespace sbe2comms

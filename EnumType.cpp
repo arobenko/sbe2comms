@@ -21,7 +21,7 @@
 #include <set>
 #include <cassert>
 
-#include "get.h"
+#include "common.h"
 #include "output.h"
 #include "log.h"
 #include "BasicType.h"
@@ -277,7 +277,7 @@ const std::string& EnumType::getUnderlyingType() const
     auto& encType = getEncodingType();
     if (encType.empty()) {
         log::error() << "Encoding type was NOT specified for enum \"" << getName() << "\"" << std::endl;
-        return get::emptyString();
+        return common::emptyString();
     }
 
     auto& types = getDb().getTypes();
@@ -289,7 +289,7 @@ const std::string& EnumType::getUnderlyingType() const
     assert(typeIter->second);
     if (typeIter->second->kind() != Kind::Basic) {
         log::error() << "Only basic type can be used as encodingType for enum \"" << getName() << "\"" << std::endl;
-        return get::emptyString();
+        return common::emptyString();
     }
 
     auto& typePtr = typeIter->second;
@@ -298,7 +298,7 @@ const std::string& EnumType::getUnderlyingType() const
     if (primType.empty()) {
         log::error() << "Type \"" << encType << "\" used as encoding type for enum \"" << getName() <<
                      "\" doesn't specify primitiveType." << std::endl;
-        return get::emptyString();
+        return common::emptyString();
     }
 
     return primitiveTypeToStdInt(primType);

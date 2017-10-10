@@ -23,7 +23,7 @@
 
 #include <boost/filesystem.hpp>
 
-#include "get.h"
+#include "common.h"
 #include "prop.h"
 #include "output.h"
 #include "DB.h"
@@ -48,7 +48,7 @@ void writeIncludes(std::ostream& out, DB& db, const std::string& msgName)
 {
     out <<
         "#include \"comms/MessageBase.h\"\n"
-        "#include \"" << db.getProtocolNamespace() << '/' << get::fieldsDefFileName() << "\"\n"
+        "#include \"" << db.getProtocolNamespace() << '/' << common::fieldsDefFileName() << "\"\n"
         "#include \"" << "details/" << msgName << ".h\"\n"
         "\n";
 }
@@ -62,14 +62,14 @@ void openNamespaces(std::ostream& out, DB& db)
                "\n";
     }
 
-    out << "namespace " << get::messageDirName() << "\n"
+    out << "namespace " << common::messageDirName() << "\n"
             "{\n"
             "\n";
 }
 
 void closeNamespaces(std::ostream& out, DB& db)
 {
-    out << "} // namespace " << get::messageDirName() << "\n"
+    out << "} // namespace " << common::messageDirName() << "\n"
             "\n";
 
     auto& ns = db.getProtocolNamespace();
@@ -128,7 +128,7 @@ bool Message::write(DB& db)
 {
     bf::path root(db.getRootPath());
     bf::path protocolRelDir(db.getProtocolRelDir());
-    bf::path messagesDir(root / protocolRelDir / get::messageDirName());
+    bf::path messagesDir(root / protocolRelDir / common::messageDirName());
 
     boost::system::error_code ec;
     bf::create_directories(messagesDir, ec);
@@ -140,7 +140,7 @@ bool Message::write(DB& db)
 
     const std::string Ext(".h");
     auto filename = getName() + Ext;
-    auto relPath = protocolRelDir / get::messageDirName() / filename;
+    auto relPath = protocolRelDir / common::messageDirName() / filename;
     auto filePath = messagesDir / filename;
 
     std::cout << "INFO: Generating " << relPath.string() << std::endl;

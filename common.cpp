@@ -15,18 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "get.h"
-
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
-
-namespace bf = boost::filesystem;
-namespace ba = boost::algorithm;
+#include "common.h"
 
 namespace sbe2comms
 {
 
-namespace get
+namespace common
 {
 
 const std::string& messageDirName()
@@ -53,6 +47,6 @@ const std::string& emptyString()
     return Str;
 }
 
-} // namespace get
+} // namespace common
 
 } // namespace sbe2comms

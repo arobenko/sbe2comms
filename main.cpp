@@ -22,7 +22,7 @@
 
 #include "DB.h"
 #include "BuiltIn.h"
-#include "get.h"
+#include "common.h"
 
 namespace bf = boost::filesystem;
 
@@ -59,10 +59,10 @@ bool writeTypes(DB& db)
         return false;
     }
 
-    auto fileRelPath = (protocolRelDir / get::fieldsDefFileName()).string();
+    auto fileRelPath = (protocolRelDir / common::fieldsDefFileName()).string();
     std::cout << "INFO: Generating " << fileRelPath << std::endl;
 
-    auto filePath = (protocolDir / get::fieldsDefFileName()).string();
+    auto filePath = (protocolDir / common::fieldsDefFileName()).string();
     std::ofstream stream(filePath);
     if (!stream) {
         std::cerr << "ERROR: Failed to create " << filePath << std::endl;

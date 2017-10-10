@@ -22,7 +22,7 @@
 namespace sbe2comms
 {
 
-namespace get
+namespace common
 {
 
 const std::string& messageDirName();
@@ -30,6 +30,6 @@ const std::string& includeDirName();
 const std::string& fieldsDefFileName();
 const std::string& emptyString();
 
-} // namespace get
+} // namespace common
 
 } // namespace sbe2comms

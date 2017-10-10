@@ -29,7 +29,7 @@
 #include "EnumType.h"
 #include "SetType.h"
 #include "prop.h"
-#include "get.h"
+#include "common.h"
 #include "log.h"
 
 namespace bf = boost::filesystem;
@@ -167,7 +167,7 @@ const std::string& DB::getProtocolNamespace()
 const std::string& DB::getProtocolRelDir()
 {
     if (m_cache.m_protocolRelDir.empty()) {
-        bf::path path(get::includeDirName());
+        bf::path path(common::includeDirName());
         auto& ns = getProtocolNamespace();
         if (!ns.empty()) {
             path /= ns;

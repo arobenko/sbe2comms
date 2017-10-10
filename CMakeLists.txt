@@ -77,7 +77,7 @@ set (
     "GroupField.cpp"
     "DataField.cpp"
     "BuiltIn.cpp"
-    "get.cpp"
+    "common.cpp"
     "prop.cpp"
     "output.cpp"
     "log.cpp"

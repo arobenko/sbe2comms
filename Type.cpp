@@ -20,7 +20,7 @@
 #include <iostream>
 
 #include "DB.h"
-#include "get.h"
+#include "common.h"
 #include "output.h"
 #include "BasicType.h"
 #include "CompositeType.h"
@@ -192,7 +192,7 @@ std::pair<std::string, bool> Type::getFailOnInvalid() const
 
     auto iter = Map.find(str);
     if (iter == Map.end()) {
-        return std::make_pair(get::emptyString(), false);
+        return std::make_pair(common::emptyString(), false);
     }
 
     return std::make_pair(iter->second, true);
@@ -394,7 +394,7 @@ const std::string& Type::primitiveTypeToStdInt(const std::string& type)
 
     auto iter = Map.find(type);
     if (iter == Map.end()) {
-        return get::emptyString();
+        return common::emptyString();
     }
 
     return iter->second;

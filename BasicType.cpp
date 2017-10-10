@@ -26,7 +26,7 @@
 
 #include "log.h"
 #include "prop.h"
-#include "get.h"
+#include "common.h"
 #include "output.h"
 
 namespace sbe2comms
@@ -48,7 +48,7 @@ const std::string& primitiveFloatToStd(const std::string& type)
 
     auto iter = std::find(std::begin(Values), std::end(Values), type);
     if (iter == std::end(Values)) {
-        return get::emptyString();
+        return common::emptyString();
     }
 
     return *iter;
