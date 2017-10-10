@@ -28,14 +28,13 @@
 #include "prop.h"
 #include "output.h"
 #include "log.h"
+#include "common.h"
 
 namespace sbe2comms
 {
 
 namespace
 {
-
-const std::string ElementSuffix("Element");
 
 std::uintmax_t getLenMask(unsigned len)
 {
@@ -76,6 +75,10 @@ bool SetType::parseImpl()
         return false;
     }
 
+    if (getLengthProp() != 1U) {
+        log::warning() << "Ignoring \"length\" property of \"" << getName() << "\" field to match sbe-tool." << std::endl;
+    }
+
     return true;
 }
 
@@ -84,7 +87,7 @@ bool SetType::writeImpl(std::ostream& out, unsigned indent)
     auto serLen = getSerializationLengthImpl();
     assert(0U < serLen);
 
-    auto count = getLengthProp();
+    auto count = getAdjustedLengthProp();
     if (count != 1U) {
         writeSingle(out, indent, true);
     }
@@ -129,7 +132,7 @@ std::size_t SetType::getSerializationLengthImpl() const
 
 bool SetType::hasListOrStringImpl() const
 {
-    return getLengthProp() != 1U;
+    return getAdjustedLengthProp() != 1U;
 }
 
 void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
@@ -137,7 +140,7 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     auto name = getName();
     if (isElement) {
         writeElementHeader(out, indent);
-        name += ElementSuffix;
+        name += common::elementSuffixStr();
     }
     else {
         writeHeader(out, indent, true);
@@ -147,7 +150,7 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     auto len = getSerializationLengthImpl();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::BitmaskValue<\n" <<
-           output::indent(indent + 2) << "FieldBase,\n" <<
+           output::indent(indent + 2) << common::fieldBaseStr() <<
            output::indent(indent + 2) << "comms::option::FixedLength<" << len << ">";
 
     auto reservedMask = calcReservedMask(len);
@@ -180,10 +183,10 @@ void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
     writeHeader(out, indent, true);
     writeOptions(out, indent);
 
-    out << output::indent(indent) << "using " << getName() << " = \n" <<
+    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << getName() << ElementSuffix << "<>,\n";
+           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n";
     if (count != 0U) {
         out << output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">,\n";
     }
@@ -322,6 +325,11 @@ std::uintmax_t SetType::calcReservedMask(unsigned len)
         mask &= ~(1ULL << b.first);
     }
     return mask;
+}
+
+unsigned SetType::getAdjustedLengthProp() const
+{
+    return 1U;
 }
 
 

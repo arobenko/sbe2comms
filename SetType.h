@@ -46,6 +46,7 @@ private:
     void writeSeq(std::ostream& out, unsigned indent);
     void writeNonSeq(std::ostream& out, unsigned indent);
     std::uintmax_t calcReservedMask(unsigned len);
+    unsigned getAdjustedLengthProp() const;
 
     BitsMap m_bits;
 };
