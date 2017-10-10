@@ -87,6 +87,8 @@ public:
 
     bool isRecordedPaddingType(const std::string& name) const;
 
+    void recordGroupListUsage();
+
 private:
     struct GeneratedTypeInfo
     {
@@ -107,6 +109,7 @@ private:
     GeneratedTypeMap m_paddingTypes;
     MessagesMap m_messages;
     std::list<std::string> m_groups;
+    bool m_groupListUsed = false;
 
     struct Cache {
         std::string m_rootDir;

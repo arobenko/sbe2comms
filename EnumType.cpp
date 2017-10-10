@@ -19,11 +19,13 @@
 
 #include <iostream>
 #include <set>
+#include <cassert>
 
 #include "get.h"
 #include "output.h"
 #include "log.h"
 #include "BasicType.h"
+#include "DB.h"
 
 namespace sbe2comms
 {

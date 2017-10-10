@@ -179,11 +179,12 @@ bool Message::createFields()
 
 bool Message::writeFields(std::ostream& out, DB& db)
 {
+    static_cast<void>(db);
     auto& msgName = getName();
     openFieldsDef(out, msgName);
     bool result = true;
     for (auto& f : m_fields) {
-        result = f->write(out, db, 1) && result;
+        result = f->write(out, 1) && result;
     }
 
     result = writeAllFieldsDef(out, db) && result;
@@ -193,6 +194,7 @@ bool Message::writeFields(std::ostream& out, DB& db)
 
 bool Message::writeAllFieldsDef(std::ostream& out, DB& db)
 {
+    static_cast<void>(db);
     out << output::indent(1) <<
         "/// \\brief All the fields bundled in std::tuple.\n" <<
         output::indent(1) <<
@@ -207,8 +209,7 @@ bool Message::writeAllFieldsDef(std::ostream& out, DB& db)
             first = false;
         }
 
-        auto& p = f->props(db);
-        out << output::indent(2) << prop::name(p);
+        out << output::indent(2) << f->getName();
     }
     out << '\n' << output::indent(1) << ">;\n\n";
     return true;
@@ -216,6 +217,7 @@ bool Message::writeAllFieldsDef(std::ostream& out, DB& db)
 
 bool Message::writeMessageClass(std::ostream& out, DB& db)
 {
+    static_cast<void>(db);
     auto& n = getName();
     out <<
         "/// \\brief Definition of " << n << " message\n"
@@ -243,8 +245,7 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
         output::indent(1) << "///     \n" <<
         output::indent(1) << "///     The field names are:\n";
     for (auto& f : m_fields) {
-        auto& p = f->props(db);
-        auto& fieldName = prop::name(p);
+        auto& fieldName = f->getName();
         out << output::indent(1) <<
             "///     \\li \\b " << fieldName <<
             " for \\ref " << n << fieldsClassSuffix() << "::" <<
@@ -259,8 +260,7 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
         else {
             firstField = false;
         }
-        auto& p = f->props(db);
-        auto& fieldName = prop::name(p);
+        auto& fieldName = f->getName();
         out << output::indent(2) << fieldName;
     }
     out << '\n' << output::indent(1) << ");\n";

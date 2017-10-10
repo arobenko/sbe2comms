@@ -98,15 +98,15 @@ Field::Ptr Field::create(DB& db, xmlNodePtr node, const std::string& msgName)
     return iter->second(db, node, msgName);
 }
 
-bool Field::write(std::ostream& out, DB& db, unsigned indent)
+bool Field::write(std::ostream& out, unsigned indent)
 {
     auto& optMode = getDefaultOptMode();
     if (optMode.empty()) {
-        return writeImpl(out, db, indent, get::emptyString());
+        return writeImpl(out, indent, get::emptyString());
     }
 
     static const std::string OptFieldSuffix("Field");
-    bool result = writeImpl(out, db, indent, OptFieldSuffix);
+    bool result = writeImpl(out, indent, OptFieldSuffix);
     if (!result) {
         return false;
     }
@@ -127,12 +127,6 @@ bool Field::write(std::ostream& out, DB& db, unsigned indent)
            output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
            output::indent(indent + 1) << ">;\n\n";
     return true;
-}
-
-const XmlPropsMap& Field::props(DB& db)
-{
-    static_cast<void>(db);
-    return m_props;
 }
 
 bool Field::hasPresence() const
@@ -204,25 +198,6 @@ bool Field::hasListOrStringImpl() const
     return false;
 }
 
-bool Field::startWrite(std::ostream& out, DB& db, unsigned indent)
-{
-    auto& p = props(db);
-    auto& name = prop::name(p);
-    if (name.empty()) {
-        std::cerr << output::indent(1) <<
-            "ERROR: Field doesn't provide name." << std::endl;
-        return false;
-    }
-
-    out << output::indent(indent) << "/// \\brief Definition of \"" << name << "\" field.\n";
-    auto& desc = prop::description(p);
-    if (!desc.empty()) {
-        out << output::indent(indent) << "/// \\details " << desc << '\n';
-    }
-
-    return true;
-}
-
 bool Field::writeBrief(std::ostream& out, unsigned indent, const std::string& suffix, bool extraOpts)
 {
     auto& name = getName();
@@ -259,12 +234,6 @@ void Field::recordExtraHeader(const std::string& header)
         return;
     }
     m_extraHeaders.insert(header);
-}
-
-std::string Field::extraOptionsString(DB& db)
-{
-    auto& name = prop::name(props(db));
-    return "details::" + m_msgName + "Fields::ExtraOptionsFor_" + name + "<TOpt>";
 }
 
 const std::string& Field::getDefaultOptMode()

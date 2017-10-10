@@ -24,6 +24,7 @@
 
 #include "get.h"
 #include "output.h"
+#include "DB.h"
 
 namespace bf = boost::filesystem;
 

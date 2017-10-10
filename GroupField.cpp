@@ -68,12 +68,12 @@ bool GroupField::parseImpl()
         return false;
     }
 
+    getDb().recordGroupListUsage();
     return true;
 }
 
-bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix)
+bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
 {
-    static_cast<void>(db);
     static_cast<void>(suffix);
 
     bool hasExtraOpts =
@@ -94,6 +94,7 @@ bool GroupField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std
     writeBrief(out, indent, suffix, true);
     writeOptions(out, indent);
 
+    // TODO: use sbe2comms::groupList alias
     out << output::indent(indent) << "using " << getName() << " =\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << "field::FieldBase,\n" <<
@@ -232,7 +233,7 @@ bool GroupField::writeMembers(std::ostream& out, unsigned indent, bool hasExtraO
            output::indent(indent) << "{\n";
     bool result = true;
     for (auto& m : m_members) {
-        result = m->write(out, getDb(), indent + 1) && result;
+        result = m->write(out, indent + 1) && result;
     }
 
     out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n";

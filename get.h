@@ -18,7 +18,6 @@
 #pragma once
 
 #include <string>
-#include "DB.h"
 
 namespace sbe2comms
 {
@@ -29,9 +28,7 @@ namespace get
 const std::string& messageDirName();
 const std::string& includeDirName();
 const std::string& fieldsDefFileName();
-const std::string& nameProperty();
 const std::string& emptyString();
-const std::string& unknownValueString();
 
 } // namespace get
 

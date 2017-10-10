@@ -333,7 +333,7 @@ bool BasicType::writeSimpleInt(std::ostream& out,
     } while (false);
 
     if (!result) {
-        out << get::unknownValueString();
+        out << "???";
     }
 
     return result;

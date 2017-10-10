@@ -60,9 +60,7 @@ public:
 
     static Ptr create(DB& db, xmlNodePtr node, const std::string& msgName);
 
-    bool write(std::ostream& out, DB& db, unsigned indent = 0);
-
-    const XmlPropsMap& props(DB& db);
+    bool write(std::ostream& out, unsigned indent = 0);
 
     const XmlPropsMap& getProps() const
     {
@@ -91,10 +89,9 @@ public:
 protected:
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
-    virtual bool writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix) = 0;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool hasListOrStringImpl() const;
 
-    bool startWrite(std::ostream& out, DB& db, unsigned indent);
     bool writeBrief(std::ostream& out, unsigned indent, const std::string& suffix, bool extraOpts = false);
     static void writeOptions(std::ostream& out, unsigned indent);
     void recordExtraHeader(const std::string& header);
@@ -108,8 +105,6 @@ protected:
     {
         return m_msgName;
     }
-
-    std::string extraOptionsString(DB& db);
 
 
     DB& getDb()

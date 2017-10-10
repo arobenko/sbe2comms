@@ -325,6 +325,11 @@ bool DB::isRecordedPaddingType(const std::string& name) const
     return findPaddingType(name) != nullptr;
 }
 
+void DB::recordGroupListUsage()
+{
+    m_groupListUsed = true;
+}
+
 bool DB::recordTypeRef(xmlNodePtr node)
 {
     auto props = xmlParseNodeProps(node, m_doc.get());

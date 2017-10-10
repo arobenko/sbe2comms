@@ -56,9 +56,8 @@ bool DataField::parseImpl()
     return true;
 }
 
-bool DataField::writeImpl(std::ostream& out, DB& db, unsigned indent, const std::string& suffix)
+bool DataField::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
 {
-    static_cast<void>(db);
     assert(m_type != nullptr);
     assert(m_type->hasListOrString());
     writeBrief(out, indent, suffix, true);

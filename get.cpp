@@ -47,21 +47,9 @@ const std::string& fieldsDefFileName()
     return Name;
 }
 
-const std::string& nameProperty()
-{
-    static const std::string Str("name");
-    return Str;
-}
-
 const std::string& emptyString()
 {
     static const std::string Str;
-    return Str;
-}
-
-const std::string& unknownValueString()
-{
-    static const std::string Str("???;");
     return Str;
 }
 
