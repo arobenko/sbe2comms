@@ -40,6 +40,7 @@ const std::string& fieldBaseStr();
 const std::string& fieldBaseDefStr();
 const std::string& enumValSuffixStr();
 const std::string& enumNullValueStr();
+const std::string& fieldNamespaceStr();
 std::string num(std::intmax_t val);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);

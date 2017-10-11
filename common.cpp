@@ -127,6 +127,12 @@ const std::string& enumNullValueStr()
     return Str;
 }
 
+const std::string& fieldNamespaceStr()
+{
+    static const std::string Str("field::");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);
@@ -192,7 +198,6 @@ void writeEnumIsNullFunc(std::ostream& out, unsigned indent)
            output::indent(indent + 1) << fieldBaseDefStr() <<
            output::indent(indent + 1) << "return Base::value() == Base::ValueType::" << enumNullValueStr() << ";\n" <<
            output::indent(indent) << "}\n";
-
 }
 
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders)

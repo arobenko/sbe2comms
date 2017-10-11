@@ -33,6 +33,22 @@ RefType::Kind RefType::getKindImpl() const
     return Kind::Ref;
 }
 
+bool RefType::parseImpl()
+{
+    auto& ptr = getReferenceType();
+    if (!ptr) {
+        return false;
+    }
+
+//    if (ptr->getKind() == Kind::Composite) {
+//        log::error() << "ref \"" << getName() << "\" references composite type \"" <<
+//                        ptr->getName() << "\"." << std::endl;
+//        return false;
+//    }
+
+    return true;
+}
+
 bool RefType::writeImpl(std::ostream& out, unsigned indent)
 {
     auto& ptr = getReferenceType();
@@ -46,7 +62,9 @@ bool RefType::writeImpl(std::ostream& out, unsigned indent)
 
     writeHeader(out, indent, true);
     common::writeExtraOptionsTemplParam(out, indent);
-    out << output::indent(indent) << "using " << name << " = field::" << refName << "<TOpt...>;\n\n";
+    out << output::indent(indent) << "using " << name << " = " <<
+           common::fieldNamespaceStr() << refName << "<TOpt...>;\n\n";
+    // TODO: handle composite references.
     return true;
 }
 

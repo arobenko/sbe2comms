@@ -30,6 +30,7 @@ public:
 
 protected:
     virtual Kind getKindImpl() const override;
+    virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent) override;
