@@ -38,6 +38,8 @@ const std::string& elementSuffixStr();
 const std::string& extraOptionsTemplParamStr();
 const std::string& fieldBaseStr();
 const std::string& fieldBaseDefStr();
+const std::string& enumValSuffixStr();
+const std::string& enumNullValueStr();
 std::string num(std::intmax_t val);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
@@ -45,6 +47,7 @@ void writeExtraOptionsDoc(std::ostream& out, unsigned indent);
 void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent);
 void writeIntIsNullFunc(std::ostream& out, unsigned indent, intmax_t val);
 void writeFpIsNullFunc(std::ostream& out, unsigned indent);
+void writeEnumIsNullFunc(std::ostream& out, unsigned indent);
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders);
 
 } // namespace common

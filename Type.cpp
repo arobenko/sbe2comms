@@ -306,11 +306,6 @@ void Type::writeElementHeader(std::ostream& out, unsigned indent)
     common::writeExtraOptionsDoc(out, indent);
 }
 
-void Type::writeOptions(std::ostream& out, unsigned indent)
-{
-    out << output::indent(indent) << "template <typename... TOpt>\n";
-}
-
 void Type::writeBaseDef(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n";

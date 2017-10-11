@@ -33,8 +33,6 @@ namespace sbe2comms
 namespace
 {
 
-const std::string ElementSuffix("Element");
-const std::string NullValueName("NullValue");
 const std::size_t MaxRangesCount = 10;
 
 } // namespace
@@ -96,12 +94,16 @@ bool EnumType::parseImpl()
         addExtraInclude("<algorithm>");
     }
 
+    if (getLengthProp() != 1U) {
+        log::warning() << "Ignoring \"length\" property of \"" << getName() << "\" type to match sbe-tool." << std::endl;
+    }
+
     return true;
 }
 
 bool EnumType::writeImpl(std::ostream& out, unsigned indent)
 {
-    auto count = getLengthProp();
+    auto count = getAdjustedLengthProp();
     if (count != 1U) {
         writeSingle(out, indent, true);
     }
@@ -144,7 +146,7 @@ std::size_t EnumType::getSerializationLengthImpl() const
 
 bool EnumType::hasListOrStringImpl() const
 {
-    return getLengthProp() != 1U;
+    return getAdjustedLengthProp() != 1U;
 }
 
 void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
@@ -152,8 +154,8 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     auto& underlying = getUnderlyingType();
     assert(!underlying.empty());
 
-    auto enumName = getName() + "Val";
-    out << output::indent(indent) << "/// \\brief Enumeration for \"" << getName() << "\" field.\n" <<
+    auto enumName = getName() + common::enumValSuffixStr();
+    out << output::indent(indent) << "/// \\brief Enumeration for \\ref " << getReferenceName() << " field.\n" <<
            output::indent(indent) << "enum class " << enumName << " : " << underlying << '\n' <<
            output::indent(indent) << "{\n";
     for (auto& v : m_values) {
@@ -169,15 +171,16 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     }
     out << output::indent(indent) << "};\n\n";
 
-    auto name = getName();
+    std::string name;
     if (isElement) {
         writeElementHeader(out, indent);
-        name += ElementSuffix;
+        name = getName() + common::elementSuffixStr();
     }
     else {
         writeHeader(out, indent, true);
+        name = getReferenceName();
     }
-    writeOptions(out, indent);
+    common::writeExtraOptionsTemplParam(out, indent);
 
     auto ranges = getValidRanges();
     bool tooManyRanges = MaxRangesCount < ranges.size();
@@ -200,7 +203,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     if (asType) {
         out << output::indent(indent) << "using " << name << " = \n" <<
                output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
-               output::indent(indent + 2) << "FieldBase,\n" <<
+               output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
                output::indent(indent + 2) << enumName << ",\n";
         writeRangesFunc(indent + 2);
         out << output::indent(indent + 2) << "TOpt...\n" <<
@@ -210,7 +213,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
-           output::indent(indent + 2) << "FieldBase,\n" <<
+           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << enumName << ",\n";
     if (!tooManyRanges) {
         writeRangesFunc(indent + 2);
@@ -245,12 +248,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     }
 
     if (isOptional()) {
-        out << output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
-               output::indent(indent + 1) << "bool isNull() const\n" <<
-               output::indent(indent + 1) << "{\n";
-        writeBaseDef(out, indent + 2);
-        out << output::indent(indent + 2) << "return Base::value() == Base::ValueType::" << NullValueName << ";\n" <<
-               output::indent(indent + 1) << "}\n\n";
+        common::writeEnumIsNullFunc(out, indent + 1);
     }
 
     out << output::indent(indent) << "};\n\n";
@@ -259,12 +257,12 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 void EnumType::writeList(std::ostream& out, unsigned indent, unsigned count)
 {
     writeHeader(out, indent, true);
-    writeOptions(out, indent);
+    common::writeExtraOptionsTemplParam(out, indent);
 
-    out << output::indent(indent) << "using " << getName() << " = \n" <<
+    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << getName() << ElementSuffix << "<>,\n";
+           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n";
     if (count != 0U) {
         out << output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">,\n";
     }
@@ -372,9 +370,9 @@ bool EnumType::readValues()
         return !m_values.empty();
     }
 
-    auto iter = processedNames.find(NullValueName);
+    auto iter = processedNames.find(common::enumNullValueStr());
     if (iter != processedNames.end()) {
-        log::error() << "Failed to introduce nullValue \"" << NullValueName <<
+        log::error() << "Failed to introduce nullValue \"" << common::enumNullValueStr() <<
                      "\" due to the name being in use by the validValue." << std::endl;
         return false;
     }
@@ -403,8 +401,8 @@ bool EnumType::readValues()
         nullVal = nullValPair.first;
     } while (false);
 
-    m_values.insert(std::make_pair(nullVal, NullValueName));
-    m_desc.insert(std::make_pair(NullValueName, "NULL value of optional field."));
+    m_values.insert(std::make_pair(nullVal, common::enumNullValueStr()));
+    m_desc.insert(std::make_pair(common::enumNullValueStr(), "NULL value of optional field."));
     return !m_values.empty();
 }
 
@@ -437,6 +435,11 @@ EnumType::Values::const_iterator EnumType::findValue(const std::string& name) co
     }
 
     return m_values.end();
+}
+
+unsigned EnumType::getAdjustedLengthProp() const
+{
+    return 1U;
 }
 
 } // namespace sbe2comms

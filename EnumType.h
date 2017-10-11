@@ -54,6 +54,7 @@ private:
     bool readValues();
     RangeInfosList getValidRanges() const;
     Values::const_iterator findValue(const std::string& name) const;
+    unsigned getAdjustedLengthProp() const;
 
     Values m_values;
     Descriptions m_desc;

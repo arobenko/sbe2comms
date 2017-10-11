@@ -24,6 +24,7 @@
 #include "prop.h"
 #include "output.h"
 #include "log.h"
+#include "common.h"
 
 namespace sbe2comms
 {
@@ -230,7 +231,7 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExt
     out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n";
     if (hasExtraOpts) {
         out << output::indent(indent + 1) << "/// \\tparam TOpt Extra options for list/string fields.\n";
-        writeOptions(out, indent + 1);
+        common::writeExtraOptionsTemplParam(out, indent + 1);
     }
     out << output::indent(indent + 1) << "using All = std::tuple<\n";
     bool first = true;
@@ -258,7 +259,7 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExt
 bool CompositeType::writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts)
 {
     writeHeader(out, indent, true);
-    writeOptions(out, indent);
+    common::writeExtraOptionsTemplParam(out, indent);
     out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
            output::indent(indent + 2) << "FieldBase,\n" <<
@@ -312,7 +313,7 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
     }
 
     writeHeader(out, indent, true);
-    writeOptions(out, indent);
+    common::writeExtraOptionsTemplParam(out, indent);
     auto& lenMem = *m_members[DataEncIdx_length];
     auto& dataMem = *m_members[DataEncIdx_data];
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<

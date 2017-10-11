@@ -159,7 +159,6 @@ protected:
     void writeHeader(std::ostream& out, unsigned indent, bool extraOpts = true);
     void writeElementBrief(std::ostream& out, unsigned indent);
     void writeElementHeader(std::ostream& out, unsigned indent);
-    static void writeOptions(std::ostream& out, unsigned indent);
     static void writeBaseDef(std::ostream& out, unsigned indent);
     void writeFailOnInvalid(std::ostream& out, unsigned indent);
     std::string nodeText();

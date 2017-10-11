@@ -23,6 +23,7 @@
 #include "prop.h"
 #include "output.h"
 #include "log.h"
+#include "common.h"
 
 namespace sbe2comms
 {
@@ -44,7 +45,7 @@ bool RefType::writeImpl(std::ostream& out, unsigned indent)
     assert(!refName.empty());
 
     writeHeader(out, indent, true);
-    writeOptions(out, indent);
+    common::writeExtraOptionsTemplParam(out, indent);
     out << output::indent(indent) << "using " << name << " = field::" << refName << "<TOpt...>;\n\n";
     return true;
 }

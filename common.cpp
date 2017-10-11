@@ -75,6 +75,8 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("short")
     };
 
+    // TODO: list all keywords
+
     auto iter = Keywords.find(value);
     if (iter == Keywords.end()) {
         return value;
@@ -110,6 +112,18 @@ const std::string& fieldBaseStr()
 const std::string& fieldBaseDefStr()
 {
     static const std::string Str("using Base = typename std::decay<decltype(toFieldBase(*this))>::type;\n");
+    return Str;
+}
+
+const std::string& enumValSuffixStr()
+{
+    static const std::string Str("Val");
+    return Str;
+}
+
+const std::string& enumNullValueStr()
+{
+    static const std::string Str("NullValue");
     return Str;
 }
 
@@ -166,6 +180,17 @@ void writeFpIsNullFunc(std::ostream& out, unsigned indent)
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << fieldBaseDefStr() <<
            output::indent(indent + 1) << "return std::isnan(Base::value());\n" <<
+           output::indent(indent) << "}\n";
+
+}
+
+void writeEnumIsNullFunc(std::ostream& out, unsigned indent)
+{
+    out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
+           output::indent(indent) << "bool isNull() const\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << fieldBaseDefStr() <<
+           output::indent(indent + 1) << "return Base::value() == Base::ValueType::" << enumNullValueStr() << ";\n" <<
            output::indent(indent) << "}\n";
 
 }

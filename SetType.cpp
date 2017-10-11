@@ -76,7 +76,7 @@ bool SetType::parseImpl()
     }
 
     if (getLengthProp() != 1U) {
-        log::warning() << "Ignoring \"length\" property of \"" << getName() << "\" field to match sbe-tool." << std::endl;
+        log::warning() << "Ignoring \"length\" property of \"" << getName() << "\" type to match sbe-tool." << std::endl;
     }
 
     return true;
@@ -145,12 +145,12 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     else {
         writeHeader(out, indent, true);
     }
-    writeOptions(out, indent);
+    common::writeExtraOptionsTemplParam(out, indent);
 
     auto len = getSerializationLengthImpl();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::BitmaskValue<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() <<
+           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << "comms::option::FixedLength<" << len << ">";
 
     auto reservedMask = calcReservedMask(len);
@@ -181,11 +181,11 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
 {
     writeHeader(out, indent, true);
-    writeOptions(out, indent);
+    common::writeExtraOptionsTemplParam(out, indent);
 
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << "FieldBase,\n" <<
+           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n";
     if (count != 0U) {
         out << output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">,\n";
