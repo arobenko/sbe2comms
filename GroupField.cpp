@@ -90,7 +90,7 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
 
     writeBundle(out, indent, hasExtraOpts);
 
-    writeBrief(out, indent, suffix, true);
+    writeHeader(out, indent, suffix);
     writeOptions(out, indent);
 
     // TODO: use sbe2comms::groupList alias

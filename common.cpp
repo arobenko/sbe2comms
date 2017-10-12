@@ -229,9 +229,27 @@ const std::string& fieldNamespaceStr()
     return Str;
 }
 
+const std::string& messageNamespaceStr()
+{
+    static const std::string Str("message::");
+    return Str;
+}
+
+const std::string& builtinNamespaceStr()
+{
+    static const std::string Str("sbe2comms::");
+    return Str;
+}
+
 const std::string& memembersSuffixStr()
 {
     static const std::string Str("Members");
+    return Str;
+}
+
+const std::string& fieldsSuffixStr()
+{
+    static const std::string Str("Fields");
     return Str;
 }
 

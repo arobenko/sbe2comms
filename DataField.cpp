@@ -60,7 +60,7 @@ bool DataField::writeImpl(std::ostream& out, unsigned indent, const std::string&
 {
     assert(m_type != nullptr);
     assert(m_type->hasListOrString());
-    writeBrief(out, indent, suffix, true);
+    writeHeader(out, indent, suffix);
     writeOptions(out, indent);
     out << output::indent(indent) << "using " << getName() << suffix << " = " <<
            "field::" << m_type->getReferenceName() << "<TOpt...>;\n\n";

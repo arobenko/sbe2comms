@@ -59,6 +59,11 @@ const std::string& Field::getName() const
     return prop::name(m_props);
 }
 
+const std::string& Field::getReferenceName() const
+{
+    return common::renameKeyword(getName());
+}
+
 const std::string& Field::getDescription() const
 {
     assert(!m_props.empty());
@@ -112,7 +117,7 @@ bool Field::write(std::ostream& out, unsigned indent)
     }
 
     auto extraOpts = hasListOrString();
-    writeBrief(out, indent, common::emptyString(), extraOpts);
+    writeHeader(out, indent, common::emptyString());
     if (extraOpts) {
         writeOptions(out, indent);
     }
@@ -198,28 +203,16 @@ bool Field::hasListOrStringImpl() const
     return false;
 }
 
-bool Field::writeBrief(std::ostream& out, unsigned indent, const std::string& suffix, bool extraOpts)
+void Field::writeHeader(std::ostream& out, unsigned indent, const std::string& suffix)
 {
-    auto& name = getName();
-    assert(!name.empty());
-
     if (suffix.empty()) {
-        out << output::indent(indent) << "/// \\brief Definition of \"" << name << "\" field.\n";
+        out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
     }
     else {
-        out << output::indent(indent) << "/// \\brief Definition of inner field of the optional \\ref " << name << " field.\n";
+        out << output::indent(indent) << "/// \\brief Definition of inner field of the optional \\ref " << getReferenceName() << " field.\n";
     }
 
-    auto& desc = getDescription();
-    if (!desc.empty()) {
-        out << output::indent(indent) << "/// \\details " << desc << '\n';
-    }
-
-    if (extraOpts) {
-        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
-    }
-
-    return true;
+    common::writeDetails(out, indent, getDescription());
 }
 
 void Field::writeOptions(std::ostream& out, unsigned indent)

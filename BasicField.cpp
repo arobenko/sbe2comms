@@ -28,6 +28,8 @@
 #include "log.h"
 #include "BasicType.h"
 #include "EnumType.h"
+#include "CompositeType.h"
+#include "common.h"
 
 namespace ba = boost::algorithm;
 
@@ -39,15 +41,14 @@ namespace
 
 const std::string FieldSuffix("Field");
 const std::string ValSuffix("Val");
-const std::string FieldNamespace("field::");
-const std::string BuiltInNamespace("sbe2comms::");
+const std::string OptPrefix("typename TOpt::");
 
 const std::string& getNamespaceForType(const DB& db, const std::string& name)
 {
     if ((db.isRecordedBuiltInType(name)) || db.isRecordedPaddingType(name)) {
-        return BuiltInNamespace;
+        return common::builtinNamespaceStr();
     }
-    return FieldNamespace;
+    return common::fieldNamespaceStr();
 }
 
 } // namespace
@@ -112,6 +113,13 @@ bool BasicField::parseImpl()
         return false;
     }
 
+    if ((m_type->getKind() == Type::Kind::Composite) &&
+        (m_type->dataUseRecorded())) {
+        log::error() << "Cannot use \"" << m_type->getName() << "\" type with \"" << getName() << "\" field due to "
+                        "the former being referenced by \"data\" element(s)." << std::endl;
+        return false;
+    }
+
     if (!hasPresence()) {
         return true;
     }
@@ -142,14 +150,14 @@ bool BasicField::parseImpl()
 bool BasicField::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
 {
     assert(m_type != nullptr);
-    bool extraOpts = m_type->hasListOrString();
-    writeBrief(out, indent, suffix, extraOpts);
-
-    if (extraOpts) {
-        writeOptions(out, indent);
+    writeHeader(out, indent, suffix);
+    std::string name;
+    if (suffix.empty()) {
+        name = getReferenceName();
     }
-
-    auto name = getName() + suffix;
+    else {
+        name = getName() + suffix;
+    }
 
     if (isSimpleAlias()) {
         writeSimpleAlias(out, indent, name);
@@ -312,22 +320,45 @@ bool BasicField::isSimpleAlias() const
 
 void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std::string& name)
 {
-    bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
+    assert(m_type != nullptr);
     auto& ns = getNamespaceForType(getDb(), m_type->getName());
-    bool extraOpts = m_type->hasListOrString();
-    out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<";
-    if (builtIn) {
-        out << FieldNamespace << "FieldBase";
-    }
+    out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<\n";
 
-    if (extraOpts) {
+    if (m_type->getKind() != Type::Kind::Composite) {
+        bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
+        auto fieldOptStr = OptPrefix + common::messageNamespaceStr() +
+                           getMsgName() + common::fieldsSuffixStr() + "::" +
+                           getReferenceName();
         if (builtIn) {
-            out << ", ";
+            out << output::indent(indent + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+            out << output::indent(indent + 1) << fieldOptStr << '\n';
         }
-        out << "TOpt...";
+        else {
+            auto typeOpts = m_type->getExtraOptInfos();
+            assert(typeOpts.size() == 1U);
+            auto typeOptStr = OptPrefix + common::fieldNamespaceStr() + typeOpts.front().second;
+            out << output::indent(indent + 1) << typeOptStr << ",\n" <<
+                   output::indent(indent + 1) << fieldOptStr << '\n';
+        }
+        out << output::indent(indent) << ">;\n\n";
+        return;
     }
 
-    out << ">;\n\n";
+    auto typeOpts = m_type->getExtraOptInfos();
+    for (auto& o : typeOpts) {
+        out << output::indent(indent + 1) << OptPrefix;
+        if (!ba::starts_with(o.second, common::fieldNamespaceStr())) {
+            out << common::fieldNamespaceStr();
+        }
+        out << o.second;
+        bool comma = (&o != &typeOpts.back());
+        if (comma) {
+            out << ',';
+        }
+        out << '\n';
+    }
+
+    out << output::indent(indent) << ">;\n\n";
 }
 
 void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::string& name)
@@ -342,7 +373,7 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "using " << name << " =\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << FieldNamespace << enumType << "::" << valueStr << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << common::fieldNamespaceStr() << enumType << "::" << valueStr << ">,\n" <<
            output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
            output::indent(indent + 1) << ">;\n\n";
 }

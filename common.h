@@ -42,7 +42,10 @@ const std::string& fieldBaseDefStr();
 const std::string& enumValSuffixStr();
 const std::string& enumNullValueStr();
 const std::string& fieldNamespaceStr();
+const std::string& messageNamespaceStr();
+const std::string& builtinNamespaceStr();
 const std::string& memembersSuffixStr();
+const std::string& fieldsSuffixStr();
 const std::string& eqEmptyOptionStr();
 std::string num(std::intmax_t val);
 

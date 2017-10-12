@@ -56,6 +56,8 @@ public:
 
     const std::string& getName() const;
 
+    const std::string& getReferenceName() const;
+
     const std::string& getDescription() const;
 
     static Ptr create(DB& db, xmlNodePtr node, const std::string& msgName);
@@ -92,7 +94,7 @@ protected:
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool hasListOrStringImpl() const;
 
-    bool writeBrief(std::ostream& out, unsigned indent, const std::string& suffix, bool extraOpts = false);
+    void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);
     static void writeOptions(std::ostream& out, unsigned indent);
     void recordExtraHeader(const std::string& header);
 
@@ -123,7 +125,7 @@ private:
 
     DB& m_db;
     xmlNodePtr m_node = nullptr;
-    const std::string& m_msgName;
+    std::string m_msgName;
     XmlPropsMap m_props;
     std::set<std::string> m_extraHeaders;
 };
