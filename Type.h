@@ -36,6 +36,8 @@ class Type
 public:
     using Ptr = std::unique_ptr<Type>;
     using ExtraIncludes = std::set<std::string>;
+    using ExtraOptInfo = std::pair<std::string, std::string>;
+    using ExtraOptInfosList = std::list<ExtraOptInfo>;
 
     enum class Kind
     {
@@ -132,6 +134,11 @@ public:
         return hasListOrStringImpl();
     }
 
+    ExtraOptInfosList getExtraOptInfos() const
+    {
+        return getExtraOptInfosImpl();
+    }
+
 protected:
     xmlNodePtr getNode() const
     {
@@ -154,6 +161,7 @@ protected:
     virtual std::size_t getSerializationLengthImpl() const = 0;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent);
     virtual bool hasListOrStringImpl() const;
+    virtual ExtraOptInfosList getExtraOptInfosImpl() const;
 
     void writeBrief(std::ostream& out, unsigned indent);
     void writeHeader(std::ostream& out, unsigned indent, bool extraOpts = true);

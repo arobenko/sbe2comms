@@ -133,6 +133,18 @@ const std::string& fieldNamespaceStr()
     return Str;
 }
 
+const std::string& memembersSuffixStr()
+{
+    static const std::string Str("Members");
+    return Str;
+}
+
+const std::string& eqEmptyOptionStr()
+{
+    static const std::string Str(" = comms::option::EmptyOption");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);

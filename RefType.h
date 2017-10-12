@@ -35,9 +35,14 @@ protected:
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent) override;
     virtual bool hasListOrStringImpl() const override;
+    virtual ExtraOptInfosList getExtraOptInfosImpl() const override;
 
 private:
-    const Ptr& getReferenceType() const;
+    Type* getReferenceType();
+    bool isBundle() const;
+    void writeBundle(std::ostream& out, unsigned indent);
+
+    Type* m_type = nullptr;
 };
 
 } // namespace sbe2comms

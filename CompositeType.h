@@ -32,6 +32,8 @@ public:
 
     bool isBundleOptional() const;
     bool isValidDimensionType() const;
+    bool isValidData() const;
+    bool isBundle() const;
 
 protected:
     virtual Kind getKindImpl() const override;
@@ -40,12 +42,18 @@ protected:
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent) override;
     virtual bool hasListOrStringImpl() const override;
+    virtual ExtraOptInfosList getExtraOptInfosImpl() const override;
 private:
+    using AllExtraOptInfos = std::vector<ExtraOptInfosList>;
+
     bool prepareMembers();
-    bool writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts);
-    bool writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts);
+    bool writeMembers(std::ostream& out, unsigned indent);
+    bool writeBundle(std::ostream& out, unsigned indent);
     bool writeData(std::ostream& out, unsigned indent);
     bool checkDataValid();
+    AllExtraOptInfos getAllExtraOpts() const;
+    void writeExtraOptsDoc(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos);
+    void writeExtraOptsTemplParams(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos);
 
     std::vector<TypePtr> m_members;
 };

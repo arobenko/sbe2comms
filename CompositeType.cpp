@@ -20,11 +20,15 @@
 #include <iostream>
 #include <numeric>
 
+#include <boost/algorithm/string.hpp>
+
 #include "DB.h"
 #include "prop.h"
 #include "output.h"
 #include "log.h"
 #include "common.h"
+
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -32,14 +36,14 @@ namespace sbe2comms
 namespace
 {
 
-const std::string MembersSuffix("Members");
-
 enum DataEncIdx
 {
     DataEncIdx_length,
     DataEncIdx_data,
     DataEncIdx_numOfValues
 };
+
+const std::string OptPrefix("TOpt_");
 
 } // namespace
 
@@ -73,6 +77,37 @@ bool CompositeType::isValidDimensionType() const
          verifyMemberFunc(*m_members[1]));
 }
 
+bool CompositeType::isValidData() const
+{
+    auto verifyLengthFunc =
+        [](const Type& t) -> bool
+        {
+            return t.getKind() == Kind::Basic &&
+                   t.getLengthProp() == 1U &&
+                   t.isRequired();
+        };
+    static_cast<void>(verifyLengthFunc);
+
+    auto verifyDataFunc =
+        [](const Type& t) -> bool
+        {
+            return t.getKind() == Kind::Basic &&
+                   t.getLengthProp() == 0U &&
+                   t.isRequired();
+        };
+    static_cast<void>(verifyDataFunc);
+
+    return
+        ((m_members.size() == DataEncIdx_numOfValues) &&
+         verifyLengthFunc(*m_members[0]) &&
+         verifyDataFunc(*m_members[1]));
+}
+
+bool CompositeType::isBundle() const
+{
+    return !dataUseRecorded();
+}
+
 CompositeType::Kind CompositeType::getKindImpl() const
 {
     return Kind::Composite;
@@ -101,15 +136,7 @@ bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
         return false;
     }
 
-    bool hasExtraOpts =
-            std::any_of(
-                m_members.begin(), m_members.end(),
-                [](const TypePtr& m)
-                {
-                   return m->hasListOrString();
-                });
-
-    if (!writeMembers(out, indent, hasExtraOpts)) {
+    if (!writeMembers(out, indent)) {
         return false;
     }
 
@@ -117,7 +144,7 @@ bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
         return writeData(out, indent);
     }
 
-    return writeBundle(out, indent, hasExtraOpts);
+    return writeBundle(out, indent);
 }
 
 std::size_t CompositeType::getSerializationLengthImpl() const
@@ -146,7 +173,28 @@ bool CompositeType::hasListOrStringImpl() const
                 [](const TypePtr& m)
                 {
                     return m->hasListOrString();
-                });
+    });
+}
+
+Type::ExtraOptInfosList CompositeType::getExtraOptInfosImpl() const
+{
+    ExtraOptInfosList list;
+    for (auto& m : m_members) {
+        auto infos = m->getExtraOptInfos();
+        for (auto& i : infos) {
+            std::string newName = getName() + '_' + i.first;
+            std::string newRef;
+            if (ba::starts_with(i.second, common::fieldNamespaceStr())) {
+                newRef = i.second;
+            }
+            else {
+                newRef = getName() + common::memembersSuffixStr() + "::" + i.second;
+            }
+            i = std::make_pair(std::move(newName), std::move(newRef));
+        }
+        list.splice(list.end(), infos);
+    }
+    return list;
 }
 
 bool CompositeType::prepareMembers()
@@ -215,10 +263,10 @@ bool CompositeType::prepareMembers()
     return true;
 }
 
-bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts)
+bool CompositeType::writeMembers(std::ostream& out, unsigned indent)
 {
     auto& n = getReferenceName();
-    std::string membersStruct = getName() + MembersSuffix;
+    std::string membersStruct = getName() + common::memembersSuffixStr();
 
     out << output::indent(indent) << "/// \\brief Scope for all the members of the \\ref " << n << " field.\n" <<
            output::indent(indent) << "struct " << membersStruct << '\n' <<
@@ -228,57 +276,84 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent, bool hasExt
         result = m->write(out, indent + 1) && result;
     }
 
-    out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n";
-    if (hasExtraOpts) {
-        out << output::indent(indent + 1) << "/// \\tparam TOpt Extra options for list/string fields.\n";
-        common::writeExtraOptionsTemplParam(out, indent + 1);
-    }
+    auto allExtraOpts = getAllExtraOpts();
+
+    out << output::indent(indent + 1) << "/// \\brief Bundling all the defined member types into a single std::tuple.\n";
+    writeExtraOptsDoc(out, indent + 1, allExtraOpts);
+    writeExtraOptsTemplParams(out, indent + 1, allExtraOpts);
+
     out << output::indent(indent + 1) << "using All = std::tuple<\n";
-    bool first = true;
-    for (auto& m : m_members) {
-        if (!first) {
-            out << ",\n";
-        }
-        first = false;
-        auto& mName = m->getReferenceName();
-        assert(!mName.empty());
-        out << output::indent(indent + 2) << mName;
-        if (m->hasListOrString()) {
-            out << "<TOpt...>";
+    for (auto idx = 0U; idx < m_members.size(); ++idx) {
+        auto& mem = m_members[idx];
+        out << output::indent(indent + 2) << mem->getReferenceName() << '<';
+        auto& opt = allExtraOpts[idx];
+        if (opt.size() <= 1U) {
+            out << OptPrefix << opt.front().first << ">";
         }
         else {
-            out << "<>";
+            out << '\n';
+            for (auto& o : opt) {
+                out << output::indent(indent + 3) << OptPrefix << o.first;
+                bool comma = (&o != &opt.back());
+                if (comma) {
+                    out << ',';
+                }
+                out << '\n';
+            }
+            out << output::indent(indent + 2) << ">";
         }
+
+        bool comma = (&mem != &m_members.back());
+        if (comma) {
+            out << ',';
+        }
+        out << '\n';
     }
-    out << '\n' <<
-           output::indent(indent + 1) << ">;\n" <<
+    out << output::indent(indent + 1) << ">;\n" <<
            output::indent(indent) << "};\n\n";
     return result;
 }
 
-bool CompositeType::writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts)
+bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
 {
-    writeHeader(out, indent, true);
-    common::writeExtraOptionsTemplParam(out, indent);
+    auto extraOpts = getAllExtraOpts();
+    for (auto& o : extraOpts) {
+        for (auto& internalO : o) {
+            if (!ba::starts_with(internalO.second, common::fieldNamespaceStr())) {
+                auto newRef = getName() + common::memembersSuffixStr() + "::" + internalO.second;
+                internalO.second = std::move(newRef);
+            }
+        }
+    }
+
+    writeBrief(out, indent);
+    common::writeDetails(out, indent, getDescription());
+    writeExtraOptsDoc(out, indent, extraOpts);
+    writeExtraOptsTemplParams(out, indent, extraOpts);
     out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
-           output::indent(indent + 2) << "FieldBase,\n" <<
-           output::indent(indent + 2) << getName() << MembersSuffix << "::All";
-    if (hasExtraOpts) {
-        out << "<TOpt...>\n";
+           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getName() << common::memembersSuffixStr() << "::All<\n";
+    for (auto& o : extraOpts) {
+        for (auto& internalO : o) {
+            out << output::indent(indent + 3) << OptPrefix << internalO.first;
+
+            bool comma = ((&o != &extraOpts.back()) || (&internalO != &o.back()));
+            if (comma) {
+                out << ',';
+            }
+            out << '\n';
+        }
     }
-    else {
-        out << ",\n" <<
-               output::indent(indent + 2) << "TOpt...\n";
-    }
-    out << output::indent(indent + 1) << ">\n" <<
+    out << output::indent(indent + 2) << ">\n" <<
+           output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << "/// \\brief Allow access to internal fields.\n" <<
            output::indent(indent + 1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
            output::indent(indent + 1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
            output::indent(indent + 1) << "///     for details.\\n\n" <<
            output::indent(indent + 1) << "///     The names are:\n";
-    auto memsScope = getName() + MembersSuffix + "::";
+    auto memsScope = getName() + common::memembersSuffixStr() + "::";
     for (auto& m : m_members) {
         auto& mProps = m->getProps();
         out << output::indent(indent + 1) << "///     \\li \\b " << prop::name(mProps) << " for \\ref " << memsScope << prop::name(mProps) << '.' << std::endl;
@@ -307,8 +382,8 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent, bool hasExtr
 
 bool CompositeType::writeData(std::ostream& out, unsigned indent)
 {
-    if (m_members.size() != DataEncIdx_numOfValues) {
-        log::error() << "The number of members in \"" << getName() << "\" composite is expected to be " << DataEncIdx_numOfValues << std::endl;
+    if (!isValidData()) {
+        log::error() << "The members in \"" << getName() << "\" composite are not defined as expected to implement data fields." << std::endl;
         return false;
     }
 
@@ -317,9 +392,9 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
     auto& lenMem = *m_members[DataEncIdx_length];
     auto& dataMem = *m_members[DataEncIdx_data];
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
-           output::indent(indent + 1) << getName() << MembersSuffix << "::" << dataMem.getReferenceName() << "<\n" <<
+           output::indent(indent + 1) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<
            output::indent(indent + 2) << "comms::option::SequenceSizeFieldPrefix<\n" <<
-           output::indent(indent + 3) << getName() << MembersSuffix << "::" << lenMem.getReferenceName() << '\n' <<
+           output::indent(indent + 3) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << "<>\n" <<
            output::indent(indent + 2) << ">,\n" <<
            output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">;\n\n";
@@ -366,6 +441,42 @@ bool CompositeType::checkDataValid()
 
     return true;
 
+}
+
+CompositeType::AllExtraOptInfos CompositeType::getAllExtraOpts() const
+{
+    AllExtraOptInfos allExtraOpts;
+    for (auto& m : m_members) {
+        allExtraOpts.push_back(m->getExtraOptInfos());
+    }
+    assert(allExtraOpts.size() == m_members.size());
+    return allExtraOpts;
+}
+
+void CompositeType::writeExtraOptsDoc(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos)
+{
+    for (auto& l : infos) {
+        for (auto& o : l) {
+            out << output::indent(indent) << "/// \\tparam " << OptPrefix <<
+                   o.first << " Extra options for \\ref " << o.second << '\n';
+        }
+    }
+}
+
+void CompositeType::writeExtraOptsTemplParams(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos)
+{
+    out << output::indent(indent) << "template<\n";
+    for (auto& l : infos) {
+        for (auto& o : l) {
+            out << output::indent(indent + 1) << "typename " << OptPrefix << o.first << common::eqEmptyOptionStr();
+            bool comma = ((&l != &infos.back()) || (&o != &l.back()));
+            if (comma) {
+                out << ',';
+            }
+            out << '\n';
+        }
+    }
+    out << output::indent(indent) << ">\n";
 }
 
 } // namespace sbe2comms

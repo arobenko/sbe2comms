@@ -281,6 +281,13 @@ bool Type::hasListOrStringImpl() const
     return false;
 }
 
+Type::ExtraOptInfosList Type::getExtraOptInfosImpl() const
+{
+    ExtraOptInfosList list;
+    list.push_back(std::make_pair(getName(), getReferenceName()));
+    return list;
+}
+
 void Type::writeBrief(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";

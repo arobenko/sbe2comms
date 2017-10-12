@@ -24,9 +24,15 @@
 #include "output.h"
 #include "log.h"
 #include "common.h"
+#include "CompositeType.h"
 
 namespace sbe2comms
 {
+
+namespace
+{
+const std::string OptPrefix("TOpt_");
+} // namespace
 
 RefType::Kind RefType::getKindImpl() const
 {
@@ -35,82 +41,124 @@ RefType::Kind RefType::getKindImpl() const
 
 bool RefType::parseImpl()
 {
-    auto& ptr = getReferenceType();
-    if (!ptr) {
+    m_type = getReferenceType();
+    if (m_type == nullptr) {
         return false;
     }
-
-//    if (ptr->getKind() == Kind::Composite) {
-//        log::error() << "ref \"" << getName() << "\" references composite type \"" <<
-//                        ptr->getName() << "\"." << std::endl;
-//        return false;
-//    }
 
     return true;
 }
 
 bool RefType::writeImpl(std::ostream& out, unsigned indent)
 {
-    auto& ptr = getReferenceType();
-    assert(ptr);
-    assert(ptr->isWritten());
-    auto& name = getName();
-    assert(!name.empty());
+    assert(m_type != nullptr);
+    assert(m_type->isWritten());
 
-    auto& refName = ptr->getReferenceName();
-    assert(!refName.empty());
+    if (isBundle()) {
+        writeBundle(out, indent);
+        return true;
+    }
 
     writeHeader(out, indent, true);
     common::writeExtraOptionsTemplParam(out, indent);
-    out << output::indent(indent) << "using " << name << " = " <<
-           common::fieldNamespaceStr() << refName << "<TOpt...>;\n\n";
-    // TODO: handle composite references.
+    out << output::indent(indent) << "using " << getReferenceName() << " = " <<
+           common::fieldNamespaceStr() << m_type->getReferenceName() << "<TOpt...>;\n\n";
     return true;
 }
 
 std::size_t RefType::getSerializationLengthImpl() const
 {
-    auto& ptr = getReferenceType();
-    assert(ptr);
-    return ptr->getSerializationLength();
+    assert(m_type != nullptr);
+    return m_type->getSerializationLength();
 }
 
 bool RefType::writeDependenciesImpl(std::ostream& out, unsigned indent)
 {
-    auto& ptr = getReferenceType();
-    if (!getReferenceType()) {
+    if (m_type == nullptr) {
         return false;
     }
 
-    return ptr->write(out, indent);
+    return m_type->write(out, indent);
 }
 
 bool RefType::hasListOrStringImpl() const
 {
-    auto& ptr = getReferenceType();
-    assert(ptr);
-    return ptr->hasListOrString();
+    assert(m_type != nullptr);
+    return m_type->hasListOrString();
 }
 
-const RefType::Ptr& RefType::getReferenceType() const
+Type::ExtraOptInfosList RefType::getExtraOptInfosImpl() const
+{
+    if (!isBundle()) {
+        return Base::getExtraOptInfosImpl();
+    }
+
+    assert(m_type != nullptr);
+    auto opts = m_type->getExtraOptInfos();
+    for (auto& o : opts) {
+        auto newRef = common::fieldNamespaceStr() + o.second;
+        o.second = std::move(newRef);
+    }
+    return opts;
+}
+
+Type* RefType::getReferenceType()
 {
     auto& p = getProps();
     auto& t = prop::type(p);
 
-    static const Ptr NoRef;
     if (t.empty()) {
         log::error() << "Unknown reference type for ref \"" << getName() << "\"." << std::endl;
-        return NoRef;
+        return nullptr;
     }
 
-    auto& types = getDb().getTypes();
-    auto iter = types.find(t);
-    if (iter == types.end()) {
+    auto ptr = getDb().findType(t);
+    if (ptr == nullptr) {
         log::error() << "Unknown type \"" << t << "\" in ref \"" << getName() << "\"." << std::endl;
-        return NoRef;
     }
 
-    return iter->second;
+    return ptr;
+}
+
+bool RefType::isBundle() const
+{
+    if (m_type->getKind() != Kind::Composite) {
+        return false;
+    }
+
+    auto* compType = static_cast<const CompositeType*>(m_type);
+    return compType->isBundle();
+}
+
+void RefType::writeBundle(std::ostream& out, unsigned indent)
+{
+    writeHeader(out, indent, false);
+    auto allOpts = getExtraOptInfos();
+    for (auto& o : allOpts) {
+        out << output::indent(indent) << "/// \\tparam " << OptPrefix <<
+               o.first << " Extra options for \\ref " << o.second << '\n';
+    }
+    out << output::indent(indent) << "template<\n";
+    for (auto& o : allOpts) {
+        out << output::indent(indent + 1) << "typename " << OptPrefix << o.first << common::eqEmptyOptionStr();
+        bool comma = (&o != &allOpts.back());
+        if (comma) {
+            out << ',';
+        }
+        out << '\n';
+    }
+    out << output::indent(indent) << ">\n" <<
+           output::indent(indent) << "using " << getReferenceName() << " = " <<
+                      common::fieldNamespaceStr() << m_type->getReferenceName() << "<\n";
+    for (auto& o : allOpts) {
+        out << output::indent(indent + 1) << OptPrefix << o.first;
+        bool comma = (&o != &allOpts.back());
+        if (comma) {
+            out << ',';
+        }
+        out << '\n';
+    }
+    out << output::indent(indent) << ">;\n\n";
 }
 
 } // namespace sbe2comms
