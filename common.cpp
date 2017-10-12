@@ -47,6 +47,12 @@ const std::string& fieldsDefFileName()
     return Name;
 }
 
+const std::string& defaultOptionsFileName()
+{
+    static const std::string Name("DefaultOptions.h");
+    return Name;
+}
+
 const std::string& emptyString()
 {
     static const std::string Str;

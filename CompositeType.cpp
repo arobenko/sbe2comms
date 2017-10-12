@@ -147,6 +147,21 @@ bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
     return writeBundle(out, indent);
 }
 
+bool CompositeType::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
+{
+    std::string membersStruct = getName() + common::memembersSuffixStr();
+
+    out << output::indent(indent) << "/// \\brief Scope for the options of the fields defined in \\ref " << scope << membersStruct << ".\n" <<
+           output::indent(indent) << "struct " << membersStruct << '\n' <<
+           output::indent(indent) << "{\n";
+    bool result = true;
+    for (auto& m : m_members) {
+        result = m->writeDefaultOptions(out, indent + 1, scope + membersStruct + "::") && result;
+    }
+    out << output::indent(indent) << "};\n\n";
+    return result;
+}
+
 std::size_t CompositeType::getSerializationLengthImpl() const
 {
     return std::accumulate(

@@ -109,6 +109,11 @@ public:
 
     bool write(std::ostream& out, unsigned indent = 0);
 
+    bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
+    {
+        return writeDefaultOptionsImpl(out, indent, scope);
+    }
+
     bool isWritten() const
     {
         return m_written;
@@ -158,6 +163,7 @@ protected:
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, unsigned indent) = 0;
+    virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope);
     virtual std::size_t getSerializationLengthImpl() const = 0;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent);
     virtual bool hasListOrStringImpl() const;

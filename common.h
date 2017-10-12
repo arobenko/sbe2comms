@@ -31,6 +31,7 @@ namespace common
 const std::string& messageDirName();
 const std::string& includeDirName();
 const std::string& fieldsDefFileName();
+const std::string& defaultOptionsFileName();
 const std::string& emptyString();
 const std::string& renameKeyword(const std::string& value);
 const std::string& extraOptionsDocStr();

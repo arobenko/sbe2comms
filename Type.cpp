@@ -269,6 +269,13 @@ bool Type::parseImpl()
     return true;
 }
 
+bool Type::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
+{
+    out << output::indent(indent) << "/// \\brief Default options for \\ref " << scope << getReferenceName() << " field.\n" <<
+           output::indent(indent) << "using " << getReferenceName() << common::eqEmptyOptionStr() << ";\n\n";
+    return true;
+}
+
 bool Type::writeDependenciesImpl(std::ostream& out, unsigned indent)
 {
     static_cast<void>(out);

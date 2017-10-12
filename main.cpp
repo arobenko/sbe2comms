@@ -23,6 +23,7 @@
 #include "DB.h"
 #include "BuiltIn.h"
 #include "common.h"
+#include "output.h"
 
 namespace bf = boost::filesystem;
 
@@ -116,6 +117,68 @@ bool writeTypes(DB& db)
     return result;
 }
 
+bool writeDefaultOptions(DB& db)
+{
+    bf::path root(db.getRootPath());
+    bf::path protocolRelDir(db.getProtocolRelDir());
+    bf::path protocolDir(root / protocolRelDir);
+
+    boost::system::error_code ec;
+    bf::create_directories(protocolDir, ec);
+    if (ec) {
+        std::cerr << "ERROR: Failed to create \"" << protocolDir.string() <<
+                "\" with error \"" << ec.message() << "\"!" << std::endl;
+        return false;
+    }
+
+    auto fileRelPath = (protocolRelDir / common::defaultOptionsFileName()).string();
+    std::cout << "INFO: Generating " << fileRelPath << std::endl;
+
+    auto filePath = (protocolDir / common::defaultOptionsFileName()).string();
+    std::ofstream stream(filePath);
+    if (!stream) {
+        std::cerr << "ERROR: Failed to create " << filePath << std::endl;
+        return false;
+    }
+
+    stream << "/// \\file\n"
+              "/// \\brief Contains definition of default options.\n"
+              "\n\n"
+              "#include \"comms/options.h\"\n\n";
+
+    auto& ns = db.getProtocolNamespace();
+    if (!ns.empty()) {
+        stream << "namespace " << ns << "\n"
+                  "{\n\n";
+    }
+
+    stream << "struct DefaultOptions\n"
+              "{\n" <<
+              output::indent(1) << "struct field\n" <<
+              output::indent(1) << "{\n";
+
+    bool result = true;
+    auto fieldsScope = ns + "::" + common::fieldNamespaceStr();
+    for (auto& t : db.getTypes()) {
+        result = t.second->writeDefaultOptions(stream, 2, fieldsScope) && result;
+    }
+
+    stream << output::indent(1) << "}; // field\n\n";
+
+    stream << "}; // DefaultOptions\n\n";
+
+    if (!ns.empty()) {
+        stream << "} // namespace " << ns << "\n\n";
+    }
+
+    if (!stream.good()) {
+        std::cerr << "ERROR: The file " << fileRelPath << "hasn't been written properly!" << std::endl;
+        return false;
+    }
+
+    return result;
+}
+
 } // namespace sbe2comms
 
 int main(int argc, const char* argv[])
@@ -131,7 +194,8 @@ int main(int argc, const char* argv[])
         db.parseSchema(argv[1]) &&
         sbe2comms::writeBuiltIn(db) &&
         sbe2comms::writeMessages(db) &&
-        sbe2comms::writeTypes(db);
+        sbe2comms::writeTypes(db) &&
+        sbe2comms::writeDefaultOptions(db);
 
     if (result) {
         std::cout << "SUCCESS" << std::endl;

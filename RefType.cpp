@@ -66,6 +66,14 @@ bool RefType::writeImpl(std::ostream& out, unsigned indent)
     return true;
 }
 
+bool RefType::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
+{
+    static_cast<void>(out);
+    static_cast<void>(indent);
+    static_cast<void>(scope);
+    return true;
+}
+
 std::size_t RefType::getSerializationLengthImpl() const
 {
     assert(m_type != nullptr);
