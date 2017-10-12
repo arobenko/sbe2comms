@@ -40,7 +40,6 @@ namespace
 {
 
 const std::string FieldSuffix("Field");
-const std::string ValSuffix("Val");
 const std::string OptPrefix("typename TOpt::");
 
 const std::string& getNamespaceForType(const DB& db, const std::string& name)
@@ -227,6 +226,12 @@ bool BasicField::checkConstant() const
 {
     auto& valueRef = getValueRef();
     assert(m_type != nullptr);
+    if (m_type->getKind() == Type::Kind::Composite) {
+        log::error() << "The field \"" << getName() << "\" references composite type \"" <<
+                        m_type->getName() << "\". It cannot have constant presence." << std::endl;
+        return false;
+    }
+
     if (m_type->isConstant()) {
         if (!valueRef.empty()) {
             log::error() << "The constant field \"" << getName() << "\" references constant type while providing valueRef." << std::endl;
@@ -331,14 +336,13 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
                            getReferenceName();
         if (builtIn) {
             out << output::indent(indent + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
-            out << output::indent(indent + 1) << fieldOptStr << '\n';
+            out << output::indent(indent + 1) << getFieldOptString() << '\n';
         }
         else {
             auto typeOpts = m_type->getExtraOptInfos();
             assert(typeOpts.size() == 1U);
-            auto typeOptStr = OptPrefix + common::fieldNamespaceStr() + typeOpts.front().second;
-            out << output::indent(indent + 1) << typeOptStr << ",\n" <<
-                   output::indent(indent + 1) << fieldOptStr << '\n';
+            out << output::indent(indent + 1) << getTypeOptString() << ",\n" <<
+                   output::indent(indent + 1) << getFieldOptString() << '\n';
         }
         out << output::indent(indent) << ">;\n\n";
         return;
@@ -368,13 +372,15 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
     auto sep = ba::find_first(valueRef, ".");
     assert(sep);
     std::string enumType(valueRef.begin(), sep.begin());
-    enumType += ValSuffix;
+    enumType += common::enumValSuffixStr();
     std::string valueStr(sep.end(), valueRef.end());
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "using " << name << " =\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
            output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << common::fieldNamespaceStr() << enumType << "::" << valueStr << ">,\n" <<
-           output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
+           output::indent(indent + 2) << "comms::option::EmptySerialization,\n" <<
+           output::indent(indent + 2) << getTypeOptString() << ",\n" <<
+           output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">;\n\n";
 }
 
@@ -473,5 +479,21 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
            output::indent(indent + 1) << "}\n" <<
            output::indent(indent) << "};\n\n";
 }
+
+std::string BasicField::getFieldOptString() const
+{
+    return OptPrefix + common::messageNamespaceStr() +
+           getMsgName() + common::fieldsSuffixStr() + "::" +
+           getReferenceName();
+}
+
+std::string BasicField::getTypeOptString() const
+{
+    auto typeOpts = m_type->getExtraOptInfos();
+    assert(typeOpts.size() == 1U);
+    return OptPrefix + common::fieldNamespaceStr() + typeOpts.front().second;
+}
+
+
 
 } // namespace sbe2comms
