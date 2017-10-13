@@ -36,7 +36,6 @@ Type::Type(DB& db, xmlNodePtr node)
   : m_db(db),
     m_node(node)
 {
-    std::fill(m_uses.begin(), m_uses.end(), 0U);
     m_props = xmlParseNodeProps(m_node, getDb().getDoc());
 }
 

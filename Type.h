@@ -77,31 +77,6 @@ public:
 
     static Ptr create(DB& db, xmlNodePtr node);
 
-    bool normalUseRecorded() const
-    {
-        return 0U < m_uses[Use_Normal];
-    }
-
-    bool groupSizeUseRecorded() const
-    {
-        return 0U < m_uses[Use_GroupSize];
-    }
-
-    bool dataUseRecorded() const
-    {
-        return 0U < m_uses[Use_Data];
-    }
-
-    void recordGroupSizeUse()
-    {
-        ++m_uses[Use_GroupSize];
-    }
-
-    void recordDataUse()
-    {
-        ++m_uses[Use_Data];
-    }
-
     Kind getKind() const
     {
         return getKindImpl();
@@ -186,17 +161,8 @@ protected:
 
 
 private:
-    enum Use
-    {
-        Use_Normal,
-        Use_GroupSize,
-        Use_Data,
-        Use_NumOfValues
-    };
-
     DB& m_db;
     xmlNodePtr m_node = nullptr;
-    std::array<unsigned, Use_NumOfValues> m_uses;
     XmlPropsMap m_props;
     bool m_written = false;
     bool m_writingInProgress = false;

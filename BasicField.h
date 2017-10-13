@@ -55,8 +55,6 @@ private:
     void writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name);
-    std::string getFieldOptString() const;
-    std::string getTypeOptString() const;
 
     const Type* m_type = nullptr;
     bool m_generatedPadding = false;

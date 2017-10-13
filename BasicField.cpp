@@ -110,7 +110,7 @@ bool BasicField::parseImpl()
     }
 
     if ((m_type->getKind() == Type::Kind::Composite) &&
-        (m_type->dataUseRecorded())) {
+        (asCompositeType(m_type)->dataUseRecorded())) {
         log::error() << "Cannot use \"" << m_type->getName() << "\" type with \"" << getName() << "\" field due to "
                         "the former being referenced by \"data\" element(s)." << std::endl;
         return false;
@@ -335,7 +335,7 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
         else {
             auto typeOpts = m_type->getExtraOptInfos();
             assert(typeOpts.size() == 1U);
-            out << output::indent(indent + 1) << getTypeOptString() << ",\n" <<
+            out << output::indent(indent + 1) << getTypeOptString(*m_type) << ",\n" <<
                    output::indent(indent + 1) << getFieldOptString() << '\n';
         }
         out << output::indent(indent) << ">;\n\n";
@@ -373,7 +373,7 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
            output::indent(indent + 1) << fieldRefName << "<\n" <<
            output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << common::fieldNamespaceStr() << enumType << "::" << valueStr << ">,\n" <<
            output::indent(indent + 2) << "comms::option::EmptySerialization,\n" <<
-           output::indent(indent + 2) << getTypeOptString() << ",\n" <<
+           output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
            output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">;\n\n";
 }
@@ -416,7 +416,7 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
            output::indent(indent + 1) << fieldRefName << "<\n" <<
            output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
            output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">,\n" <<
-           output::indent(indent + 2) << getTypeOptString() << ",\n" <<
+           output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
            output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
@@ -433,7 +433,7 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
-           output::indent(indent + 2) << getTypeOptString() << ",\n" <<
+           output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
            output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
@@ -456,28 +456,13 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
            output::indent(indent + 1) << fieldRefName << "<\n" <<
            output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
            output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">,\n" <<
-           output::indent(indent + 2) << getTypeOptString() << ",\n" <<
+           output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
            output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
     common::writeIntIsNullFunc(out, indent + 1, nullValue);
     out << output::indent(indent) << "};\n\n";
 }
-
-std::string BasicField::getFieldOptString() const
-{
-    return common::optParamPrefixStr() + common::messageNamespaceStr() +
-           getScope() + common::fieldsSuffixStr() + "::" +
-           getReferenceName();
-}
-
-std::string BasicField::getTypeOptString() const
-{
-    auto typeOpts = m_type->getExtraOptInfos();
-    assert(typeOpts.size() == 1U);
-    return common::optParamPrefixStr() + common::fieldNamespaceStr() + typeOpts.front().second;
-}
-
 
 
 } // namespace sbe2comms

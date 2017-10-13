@@ -22,6 +22,7 @@
 #include <set>
 
 #include "xml_wrap.h"
+#include "Type.h"
 
 namespace sbe2comms
 {
@@ -97,6 +98,8 @@ protected:
     void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);
     static void writeOptions(std::ostream& out, unsigned indent);
     void recordExtraHeader(const std::string& header);
+    std::string getFieldOptString() const;
+    static std::string getTypeOptString(const Type& type);
 
     xmlNodePtr getNode() const
     {

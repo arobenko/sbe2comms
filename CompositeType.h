@@ -28,12 +28,27 @@ class CompositeType : public Type
 {
     using Base = Type;
 public:
+    using Members = std::vector<TypePtr>;
     explicit CompositeType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
     bool isBundleOptional() const;
     bool isValidDimensionType() const;
     bool isValidData() const;
     bool isBundle() const;
+    void recordDataUse()
+    {
+        m_dataUse = true;
+    }
+
+    bool dataUseRecorded() const
+    {
+        return m_dataUse;
+    }
+
+    const Members& getMembers() const
+    {
+        return m_members;
+    }
 
 protected:
     virtual Kind getKindImpl() const override;
@@ -54,9 +69,26 @@ private:
     bool checkDataValid();
     AllExtraOptInfos getAllExtraOpts() const;
     void writeExtraOptsDoc(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos);
-    void writeExtraOptsTemplParams(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos);
+    void writeExtraOptsTemplParams(
+        std::ostream& out,
+        unsigned indent,
+        const AllExtraOptInfos& infos,
+        bool hasExtraOptions = false);
 
-    std::vector<TypePtr> m_members;
+    Members m_members;
+    bool m_dataUse = false;
 };
+
+inline
+const CompositeType* asCompositeType(const Type* type)
+{
+    return static_cast<const CompositeType*>(type);
+}
+
+inline
+CompositeType* asCompositeType(Type* type)
+{
+    return static_cast<CompositeType*>(type);
+}
 
 } // namespace sbe2comms

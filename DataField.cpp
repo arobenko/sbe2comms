@@ -23,6 +23,8 @@
 #include "prop.h"
 #include "output.h"
 #include "log.h"
+#include "common.h"
+#include "CompositeType.h"
 
 namespace sbe2comms
 {
@@ -51,7 +53,14 @@ bool DataField::parseImpl()
         return false;
     }
 
-    typePtr->recordDataUse();
+    auto* compType = asCompositeType(typePtr);
+    if (!compType->isValidData()) {
+        log::error() << "Composite \"" << type << "\" is not of right format to support encoding of data field \"" <<
+                        getName() << "\"." << std::endl;
+        return false;
+    }
+
+    compType->recordDataUse();
     m_type = typePtr;
     return true;
 }
@@ -59,11 +68,23 @@ bool DataField::parseImpl()
 bool DataField::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
 {
     assert(m_type != nullptr);
-    assert(m_type->hasListOrString());
     writeHeader(out, indent, suffix);
-    writeOptions(out, indent);
-    out << output::indent(indent) << "using " << getName() << suffix << " = " <<
-           "field::" << m_type->getReferenceName() << "<TOpt...>;\n\n";
+    std::string name;
+    if (suffix.empty()) {
+        name = getReferenceName();
+    }
+    else {
+        name = getName() + suffix;
+    }
+
+    out << output::indent(indent) << "using " << name << " = \n" <<
+           output::indent(indent + 1) << common::fieldNamespaceStr() << m_type->getReferenceName() << "<\n";
+    auto& members = asCompositeType(m_type)->getMembers();
+    for (auto& m : members) {
+        out << output::indent(indent + 2) << getTypeOptString(*m) << ",\n";
+    }
+    out << output::indent(indent + 2) << getFieldOptString() << '\n' <<
+           output::indent(indent + 1) << ">;\n\n";
     return true;
 }
 

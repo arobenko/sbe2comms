@@ -533,7 +533,8 @@ bool BasicType::writeFixedLengthArray(
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
+           output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }

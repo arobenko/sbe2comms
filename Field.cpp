@@ -116,19 +116,10 @@ bool Field::write(std::ostream& out, unsigned indent)
         return false;
     }
 
-    auto extraOpts = hasListOrString();
     writeHeader(out, indent, common::emptyString());
-    if (extraOpts) {
-        writeOptions(out, indent);
-    }
-
     out << output::indent(indent) << "using " << getName() << " =\n" <<
            output::indent(indent + 1) << "comms::field::Optional<\n" <<
-           output::indent(indent + 2) << getName() << OptFieldSuffix;
-    if (extraOpts) {
-        out << "<TOpt...>";
-    }
-    out << ",\n" <<
+           output::indent(indent + 2) << getName() << OptFieldSuffix << ",\n" <<
            output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
            output::indent(indent + 1) << ">;\n\n";
     return true;
@@ -243,5 +234,20 @@ const std::string& Field::getDefaultOptMode()
 
     return common::emptyString();
 }
+
+std::string Field::getFieldOptString() const
+{
+    return common::optParamPrefixStr() + common::messageNamespaceStr() +
+           getScope() + common::fieldsSuffixStr() + "::" +
+           getReferenceName();
+}
+
+std::string Field::getTypeOptString(const Type& type)
+{
+    auto typeOpts = type.getExtraOptInfos();
+    assert(typeOpts.size() == 1U);
+    return common::optParamPrefixStr() + common::fieldNamespaceStr() + typeOpts.front().second;
+}
+
 
 } // namespace sbe2comms

@@ -35,6 +35,7 @@ class DB
 {
 public:
     using TypesMap = std::map<std::string, TypePtr>;
+    using TypesList = std::list<Type*>;
     using MessagesMap = std::map<std::string, Message>;
 
     bool parseSchema(std::string filename);
@@ -52,6 +53,11 @@ public:
     const TypesMap& getTypes() const
     {
         return m_types;
+    }
+
+    const TypesList& getTypesList() const
+    {
+        return m_typesList;
     }
 
     MessagesMap& getMessages()
@@ -105,6 +111,7 @@ private:
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
     TypesMap m_types;
+    TypesList m_typesList;
     GeneratedTypeMap m_builtInTypes;
     GeneratedTypeMap m_paddingTypes;
     MessagesMap m_messages;

@@ -402,16 +402,23 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
         return false;
     }
 
-    writeHeader(out, indent, true);
-    common::writeExtraOptionsTemplParam(out, indent);
+    auto allExtraOpts = getAllExtraOpts();
+    assert(allExtraOpts.size() == DataEncIdx_numOfValues);
+    auto& lengthExtraOpt = allExtraOpts[DataEncIdx_length].front().second;
+    auto& dataExtraOpt = allExtraOpts[DataEncIdx_data].front().second;
+    writeHeader(out, indent, false);
+    writeExtraOptsDoc(out, indent, allExtraOpts);
+    common::writeExtraOptionsDoc(out, indent);
+    writeExtraOptsTemplParams(out, indent, allExtraOpts, true);
     auto& lenMem = *m_members[DataEncIdx_length];
     auto& dataMem = *m_members[DataEncIdx_data];
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<
            output::indent(indent + 2) << "comms::option::SequenceSizeFieldPrefix<\n" <<
-           output::indent(indent + 3) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << "<>\n" <<
+           output::indent(indent + 3) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << '<' << OptPrefix << lengthExtraOpt << ">\n" <<
            output::indent(indent + 2) << ">,\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 2) << OptPrefix << dataExtraOpt << ",\n" <<
+           output::indent(indent + 2) << "TOpt\n" <<
            output::indent(indent + 1) << ">;\n\n";
 
     return true;
@@ -473,23 +480,30 @@ void CompositeType::writeExtraOptsDoc(std::ostream& out, unsigned indent, const 
     for (auto& l : infos) {
         for (auto& o : l) {
             out << output::indent(indent) << "/// \\tparam " << OptPrefix <<
-                   o.first << " Extra options for \\ref " << o.second << '\n';
+                   o.first << " Extra options for \\ref " << o.second << " from \\b comms::option namespace.\n";
         }
     }
 }
 
-void CompositeType::writeExtraOptsTemplParams(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos)
+void CompositeType::writeExtraOptsTemplParams(
+        std::ostream& out,
+        unsigned indent,
+        const AllExtraOptInfos& infos,
+        bool hasExtraOptions)
 {
     out << output::indent(indent) << "template<\n";
     for (auto& l : infos) {
         for (auto& o : l) {
             out << output::indent(indent + 1) << "typename " << OptPrefix << o.first << common::eqEmptyOptionStr();
-            bool comma = ((&l != &infos.back()) || (&o != &l.back()));
+            bool comma = (hasExtraOptions || (&l != &infos.back()) || (&o != &l.back()));
             if (comma) {
                 out << ',';
             }
             out << '\n';
         }
+    }
+    if (hasExtraOptions) {
+        out << output::indent(indent + 1) << "typename TOpt" << common::eqEmptyOptionStr() << '\n';
     }
     out << output::indent(indent) << ">\n";
 }

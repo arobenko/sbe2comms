@@ -261,7 +261,7 @@ const std::string& eqEmptyOptionStr()
 
 const std::string& optParamPrefixStr()
 {
-    static const std::string Str("TOpt_");
+    static const std::string Str("TOpt::");
     return Str;
 }
 
