@@ -259,6 +259,12 @@ const std::string& eqEmptyOptionStr()
     return Str;
 }
 
+const std::string& optParamPrefixStr()
+{
+    static const std::string Str("TOpt_");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);
@@ -300,7 +306,7 @@ void writeIntIsNullFunc(std::ostream& out, unsigned indent, std::intmax_t val)
            output::indent(indent) << "bool isNull() const\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::value() == static_cast<Base::ValueType>(" << val << ");\n" <<
+           output::indent(indent + 1) << "return Base::value() == static_cast<Base::ValueType>(" << num(val) << ");\n" <<
            output::indent(indent) << "}\n";
 
 }
@@ -315,6 +321,50 @@ void writeFpIsNullFunc(std::ostream& out, unsigned indent)
            output::indent(indent) << "}\n";
 
 }
+
+void writeFpOptConstructor(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& name,
+    const std::string& customDefault)
+{
+    out << output::indent(indent) << "/// \\brief Default constructor.\n" <<
+           output::indent(indent) << "/// \\details Initializes field's value to ";
+    if (customDefault.empty()) {
+        out << "NaN";
+    }
+    else {
+        out << customDefault;
+    }
+    out << '\n' <<
+           output::indent(indent) << name << "::" << name << "()\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << fieldBaseDefStr() <<
+           output::indent(indent + 1) << "Base::value() = ";
+    if (customDefault.empty()) {
+        out << "std::numeric_limits<typename Base::ValueType>::quiet_NaN()";
+    }
+    else {
+        out << "static_cast<Base::ValueType>(" << customDefault << ')';
+    }
+    out << ";\n" <<
+           output::indent(indent) << "}\n";
+}
+
+void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid)
+{
+    out << output::indent(indent) << "/// \\brief Value validity check function.\n" <<
+           output::indent(indent) << "bool valid() const\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << common::fieldBaseDefStr() <<
+           output::indent(indent + 1) << "return Base::valid()";
+    if (!nanValid) {
+        out << " && (!std::isnan(Base::value()))";
+    }
+    out << ";\n" <<
+           output::indent(indent) << "}\n";
+}
+
 
 void writeEnumIsNullFunc(std::ostream& out, unsigned indent)
 {

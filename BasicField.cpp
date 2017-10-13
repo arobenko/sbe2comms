@@ -39,9 +39,6 @@ namespace sbe2comms
 namespace
 {
 
-const std::string FieldSuffix("Field");
-const std::string OptPrefix("typename TOpt::");
-
 const std::string& getNamespaceForType(const DB& db, const std::string& name)
 {
     if ((db.isRecordedBuiltInType(name)) || db.isRecordedPaddingType(name)) {
@@ -331,9 +328,6 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
 
     if (m_type->getKind() != Type::Kind::Composite) {
         bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
-        auto fieldOptStr = OptPrefix + common::messageNamespaceStr() +
-                           getMsgName() + common::fieldsSuffixStr() + "::" +
-                           getReferenceName();
         if (builtIn) {
             out << output::indent(indent + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
             out << output::indent(indent + 1) << getFieldOptString() << '\n';
@@ -350,7 +344,7 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
 
     auto typeOpts = m_type->getExtraOptInfos();
     for (auto& o : typeOpts) {
-        out << output::indent(indent + 1) << OptPrefix;
+        out << output::indent(indent + 1) << common::optParamPrefixStr();
         if (!ba::starts_with(o.second, common::fieldNamespaceStr())) {
             out << common::fieldNamespaceStr();
         }
@@ -420,17 +414,14 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << nullValue << ">,\n" <<
-           output::indent(indent + 2) << "comms::option::ValidNumValue<" << nullValue << ">\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">,\n" <<
+           output::indent(indent + 2) << getTypeOptString() << ",\n" <<
+           output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
-           output::indent(indent + 1) << "bool isNull() const\n" <<
-           output::indent(indent + 1) << "{\n" <<
-           output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
-           output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
-           output::indent(indent + 1) << "}\n" <<
-           output::indent(indent) << "};\n\n";
+           output::indent(indent) << "{\n";
+    common::writeIntIsNullFunc(out, indent + 1, nullValue);
+    out << output::indent(indent) << "};\n\n";
 }
 
 void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name)
@@ -440,22 +431,18 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
     auto* basicType = static_cast<const BasicType*>(m_type);
     assert(basicType->isFpType());
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
-    out << output::indent(indent) << "struct " << name << " : public " << fieldRefName << "<>\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << "/// \\brief Default constructor.\n" <<
-           output::indent(indent + 1) << "/// \\details Initializes field to NaN.\n" <<
-           output::indent(indent + 1) << name << "::" << name << "()\n" <<
-           output::indent(indent + 1) << "{\n" <<
-           output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
-           output::indent(indent + 2) << "Base::value() = std::numeric_limits<typename Base::ValueType>::quiet_NaN();\n" <<
-           output::indent(indent + 1) << "}\n\n" <<
-           output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
-           output::indent(indent + 1) << "bool isNull() const\n" <<
-           output::indent(indent + 1) << "{\n" <<
-           output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
-           output::indent(indent + 2) << "return std::isnan(Base::value());\n" <<
-           output::indent(indent + 1) << "}\n" <<
-           output::indent(indent) << "};\n\n";
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
+           output::indent(indent + 1) << fieldRefName << "<\n" <<
+           output::indent(indent + 2) << getTypeOptString() << ",\n" <<
+           output::indent(indent + 2) << getFieldOptString() << '\n' <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeFpOptConstructor(out, indent + 1, name);
+    out << '\n';
+    common::writeFpIsNullFunc(out, indent + 1);
+    out << '\n';
+    common::writeFpValidCheckFunc(out, indent + 1, true);
+    out << output::indent(indent) << "};\n\n";
 }
 
 void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name)
@@ -467,23 +454,20 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << nullValue << ">,\n" <<
-           output::indent(indent + 2) << "comms::option::ValidNumValue<" << nullValue << ">\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">,\n" <<
+           output::indent(indent + 2) << getTypeOptString() << ",\n" <<
+           output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
-           output::indent(indent + 1) << "bool isNull() const\n" <<
-           output::indent(indent + 1) << "{\n" <<
-           output::indent(indent + 2) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n" <<
-           output::indent(indent + 2) << "return Base::value() == static_cast<Base::ValueType>(" << nullValue << ");\n" <<
-           output::indent(indent + 1) << "}\n" <<
-           output::indent(indent) << "};\n\n";
+           output::indent(indent) << "{\n";
+    common::writeIntIsNullFunc(out, indent + 1, nullValue);
+    out << output::indent(indent) << "};\n\n";
 }
 
 std::string BasicField::getFieldOptString() const
 {
-    return OptPrefix + common::messageNamespaceStr() +
-           getMsgName() + common::fieldsSuffixStr() + "::" +
+    return common::optParamPrefixStr() + common::messageNamespaceStr() +
+           getScope() + common::fieldsSuffixStr() + "::" +
            getReferenceName();
 }
 
@@ -491,7 +475,7 @@ std::string BasicField::getTypeOptString() const
 {
     auto typeOpts = m_type->getExtraOptInfos();
     assert(typeOpts.size() == 1U);
-    return OptPrefix + common::fieldNamespaceStr() + typeOpts.front().second;
+    return common::optParamPrefixStr() + common::fieldNamespaceStr() + typeOpts.front().second;
 }
 
 

@@ -367,31 +367,14 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
 
     bool result = false;
     do {
-        auto writeConstractorFunc =
-            [this, &out, &name](unsigned ind, const std::string& val)
-            {
-                out << output::indent(ind) << "/// \\brief Default constructor.\n" <<
-                       output::indent(ind) << name << "::" << name << "()\n" <<
-                       output::indent(ind) << "{\n" <<
-                       output::indent(ind + 1) << common::fieldBaseDefStr() <<
-                       output::indent(ind + 1) << "Base::value() = " << val << ";\n" <<
-                       output::indent(ind) << "}\n";
-            };
-
-
         if (isRequired()) {
-            out << output::indent(indent + 1) << "/// \\brief Value validity check function.\n" <<
-                   output::indent(indent + 1) << "bool valid() const\n" <<
-                   output::indent(indent + 1) << "{\n" <<
-                   output::indent(indent + 2) << common::fieldBaseDefStr() <<
-                   output::indent(indent + 2) << "return Base::valid() && (!std::isnan(Base::value()));\n" <<
-                   output::indent(indent + 1) << "}\n";
+            common::writeFpValidCheckFunc(out, indent + 1);
             result = true;
             break;
         }
         
         if (isOptional()) {
-            writeConstractorFunc(indent + 1, "std::numeric_limits<typename Base::ValueType>::quiet_NaN()");
+            common::writeFpOptConstructor(out, indent + 1, name);
             out << '\n';
             common::writeFpIsNullFunc(out, indent + 1);
             result = true;
@@ -401,7 +384,7 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
         if (isConstant()) {
             auto constValStr = xmlText(getNode());
             assert(!constValStr.empty());
-            writeConstractorFunc(indent + 1, "static_cast<Base::ValueType>(" + constValStr + ")");
+            common::writeFpOptConstructor(out, indent + 1, name, constValStr);
             out << '\n' <<
                    output::indent(indent + 1) << "/// \\brief Value validity check function.\n" <<
                    output::indent(indent + 1) << "bool valid() const\n" <<

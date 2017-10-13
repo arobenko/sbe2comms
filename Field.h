@@ -34,10 +34,10 @@ public:
     explicit Field(
         DB& db,
         xmlNodePtr node,
-        const std::string& msgName)
+        const std::string& scope)
       : m_db(db),
         m_node(node),
-        m_msgName(msgName)
+        m_scope(scope)
     {
     }
 
@@ -103,9 +103,9 @@ protected:
         return m_node;
     }
 
-    const std::string& getMsgName() const
+    const std::string& getScope() const
     {
-        return m_msgName;
+        return m_scope;
     }
 
 
@@ -125,7 +125,7 @@ private:
 
     DB& m_db;
     xmlNodePtr m_node = nullptr;
-    std::string m_msgName;
+    std::string m_scope;
     XmlPropsMap m_props;
     std::set<std::string> m_extraHeaders;
 };

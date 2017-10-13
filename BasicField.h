@@ -27,7 +27,7 @@ class BasicField : public Field
 {
     using Base = Field;
 public:
-    BasicField(DB& db, xmlNodePtr node, const std::string& msgName) : Base(db, node, msgName) {}
+    BasicField(DB& db, xmlNodePtr node, const std::string& scope) : Base(db, node, scope) {}
 
     const std::string& getValueRef() const;
     unsigned getSerializationLength() const;
