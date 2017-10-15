@@ -51,6 +51,7 @@ const std::string& primitiveFloatToStd(const std::string& type)
     return *iter;
 }
 
+
 } // namespace
 
 const std::string& BasicType::getPrimitiveType() const
@@ -115,6 +116,7 @@ bool BasicType::parseImpl()
         addExtraInclude("<limits>");
         addExtraInclude("<cmath>");
     }
+
     return true;
 }
 
@@ -419,8 +421,11 @@ bool BasicType::writeVarLengthString(
     std::ostream& out,
     unsigned indent)
 {
-    out << output::indent(indent) << "using " << getReferenceName() <<
-           " = comms::field::String<" << common::fieldBaseStr() << ", TOpt...>";
+    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+           output::indent(indent + 1) << " comms::field::String<" << common::fieldBaseStr() << ", TOpt...>\n" <<
+           output::indent(indent) << "{\n";
+    writeStringValidFunc(out, indent + 1);
+    out << output::indent(indent) << "}";
     return true;
 }
 
@@ -476,15 +481,18 @@ bool BasicType::writeFixedLengthString(
     if (!isConstString()) {
         unsigned len = getLengthProp();
         assert(1U < len);
-        out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+        out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
                output::indent(indent + 1) << "comms::field::String<\n" <<
                output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
                output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
                output::indent(indent + 2) << "TOpt...\n" <<
-               output::indent(indent + 1) << ">";
+               output::indent(indent + 1) << ">" <<
+               output::indent(indent) << "{\n";
+        writeStringValidFunc(out, indent + 1);
+        out << output::indent(indent) << "}";
         return true;
     }
-    
+
     auto text = xmlText(getNode());
     out << output::indent(indent) << "struct " << getReferenceName() << " : public \n" <<
            output::indent(indent + 1) << "comms::field::String<\n" <<
@@ -598,6 +606,26 @@ bool BasicType::isRawData(const std::string& primType)
     };
     auto iter = std::find(std::begin(RawDataTypes), std::end(RawDataTypes), primType);
     return (iter != std::end(RawDataTypes));
+}
+
+void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
+{
+    auto minValue = intMinValue(CharType, std::string());
+    assert (minValue.second);
+    auto maxValue = intMaxValue(CharType, std::string());
+    assert(maxValue.second);
+    out << output::indent(indent) << "/// \\brief Value validity check function.\n" <<
+           output::indent(indent) << "bool valid() const\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << common::fieldBaseDefStr() <<
+           output::indent(indent + 1) << "auto& str = Base::value();\n" <<
+           output::indent(indent + 1) << "for (auto ch : str) {\n" <<
+           output::indent(indent + 2) << "if ((ch < " << minValue.first << ") ||\n" <<
+           output::indent(indent + 2) << "    (" << maxValue.first << " < ch)) {\n" <<
+           output::indent(indent + 2) << "    return false;\n" <<
+           output::indent(indent + 2) << "}\n\n" <<
+           output::indent(indent + 1) << "return true;\n" <<
+           output::indent(indent) << "}\n";
 }
 
 } // namespace sbe2comms

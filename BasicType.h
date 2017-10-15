@@ -97,6 +97,8 @@ private:
     bool isRawData() const;
 
     static bool isRawData(const std::string& primType);
+
+    void writeStringValidFunc(std::ostream& out, unsigned indent);
 };
 
 } // namespace sbe2comms
