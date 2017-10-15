@@ -168,6 +168,11 @@ bool BasicType::hasListOrStringImpl() const
     return (getLengthProp() != 1U) || (isConstString());
 }
 
+bool BasicType::hasFixedLengthImpl() const
+{
+    return (getLengthProp() != 0U);
+}
+
 bool BasicType::writeSimpleType(std::ostream& out,
     unsigned indent,
     bool isElement)

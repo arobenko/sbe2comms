@@ -191,6 +191,17 @@ bool CompositeType::hasListOrStringImpl() const
     });
 }
 
+bool CompositeType::hasFixedLengthImpl() const
+{
+    return std::all_of(
+                m_members.begin(), m_members.end(),
+                [](const TypePtr& m)
+                {
+                    return m->hasFixedLength();
+
+                });
+}
+
 Type::ExtraOptInfosList CompositeType::getExtraOptInfosImpl() const
 {
     ExtraOptInfosList list;

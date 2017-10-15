@@ -135,6 +135,11 @@ bool SetType::hasListOrStringImpl() const
     return getAdjustedLengthProp() != 1U;
 }
 
+bool SetType::hasFixedLengthImpl() const
+{
+    return getAdjustedLengthProp() != 0U;
+}
+
 void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 {
     auto name = getName();

@@ -39,6 +39,7 @@ protected:
     virtual bool writeImpl(std::ostream& out, unsigned indent) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasListOrStringImpl() const override;
+    virtual bool hasFixedLengthImpl() const override;
 
 private:
     bool writeSimpleType(

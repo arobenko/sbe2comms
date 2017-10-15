@@ -95,6 +95,12 @@ bool RefType::hasListOrStringImpl() const
     return m_type->hasListOrString();
 }
 
+bool RefType::hasFixedLengthImpl() const
+{
+    assert(m_type != nullptr);
+    return m_type->hasFixedLength();
+}
+
 Type::ExtraOptInfosList RefType::getExtraOptInfosImpl() const
 {
     if (!isBundle()) {

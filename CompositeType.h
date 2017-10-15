@@ -58,6 +58,7 @@ protected:
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent) override;
     virtual bool hasListOrStringImpl() const override;
+    virtual bool hasFixedLengthImpl() const override;
     virtual ExtraOptInfosList getExtraOptInfosImpl() const override;
 private:
     using AllExtraOptInfos = std::vector<ExtraOptInfosList>;

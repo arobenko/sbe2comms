@@ -114,6 +114,11 @@ public:
         return hasListOrStringImpl();
     }
 
+    bool hasFixedLength() const
+    {
+        return hasFixedLengthImpl();
+    }
+
     ExtraOptInfosList getExtraOptInfos() const
     {
         return getExtraOptInfosImpl();
@@ -142,6 +147,7 @@ protected:
     virtual std::size_t getSerializationLengthImpl() const = 0;
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent);
     virtual bool hasListOrStringImpl() const;
+    virtual bool hasFixedLengthImpl() const = 0;
     virtual ExtraOptInfosList getExtraOptInfosImpl() const;
 
     void writeBrief(std::ostream& out, unsigned indent);

@@ -109,6 +109,12 @@ bool BasicField::parseImpl()
         return false;
     }
 
+    if (!m_type->hasFixedLength()) {
+        log::error() << "Field \"" << getName() << "\" references type \"" << m_type->getName() <<
+                        "\", which doesn't have fixed length." << std::endl;
+        return false;
+    }
+
     if ((m_type->getKind() == Type::Kind::Composite) &&
         (asCompositeType(m_type)->dataUseRecorded())) {
         log::error() << "Cannot use \"" << m_type->getName() << "\" type with \"" << getName() << "\" field due to "

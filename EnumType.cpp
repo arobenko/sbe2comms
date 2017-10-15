@@ -149,6 +149,11 @@ bool EnumType::hasListOrStringImpl() const
     return getAdjustedLengthProp() != 1U;
 }
 
+bool EnumType::hasFixedLengthImpl() const
+{
+    return getAdjustedLengthProp() != 0U;
+}
+
 void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 {
     auto& underlying = getUnderlyingType();
