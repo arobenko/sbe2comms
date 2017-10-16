@@ -209,6 +209,13 @@ bool SetType::readChoices()
     }
 
     std::size_t bitsCount = getSerializationLength() * std::numeric_limits<std::uint8_t>::digits;
+
+    static const std::size_t MaxBitsLimit = 64U;
+    if (MaxBitsLimit < bitsCount) {
+        log::error() << "Maximum allowed amount of bits for \"" << getName() << "\" set is 64." << std::endl;
+        return false;
+    }
+
     assert(0U < bitsCount);
     std::set<std::string> processedNames;
     for (auto* c : choices) {
@@ -259,6 +266,7 @@ bool SetType::readChoices()
             processedNames.insert(choiceName);
         }
     }
+
     return true;
 }
 

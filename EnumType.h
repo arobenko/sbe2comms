@@ -44,7 +44,7 @@ protected:
     virtual bool hasFixedLengthImpl() const override;
 
 private:
-    using Values = std::multimap<std::intmax_t, std::string>;
+    using Values = std::map<std::intmax_t, std::string>;
     using Descriptions = std::map<std::string, std::string>;
     using RangeInfo = std::pair<std::intmax_t, std::intmax_t>;
     using RangeInfosList = std::list<RangeInfo>;

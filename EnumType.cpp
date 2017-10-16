@@ -339,6 +339,10 @@ bool EnumType::readValues()
             return false;
         }
 
+        if (!getDb().doesElementExist(prop::sinceVersion(vProps), prop::deprecated(vProps))) {
+            continue;
+        }
+
         std::intmax_t numVal = 0;
         do {
             if (isChar) {
@@ -360,14 +364,19 @@ bool EnumType::readValues()
             numVal = numValPair.first;
         } while (false);
 
-        if (getDb().doesElementExist(prop::sinceVersion(vProps), prop::deprecated(vProps))) {
-            m_values.insert(std::make_pair(numVal, vName));
-            processedNames.insert(vName);
+        auto iter = m_values.find(numVal);
+        if (iter != m_values.end()) {
+            log::error() << "Failed to introduce value \"" << vName << "\" of enum \"" << getName() <<
+                            "\" due to the numeric value being occupied by \"" << iter->second << "\"." << std::endl;
+            return false;
+        }
 
-            auto& desc = prop::description(vProps);
-            if (!desc.empty()) {
-                m_desc.insert(std::make_pair(vName, desc));
-            }
+        m_values.insert(std::make_pair(numVal, vName));
+        processedNames.insert(vName);
+
+        auto& desc = prop::description(vProps);
+        if (!desc.empty()) {
+            m_desc.insert(std::make_pair(vName, desc));
         }
     }
 
