@@ -61,7 +61,7 @@ public:
 
     const std::string& getDescription() const;
 
-    static Ptr create(DB& db, xmlNodePtr node, const std::string& msgName);
+    static Ptr create(DB& db, xmlNodePtr node, const std::string& scope);
 
     bool write(std::ostream& out, unsigned indent = 0);
 
@@ -99,7 +99,7 @@ protected:
     static void writeOptions(std::ostream& out, unsigned indent);
     void recordExtraHeader(const std::string& header);
     std::string getFieldOptString() const;
-    static std::string getTypeOptString(const Type& type);
+    std::string getTypeOptString(const Type& type) const;
 
     xmlNodePtr getNode() const
     {

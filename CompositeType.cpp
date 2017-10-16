@@ -61,20 +61,47 @@ bool CompositeType::isBundleOptional() const
     return static_cast<const CompositeType&>(*mem).isBundleOptional();
 }
 
-bool CompositeType::isValidDimensionType() const
+bool CompositeType::verifyValidDimensionType() const
 {
     auto verifyMemberFunc =
-        [](const Type& t) -> bool
+        [this](const Type& t) -> bool
         {
-            return t.getKind() == Kind::Basic &&
-                   t.getLengthProp() == 1U &&
-                   t.isRequired();
+            bool result =
+                t.getKind() == Kind::Basic &&
+                t.getLengthProp() == 1U &&
+                t.isRequired();
+
+            if (!result) {
+                log::error() << "The member \"" << t.getName() << "\" of \"" << getName() <<
+                                "\" is of invalid format.";
+            }
+            return result;
         };
 
-    return
-        ((m_members.size() == 2) &&
-         verifyMemberFunc(*m_members[0]) &&
-         verifyMemberFunc(*m_members[1]));
+    if ((m_members.size() != 2) ||
+        (!verifyMemberFunc(*m_members[0])) ||
+        (!verifyMemberFunc(*m_members[1]))) {
+        return false;
+    }
+
+    auto findNameFunc =
+        [this](const std::string& tName)
+        {
+            bool result = std::any_of(
+                m_members.begin(), m_members.end(),
+                [&tName](const TypePtr& t)
+                {
+                    return tName == t->getName();
+                });
+
+            if (!result) {
+                log::error() << "No member of \"" << getName() << "\" has name \"" << tName << "\"." << std::endl;
+            }
+            return result;
+        };
+
+    return findNameFunc(common::blockLengthStr()) &&
+           findNameFunc(common::numInGroupStr());
 }
 
 bool CompositeType::isValidData() const

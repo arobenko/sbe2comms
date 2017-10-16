@@ -43,8 +43,8 @@ protected:
 private:
     bool prepareMembers();
     unsigned getBlockLength() const;
-    bool writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts);
-    void writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts);
+    bool writeMembers(std::ostream& out, unsigned indent);
+    void writeBundle(std::ostream& out, unsigned indent);
     const std::string& getDimensionType() const;
 
     std::list<FieldPtr> m_fields;

@@ -265,6 +265,24 @@ const std::string& optParamPrefixStr()
     return Str;
 }
 
+const std::string& blockLengthStr()
+{
+    static const std::string Str("blockLength");
+    return Str;
+}
+
+const std::string& numInGroupStr()
+{
+    static const std::string Str("numInGroup");
+    return Str;
+}
+
+const std::string& groupListStr()
+{
+    static const std::string Str("groupList");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);

@@ -18,6 +18,7 @@
 #include "Field.h"
 
 #include <iostream>
+#include <boost/algorithm/string.hpp>
 
 #include "DB.h"
 #include "output.h"
@@ -27,6 +28,8 @@
 #include "GroupField.h"
 #include "DataField.h"
 #include "log.h"
+
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -70,27 +73,27 @@ const std::string& Field::getDescription() const
     return prop::description(m_props);
 }
 
-Field::Ptr Field::create(DB& db, xmlNodePtr node, const std::string& msgName)
+Field::Ptr Field::create(DB& db, xmlNodePtr node, const std::string& scope)
 {
     using FieldCreateFunc = std::function<Ptr (DB&, xmlNodePtr, const std::string&)>;
     static const std::map<std::string, FieldCreateFunc> CreateMap = {
         std::make_pair(
             "field",
-            [](DB& d, xmlNodePtr n, const std::string& msg)
+            [](DB& d, xmlNodePtr n, const std::string& s)
             {
-                return Ptr(new BasicField(d, n, msg));
+                return Ptr(new BasicField(d, n, s));
             }),
         std::make_pair(
             "group",
-            [](DB& d, xmlNodePtr n, const std::string& msg)
+            [](DB& d, xmlNodePtr n, const std::string& s)
             {
-                return Ptr(new GroupField(d, n, msg));
+                return Ptr(new GroupField(d, n, s));
             }),
         std::make_pair(
             "data",
-            [](DB& d, xmlNodePtr n, const std::string& msg)
+            [](DB& d, xmlNodePtr n, const std::string& s)
             {
-                return Ptr(new DataField(d, n, msg));
+                return Ptr(new DataField(d, n, s));
             })
     };
 
@@ -100,7 +103,7 @@ Field::Ptr Field::create(DB& db, xmlNodePtr node, const std::string& msgName)
         return Ptr();
     }
 
-    return iter->second(db, node, msgName);
+    return iter->second(db, node, scope);
 }
 
 bool Field::write(std::ostream& out, unsigned indent)
@@ -238,15 +241,20 @@ const std::string& Field::getDefaultOptMode()
 std::string Field::getFieldOptString() const
 {
     return common::optParamPrefixStr() + common::messageNamespaceStr() +
-           getScope() + common::fieldsSuffixStr() + "::" +
+           getScope() +
            getReferenceName();
 }
 
-std::string Field::getTypeOptString(const Type& type)
+std::string Field::getTypeOptString(const Type& type) const
 {
     auto typeOpts = type.getExtraOptInfos();
     assert(typeOpts.size() == 1U);
-    return common::optParamPrefixStr() + common::fieldNamespaceStr() + typeOpts.front().second;
+    std::string result = common::optParamPrefixStr();
+    if (!ba::starts_with(getScope(), common::fieldNamespaceStr())) {
+        result += common::fieldNamespaceStr();
+    }
+    result += typeOpts.front().second;
+    return result;
 }
 
 

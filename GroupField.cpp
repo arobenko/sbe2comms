@@ -26,6 +26,7 @@
 #include "log.h"
 #include "BasicField.h"
 #include "CompositeType.h"
+#include "common.h"
 
 namespace sbe2comms
 {
@@ -33,8 +34,6 @@ namespace sbe2comms
 namespace
 {
 
-const std::string MembersSuffix("Members");
-const std::string ElementSuffix("Element");
 
 } // namespace
 
@@ -61,8 +60,8 @@ bool GroupField::parseImpl()
         return false;
     }
 
-    auto* compType = static_cast<const CompositeType*>(m_type);
-    if (!compType->isValidDimensionType()) {
+    auto* compType = asCompositeType(m_type);
+    if (!compType->verifyValidDimensionType()) {
         log::error() << "The dimentionType \"" << dimType << "\" of group \"" << getName() << "\" is not of valid format." << std::endl;
         return false;
     }
@@ -75,34 +74,28 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
 {
     static_cast<void>(suffix);
 
-    bool hasExtraOpts =
-            std::any_of(
-                m_members.begin(), m_members.end(),
-                [](const FieldPtr& m)
-                {
-                   return m->hasListOrString();
-                });
-
-    if (!writeMembers(out, indent, hasExtraOpts)) {
+    if (!writeMembers(out, indent)) {
         return false;
     }
 
-
-    writeBundle(out, indent, hasExtraOpts);
-
+    writeBundle(out, indent);
     writeHeader(out, indent, suffix);
-    writeOptions(out, indent);
 
-    // TODO: use sbe2comms::groupList alias
+    unsigned basicFieldCount =
+        std::count_if(
+            m_members.begin(), m_members.end(),
+            [](const FieldPtr& m) -> bool
+            {
+                return m->getKind() == Kind::Basic;
+            });
+
     out << output::indent(indent) << "using " << getName() << " =\n" <<
-           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << "field::FieldBase,\n" <<
-           output::indent(indent + 2) << getName() << ElementSuffix;
-    if (hasExtraOpts) {
-        out << "<TOpt...>";
-    }
-    out << ",\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 1) << common::builtinNamespaceStr() << common::groupListStr() << "<\n" <<
+           output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getName() << common::elementSuffixStr() << ",\n" <<
+           output::indent(indent + 2) << common::fieldNamespaceStr() << getDimensionType() << ",\n" <<
+           output::indent(indent + 2) << basicFieldCount << ",\n" <<
+           output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">;\n\n";
     return true;
 }
@@ -122,7 +115,7 @@ bool GroupField::prepareMembers()
     bool rootBlock = true;
     bool dataMembers = false;
     for (auto* c : children) {
-        auto mem = Field::create(getDb(), c, std::string());
+        auto mem = Field::create(getDb(), c, getScope() + getName() + common::memembersSuffixStr() + "::");
         if (!mem) {
             log::error() << "Failed to create members of \"" << getName() << "\" group." << std::endl;
             return false;
@@ -222,10 +215,10 @@ unsigned GroupField::getBlockLength() const
     return prop::blockLength(getProps());
 }
 
-bool GroupField::writeMembers(std::ostream& out, unsigned indent, bool hasExtraOpts)
+bool GroupField::writeMembers(std::ostream& out, unsigned indent)
 {
     auto& n = getName();
-    std::string membersStruct = getName() + MembersSuffix;
+    std::string membersStruct = getName() + common::memembersSuffixStr();
 
     out << output::indent(indent) << "/// \\brief Scope for all the members of the \\ref " << n << " field.\n" <<
            output::indent(indent) << "struct " << membersStruct << '\n' <<
@@ -236,45 +229,30 @@ bool GroupField::writeMembers(std::ostream& out, unsigned indent, bool hasExtraO
     }
 
     out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n";
-    if (hasExtraOpts) {
-        out << output::indent(indent + 1) << "/// \\tparam TOpt Extra options for list/string fields.\n";
-        writeOptions(out, indent + 1);
-    }
     out << output::indent(indent + 1) << "using All = std::tuple<\n";
-    bool first = true;
     for (auto& m : m_members) {
-        if (!first) {
-            out << ",\n";
-        }
-        first = false;
         auto& mName = m->getName();
         assert(!mName.empty());
         out << output::indent(indent + 2) << mName;
-        if (m->hasListOrString()) {
-            out << "<TOpt...>";
+        bool comma = (&m != &m_members.back());
+        if (comma) {
+            out << ',';
         }
+        out << '\n';
     }
-    out << '\n' <<
-           output::indent(indent + 1) << ">;\n" <<
+    out << output::indent(indent + 1) << ">;\n" <<
            output::indent(indent) << "};\n\n";
     return result;
 }
 
-void GroupField::writeBundle(std::ostream& out, unsigned indent, bool hasExtraOpts)
+void GroupField::writeBundle(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "/// \\brief Element of \\ref " << getName() << " list.\n";
-    if (hasExtraOpts) {
-        out << output::indent(indent) << "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n";
-        writeOptions(out, indent);
-    }
 
-    out << output::indent(indent) << "struct " << getName() << ElementSuffix << " : public\n" <<
+    out << output::indent(indent) << "struct " << getName() << common::elementSuffixStr() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
-           output::indent(indent + 2) << "field::FieldBase,\n" <<
-           output::indent(indent + 2) << getName() << MembersSuffix << "::All";
-    if (hasExtraOpts) {
-        out << "<TOpt...>";
-    }
+           output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getName() << common::memembersSuffixStr() << "::All";
 
     out << '\n' <<
            output::indent(indent + 1) << ">\n" <<
@@ -285,20 +263,16 @@ void GroupField::writeBundle(std::ostream& out, unsigned indent, bool hasExtraOp
            output::indent(indent + 1) << "///     for details.\n" <<
            output::indent(indent + 1) << "COMMS_FIELD_MEMBERS_ACCESS(\n";
 
-    bool first = true;
     for (auto& m : m_members) {
-        if (!first) {
-            out << ",\n";
-        }
-        else {
-            first = false;
-        }
-
         out << output::indent(indent + 2) << m->getName();
+        bool comma = (&m == &m_members.back());
+        if (comma) {
+            out << ',';
+        }
+        out << '\n';
     }
 
-    out << '\n' <<
-           output::indent(indent + 1) << ");\n" <<
+    out << output::indent(indent + 1) << ");\n" <<
            output::indent(indent) << "};\n\n";
 }
 

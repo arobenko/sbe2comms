@@ -32,7 +32,7 @@ public:
     explicit CompositeType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
     bool isBundleOptional() const;
-    bool isValidDimensionType() const;
+    bool verifyValidDimensionType() const;
     bool isValidData() const;
     bool isBundle() const;
     void recordDataUse()

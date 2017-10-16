@@ -158,7 +158,7 @@ bool Message::createFields()
     assert(m_fields.empty());
     auto children = xmlChildren(m_node);
     for (auto c : children) {
-        auto fieldPtr = Field::create(m_db, c, getName());
+        auto fieldPtr = Field::create(m_db, c, getName() + common::fieldsSuffixStr() + "::");
         if (!fieldPtr) {
             log::error() << "Unknown field kind \"" << c->name << "\"!" << std::endl;
             return false;
