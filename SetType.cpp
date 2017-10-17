@@ -130,11 +130,6 @@ std::size_t SetType::getSerializationLengthImpl() const
     return iter->second->getSerializationLength();
 }
 
-bool SetType::hasListOrStringImpl() const
-{
-    return getAdjustedLengthProp() != 1U;
-}
-
 bool SetType::hasFixedLengthImpl() const
 {
     return getAdjustedLengthProp() != 0U;

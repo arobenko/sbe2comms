@@ -79,10 +79,6 @@ public:
     const std::string& getType() const;
     unsigned getOffset() const;
     void updateExtraHeaders(std::set<std::string>& headers);
-    bool hasListOrString() const
-    {
-        return hasListOrStringImpl();
-    }
 
     Kind getKind() const
     {
@@ -98,7 +94,6 @@ protected:
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
-    virtual bool hasListOrStringImpl() const;
     virtual bool usesBuiltInTypeImpl() const = 0;
 
     void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);

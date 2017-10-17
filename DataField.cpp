@@ -88,11 +88,6 @@ bool DataField::writeImpl(std::ostream& out, unsigned indent, const std::string&
     return true;
 }
 
-bool DataField::hasListOrStringImpl() const
-{
-    return true;
-}
-
 bool DataField::usesBuiltInTypeImpl() const
 {
     return false;

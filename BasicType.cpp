@@ -163,11 +163,6 @@ std::size_t BasicType::getSerializationLengthImpl() const
     return singleLen * count;
 }\
 
-bool BasicType::hasListOrStringImpl() const
-{
-    return (getLengthProp() != 1U) || (isConstString());
-}
-
 bool BasicType::hasFixedLengthImpl() const
 {
     return (getLengthProp() != 0U);

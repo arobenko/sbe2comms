@@ -181,12 +181,6 @@ bool BasicField::writeImpl(std::ostream& out, unsigned indent, const std::string
     return false;
 }
 
-bool BasicField::hasListOrStringImpl() const
-{
-    assert(m_type != nullptr);
-    return (m_type != nullptr) && (m_type->hasListOrString());
-}
-
 bool BasicField::usesBuiltInTypeImpl() const
 {
     assert(m_type != nullptr);
@@ -219,12 +213,6 @@ bool BasicField::checkOptional() const
         (kind != Type::Kind::Enum)) {
         log::error() << "Optional field \"" << getName() << "\" can reference only "
                         "basic or enum type." << std::endl;
-        return false;
-    }
-
-    if (m_type->hasListOrString()) {
-        log::error() << "Optional field \"" << getName() << "\" can reference only "
-                        "non-string or non-list types" << std::endl;
         return false;
     }
 

@@ -192,11 +192,6 @@ bool Field::parseImpl()
     return true;
 }
 
-bool Field::hasListOrStringImpl() const
-{
-    return false;
-}
-
 void Field::writeHeader(std::ostream& out, unsigned indent, const std::string& suffix)
 {
     if (suffix.empty()) {

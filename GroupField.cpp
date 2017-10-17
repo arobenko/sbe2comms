@@ -100,11 +100,6 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
     return true;
 }
 
-bool GroupField::hasListOrStringImpl() const
-{
-    return true;
-}
-
 bool GroupField::usesBuiltInTypeImpl() const
 {
     return true;

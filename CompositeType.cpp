@@ -208,16 +208,6 @@ bool CompositeType::writeDependenciesImpl(std::ostream& out, unsigned indent)
     return result;
 }
 
-bool CompositeType::hasListOrStringImpl() const
-{
-    return std::any_of(
-                m_members.begin(), m_members.end(),
-                [](const TypePtr& m)
-                {
-                    return m->hasListOrString();
-    });
-}
-
 bool CompositeType::hasFixedLengthImpl() const
 {
     return std::all_of(
@@ -484,12 +474,6 @@ bool CompositeType::checkDataValid()
     if (m_members[DataEncIdx_data]->getKind() != Kind::Basic) {
         log::error() << "The composite \"" << getName() << "\" type has "
                        "been used to encode data field, must have data field of basic type." << std::endl;
-        return false;
-    }
-
-    if (!m_members[DataEncIdx_data]->hasListOrString()) {
-        log::error() << "The composite \"" << getName() << "\" type has "
-                       "been used to encode data field, must have data field describing list or string." << std::endl;
         return false;
     }
 

@@ -89,12 +89,6 @@ bool RefType::writeDependenciesImpl(std::ostream& out, unsigned indent)
     return m_type->write(out, indent);
 }
 
-bool RefType::hasListOrStringImpl() const
-{
-    assert(m_type != nullptr);
-    return m_type->hasListOrString();
-}
-
 bool RefType::hasFixedLengthImpl() const
 {
     assert(m_type != nullptr);

@@ -144,11 +144,6 @@ std::size_t EnumType::getSerializationLengthImpl() const
     return iter->second->getSerializationLength();
 }
 
-bool EnumType::hasListOrStringImpl() const
-{
-    return getAdjustedLengthProp() != 1U;
-}
-
 bool EnumType::hasFixedLengthImpl() const
 {
     return getAdjustedLengthProp() != 0U;

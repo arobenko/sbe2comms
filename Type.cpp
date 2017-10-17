@@ -282,11 +282,6 @@ bool Type::writeDependenciesImpl(std::ostream& out, unsigned indent)
     return true;
 }
 
-bool Type::hasListOrStringImpl() const
-{
-    return false;
-}
-
 Type::ExtraOptInfosList Type::getExtraOptInfosImpl() const
 {
     ExtraOptInfosList list;
