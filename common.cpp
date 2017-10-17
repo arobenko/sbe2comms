@@ -47,10 +47,22 @@ const std::string& fieldsDefFileName()
     return Name;
 }
 
+const std::string& builtinsDefFileName()
+{
+    static const std::string Name("sbe2comms.h");
+    return Name;
+}
+
 const std::string& defaultOptionsFileName()
 {
-    static const std::string Name("DefaultOptions.h");
+    static const std::string Name(defaultOptionsStr() + ".h");
     return Name;
+}
+
+const std::string& defaultOptionsStr()
+{
+    static const std::string Str("DefaultOptions");
+    return Str;
 }
 
 const std::string& emptyString()

@@ -41,16 +41,17 @@ public:
 
     bool parse();
 
-    bool write(DB& db);
+    bool write();
     const std::string& getName() const;
+    const std::string& getReferenceName() const;
 
 private:
 
     bool createFields();
-    bool writeFields(std::ostream& out, DB& db);
-    bool writeAllFieldsDef(std::ostream& out, DB& db);
-    bool writeMessageClass(std::ostream& out, DB& db);
-    bool writeMessageDef(const std::string& filename, DB& db);
+    bool writeFields(std::ostream& out);
+    bool writeAllFieldsDef(std::ostream& out);
+    bool writeMessageClass(std::ostream& out);
+    bool writeMessageDef(const std::string& filename);
     void writeExtraDefHeaders(std::ostream& out);
 
     DB& m_db;

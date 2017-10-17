@@ -39,6 +39,7 @@ protected:
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool hasListOrStringImpl() const;
+    virtual bool usesBuiltInTypeImpl() const override;
 
 private:
     bool prepareMembers();

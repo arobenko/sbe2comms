@@ -89,11 +89,17 @@ public:
         return getKindImpl();
     }
 
+    bool usesBuiltInType() const
+    {
+        return usesBuiltInTypeImpl();
+    }
+
 protected:
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool hasListOrStringImpl() const;
+    virtual bool usesBuiltInTypeImpl() const = 0;
 
     void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);
     static void writeOptions(std::ostream& out, unsigned indent);

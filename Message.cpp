@@ -37,20 +37,21 @@ namespace sbe2comms
 namespace
 {
 
+std::string napespacePrefix(DB& db)
+{
+    auto& ns = db.getProtocolNamespace();
+    if (ns.empty()) {
+        return ns;
+    }
+
+    return ns + '/';
+}
+
 void writeFileHeader(std::ostream& out, const std::string& name)
 {
     out << "/// \\file\n"
            "/// \\brief Contains definition of " << name << " message and its fields.\n\n"
            "#pragma once\n\n";
-}
-
-void writeIncludes(std::ostream& out, DB& db, const std::string& msgName)
-{
-    out <<
-        "#include \"comms/MessageBase.h\"\n"
-        "#include \"" << db.getProtocolNamespace() << '/' << common::fieldsDefFileName() << "\"\n"
-        "#include \"" << "details/" << msgName << ".h\"\n"
-        "\n";
 }
 
 void openNamespaces(std::ostream& out, DB& db)
@@ -79,27 +80,20 @@ void closeNamespaces(std::ostream& out, DB& db)
     }
 }
 
-const std::string& fieldsClassSuffix()
-{
-    static const std::string Suffix("Fields");
-    return Suffix;
-}
-
-
 void openFieldsDef(std::ostream& out, const std::string& name)
 {
     out <<
         "/// \\brief Accumulates details of all the " << name << " message fields.\n"
         "/// \\tparam TOpt Extra options to be passed to all fields.\n"
         "/// \\see " << name << "\n"
-        "template <typename TOpt = comms::option::EmptyOption>\n"
-        "struct " << name << fieldsClassSuffix() << "\n"
+        "template <typename TOpt = " << common::defaultOptionsStr() << '\n' <<
+        "struct " << name << common::fieldsSuffixStr() << "\n"
         "{\n";
 }
 
 void closeFieldsDef(std::ostream& out, const std::string& name)
 {
-    out << "}; // " << name << fieldsClassSuffix() << "\n\n";
+    out << "}; // " << name << common::fieldsSuffixStr() << "\n\n";
 }
 
 } // namespace
@@ -124,16 +118,16 @@ bool Message::parse()
     return true;
 }
 
-bool Message::write(DB& db)
+bool Message::write()
 {
-    bf::path root(db.getRootPath());
-    bf::path protocolRelDir(db.getProtocolRelDir());
+    bf::path root(m_db.getRootPath());
+    bf::path protocolRelDir(m_db.getProtocolRelDir());
     bf::path messagesDir(root / protocolRelDir / common::messageDirName());
 
     boost::system::error_code ec;
     bf::create_directories(messagesDir, ec);
     if (ec) {
-        std::cerr << "ERROR: Failed to create \"" << messagesDir.string() <<
+        log::error() << "Failed to create \"" << messagesDir.string() <<
                 "\" with error \"" << ec.message() << "\"!" << std::endl;
         return false;
     }
@@ -143,14 +137,19 @@ bool Message::write(DB& db)
     auto relPath = protocolRelDir / common::messageDirName() / filename;
     auto filePath = messagesDir / filename;
 
-    std::cout << "INFO: Generating " << relPath.string() << std::endl;
-    return writeMessageDef(filePath.string(), db);
+    log::info() << "Generating " << relPath.string() << std::endl;
+    return writeMessageDef(filePath.string());
 }
 
 const std::string& Message::getName() const
 {
     assert(!m_props.empty());
     return prop::name(m_props);
+}
+
+const std::string& Message::getReferenceName() const
+{
+    return common::renameKeyword(getName());
 }
 
 bool Message::createFields()
@@ -177,9 +176,8 @@ bool Message::createFields()
     return true;
 }
 
-bool Message::writeFields(std::ostream& out, DB& db)
+bool Message::writeFields(std::ostream& out)
 {
-    static_cast<void>(db);
     auto& msgName = getName();
     openFieldsDef(out, msgName);
     bool result = true;
@@ -187,14 +185,13 @@ bool Message::writeFields(std::ostream& out, DB& db)
         result = f->write(out, 1) && result;
     }
 
-    result = writeAllFieldsDef(out, db) && result;
+    result = writeAllFieldsDef(out) && result;
     closeFieldsDef(out, msgName);
     return result;
 }
 
-bool Message::writeAllFieldsDef(std::ostream& out, DB& db)
+bool Message::writeAllFieldsDef(std::ostream& out)
 {
-    static_cast<void>(db);
     out << output::indent(1) <<
         "/// \\brief All the fields bundled in std::tuple.\n" <<
         output::indent(1) <<
@@ -215,26 +212,25 @@ bool Message::writeAllFieldsDef(std::ostream& out, DB& db)
     return true;
 }
 
-bool Message::writeMessageClass(std::ostream& out, DB& db)
+bool Message::writeMessageClass(std::ostream& out)
 {
-    static_cast<void>(db);
     auto& n = getName();
     out <<
         "/// \\brief Definition of " << n << " message\n"
         "/// \\details Inherits from \\b comms::MessageBase\n"
         "///     while providing \\b TMsgBase as common interface class as well as\n"
         "///     various implementation options. \\n\n"
-        "///     See \\ref " << n << fieldsClassSuffix() << " for definition of the fields this message contains\n"
+        "///     See \\ref " << n << common::fieldsSuffixStr() << " for definition of the fields this message contains\n"
         "///         and COMMS_MSG_FIELDS_ACCESS() for fields access details.\n"
         "/// \\tparam TMsgBase Common interface class for all the messages.\n"
         "/// \\tparam TOpt Extra options to be passed to all fields.\n"
-        "template <typename TMsgBase, typename TOpt = comms::option::EmptyOption>\n"
-        "class " << n << " : public\n" <<
+        "template <typename TMsgBase, typename TOpt = " << common::defaultOptionsStr() << ">\n"
+        "class " << getReferenceName() << " : public\n" <<
         output::indent(1) << "comms::MessageBase<\n" <<
         output::indent(2) << "TMsgBase,\n" <<
         output::indent(2) << "comms::option::StaticNumIdImpl<MsgId_" << n << ">,\n" <<
-        output::indent(2) << "comms::option::FieldsImpl<typename " << n << fieldsClassSuffix() << "<TOpt>::All>,\n" <<
-        output::indent(2) << "comms::option::MsgType<" << n << "<TMsgBase, TOpt> >\n" <<
+        output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>,\n" <<
+        output::indent(2) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >\n" <<
         output::indent(1) << ">\n"
         "{\n"
         "public:\n" <<
@@ -248,7 +244,7 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
         auto& fieldName = f->getName();
         out << output::indent(1) <<
             "///     \\li \\b " << fieldName <<
-            " for \\ref " << n << fieldsClassSuffix() << "::" <<
+            " for \\ref " << n << common::fieldsSuffixStr() << "::" <<
             fieldName << " field.\n";
     }
     out << output::indent(1) << "COMMS_MSG_FIELDS_ACCESS(\n";
@@ -269,7 +265,7 @@ bool Message::writeMessageClass(std::ostream& out, DB& db)
     return true;
 }
 
-bool Message::writeMessageDef(const std::string& filename, DB& db)
+bool Message::writeMessageDef(const std::string& filename)
 {
     std::ofstream stream(filename);
     if (!stream) {
@@ -280,12 +276,11 @@ bool Message::writeMessageDef(const std::string& filename, DB& db)
     auto& msgName = getName();
     writeFileHeader(stream, msgName);
     writeExtraDefHeaders(stream);
-    writeIncludes(stream, db, msgName);
-    openNamespaces(stream, db);
+    openNamespaces(stream, m_db);
     bool result =
-        writeFields(stream, db) &&
-        writeMessageClass(stream, db);
-    closeNamespaces(stream, db);
+        writeFields(stream) &&
+        writeMessageClass(stream);
+    closeNamespaces(stream, m_db);
     stream.flush();
 
     bool written = stream.good();
@@ -303,13 +298,29 @@ void Message::writeExtraDefHeaders(std::ostream& out)
         f->updateExtraHeaders(extraHeaders);
     }
 
-    if (extraHeaders.empty()) {
-        return;
-    }
-
     for (auto& h : extraHeaders) {
         out << "#include " << h << '\n';
     }
+
+    out << "#include \"comms/MessageBase.h\"\n" <<
+           "#include \"" << napespacePrefix(m_db) << common::defaultOptionsFileName() << "\"\n";
+
+    if (!m_fields.empty()) {
+        out << "#include \"" << napespacePrefix(m_db) << common::fieldsDefFileName() << "\"\n";
+    }
+
+    auto hasBuiltIns =
+        std::any_of(
+            m_fields.begin(), m_fields.end(),
+            [](FieldsList::const_reference& f)
+            {
+                return f->usesBuiltInType();
+            });
+
+    if (hasBuiltIns) {
+        out << "#include \"" << napespacePrefix(m_db) << common::builtinsDefFileName() << "\"\n";
+    }
+
     out << '\n';
 }
 

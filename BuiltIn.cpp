@@ -236,7 +236,7 @@ bool BuiltIn::write(DB& db)
         return false;
     }
 
-    auto relPath = protocolRelDir / "sbe2comms.h";
+    auto relPath = protocolRelDir / common::builtinsDefFileName();
     auto filePath = root / relPath;
     std::cout << "INFO: Generating " << relPath.string() << std::endl;
     std::ofstream out(filePath.string());

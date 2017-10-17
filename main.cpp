@@ -39,7 +39,7 @@ bool writeMessages(DB& db)
 {
     auto& messages = db.getMessages();
     for (auto iter = messages.begin(); iter != messages.end(); ++iter) {
-        if (!iter->second.write(db)) {
+        if (!iter->second.write()) {
             return false;
         }
     }
@@ -152,7 +152,7 @@ bool writeDefaultOptions(DB& db)
                   "{\n\n";
     }
 
-    stream << "struct DefaultOptions\n"
+    stream << "struct " << common::defaultOptionsStr() << "\n"
               "{\n" <<
               output::indent(1) << "struct field\n" <<
               output::indent(1) << "{\n";

@@ -93,4 +93,9 @@ bool DataField::hasListOrStringImpl() const
     return true;
 }
 
+bool DataField::usesBuiltInTypeImpl() const
+{
+    return false;
+}
+
 } // namespace sbe2comms

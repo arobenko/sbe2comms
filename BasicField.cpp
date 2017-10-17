@@ -187,6 +187,12 @@ bool BasicField::hasListOrStringImpl() const
     return (m_type != nullptr) && (m_type->hasListOrString());
 }
 
+bool BasicField::usesBuiltInTypeImpl() const
+{
+    assert(m_type != nullptr);
+    return getDb().isRecordedBuiltInType(m_type->getName());
+}
+
 bool BasicField::checkRequired() const
 {
     assert(m_type != nullptr);

@@ -105,6 +105,11 @@ bool GroupField::hasListOrStringImpl() const
     return true;
 }
 
+bool GroupField::usesBuiltInTypeImpl() const
+{
+    return true;
+}
+
 bool GroupField::prepareMembers()
 {
     assert(m_members.empty());
