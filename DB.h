@@ -94,6 +94,9 @@ public:
     bool isRecordedPaddingType(const std::string& name) const;
 
     void recordGroupListUsage();
+    bool isGroupListRecorded() const;
+
+    std::list<std::string> getAllUsedBuiltInTypes() const;
 
 private:
     struct GeneratedTypeInfo

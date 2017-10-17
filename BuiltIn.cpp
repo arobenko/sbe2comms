@@ -24,8 +24,15 @@
 
 #include "output.h"
 #include "DB.h"
+#include "common.h"
 
 namespace bf = boost::filesystem;
+
+namespace sbe2comms
+{
+
+namespace
+{
 
 void writeBuiltInInt(std::ostream& out, const std::string& name)
 {
@@ -55,12 +62,169 @@ void writeBuiltInFloat(std::ostream& out, const std::string& name)
            "    >;\n\n";
 }
 
-
-namespace sbe2comms
+void writeBuiltIn(std::ostream& out, const std::string& name)
 {
+    static const std::string FloatTypes[] = {
+        "float",
+        "double"
+    };
+
+    auto iter = std::find(std::begin(FloatTypes), std::end(FloatTypes), name);
+    if (iter != std::end(FloatTypes)) {
+        writeBuiltInFloat(out, name);
+        return;
+    }
+    writeBuiltInInt(out, name);
+}
+
+void writeGroupList(std::ostream& out)
+{
+    out << "/// \\brief Generic list type to be used to defaine a \"group\" list.\n"
+           "/// \\tparam TFieldBase Common base class of all the fields.\n"
+           "/// \\tparam TElement Element of the list, expected to be a variant of \\b comms::field::Bundle.\n"
+           "/// \\tparam TDimensionType Dimention type field with \"blockLength\" and \"numInGroup\" members.\n"
+           "/// \\tparam TRootCount Number of root block fields in the element.\n"
+           "/// \\tparam TOpt Extra options for the list class.\n"
+           "template <\n" <<
+           output::indent(1) << "typename TFieldBase,\n" <<
+           output::indent(1) << "typename TElement,\n" <<
+           output::indent(1) << "typename TDimensionType,\n" <<
+           output::indent(1) << "std::size_t TRootCount,\n" <<
+           output::indent(1) << "typename... TOpt\n" <<
+           ">\n"
+           "struct groupList : public\n" <<
+           output::indent(1) << "comms::field::ArrayList<\n" <<
+           output::indent(2) << "TFieldBase,\n" <<
+           output::indent(2) << "TElement,\n" <<
+           output::indent(2) << "TOpt...\n" <<
+           output::indent(1) << ">\n" <<
+           "{\n" <<
+           output::indent(1) << "/// \\brief Get length of serialised data.\n" <<
+           output::indent(1) << "constexpr std::size_t length() const\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << common::fieldBaseDefStr() <<
+           output::indent(2) << "return TDimensionType::maxLength() + Base::length();\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) << "/// \\brief Read field value from input data sequence.\n" <<
+           output::indent(1) << "template <typename TIter>\n" <<
+           output::indent(1) << "comms::ErrorStatus read(TIter& iter, std::size_t len)\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "TDimensionType dimType;\n" <<
+           output::indent(2) << "auto es = dimType.read(iter, len);\n" <<
+           output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
+           output::indent(3) << "return es;\n" <<
+           output::indent(2) << "}\n\n" <<
+           output::indent(2) << "auto count = dimType.field_numInGroup().value();\n" <<
+           output::indent(2) << "auto remLen = len - dimType.length();\n" <<
+           output::indent(2) << "for (decltype(count) idx = 0; idx < count; ++idx) {\n" <<
+           output::indent(3) << "using IterType = typename std::decay<decltype(iter)>::type;\n" <<
+           output::indent(3) << "using IterCategory = typename std::iterator_traits<IterType>::iterator_category;\n" <<
+           output::indent(3) << "static_assert(\n" <<
+           output::indent(4) << "std::is_copy_constructible<IterType>::value &&\n" <<
+           output::indent(4) << "std::is_base_of<std::forward_iterator_tag, IterCategory>::value,\n" <<
+           output::indent(4) << "\"Used iterator type is not supported for read operation\");\n" <<
+           output::indent(3) << "IterType iterTmp(iter);\n" <<
+           output::indent(3) << "auto blockLength = static_cast<std::size_t>(dimType.field_blockLength().value());\n" <<
+           output::indent(3) << "if (remLen < blockLength) {\n" <<
+           output::indent(4) << "return comms::ErrorStatus::NotEnoughData;\n" <<
+           output::indent(3) << "}\n\n" <<
+           output::indent(3) << common::fieldBaseDefStr() <<
+           output::indent(3) << "Base::value().emplace_back();\n" <<
+           output::indent(3) << "auto& lastElem = Base::value().back();\n" <<
+           output::indent(3) << "es = lastElem.readUntil<TRootCount>(iterTmp, blockLength);\n" <<
+           output::indent(3) << "if (es != comm::ErrorStatus::Success) {\n" <<
+           output::indent(4) << "Base::value().pop_back();\n" <<
+           output::indent(4) << "return es;\n" <<
+           output::indent(3) << "}\n\n" <<
+           output::indent(3) << "std::advance(iter, blockLength);\n" <<
+           output::indent(3) << "remLen -= blockLength;\n\n" <<
+           output::indent(3) << "es = lastElem.readFrom<TRootCount>(iter, remLen);\n" <<
+           output::indent(3) << "if (es != comm::ErrorStatus::Success) {\n" <<
+           output::indent(4) << "Base::value().pop_back();\n" <<
+           output::indent(4) << "return es;\n" <<
+           output::indent(3) << "}\n\n" <<
+           output::indent(3) << "remLen -= Base::value().back().lengthFrom<TRootCount>();\n" <<
+           output::indent(2) << "}\n\n" <<
+           output::indent(2) << "return checkFailOnInvalid();\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) << "/// \\brief Read field value from input data sequence without error check and status report.\n" <<
+           output::indent(1) << "template <typename TIter>\n" <<
+           output::indent(1) << "void readNoStatus(TIter& iter) = delete; // not supported\n\n" <<
+           output::indent(1) << "/// \\brief Write current field value to output data sequence.\n" <<
+           output::indent(1) << "template <typename TIter>\n" <<
+           output::indent(1) << "comms::ErrorStatus write(TIter& iter, std::size_t len) const\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "if (len < length()) {\n" <<
+           output::indent(3) << "return comms::ErrorStatus::BufferOverflow;\n" <<
+           output::indent(2) << "}\n\n" <<
+           output::indent(2) << "writeNoStatus(iter);\n" <<
+           output::indent(2) << "return comms::ErrorStatus::Success;\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) << "/// \\brief Write current field value to output data sequence  without error check and status report.\n" <<
+           output::indent(1) << "template <typename TIter>\n" <<
+           output::indent(1) << "void writeNoStatus(TIter& iter) const\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "TDimensionType dimType;\n" <<
+           output::indent(2) << "dimType.field_blockLength() = TElement::maxLengthUntil<TRootCount>();\n" <<
+           output::indent(2) << "dimType.field_numInGroup() = Base::value().size();\n" <<
+           output::indent(2) << "dimType.writeNoStatus(iter);\n\n" <<
+           output::indent(2) << common::fieldBaseDefStr() <<
+           output::indent(2) << "Base::writeNoStatus(iter);\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) << "/// \\brief Check validity of the field value.\n" <<
+           output::indent(1) << "bool valid() const\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "TDimensionType dimType;\n" <<
+           output::indent(2) << "dimType.field_blockLength() = TElement::maxLengthUntil<TRootCount>();\n" <<
+           output::indent(2) << "dimType.field_numInGroup() = Base::value().size();\n\n" <<
+           output::indent(2) << common::fieldBaseDefStr() <<
+           output::indent(2) << "return Base::valid() && dimType.valid();\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) << "/// \\brief Get minimal length that is required to serialise field of this type.\n" <<
+           output::indent(1) << "static constexpr std::size_t minLength()\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "return TDimensionType::minLength();\n" <<
+           output::indent(1) << "}\n\n" <<
+           "private:\n" <<
+           output::indent(1) << "struct NoFailOnInvalidTag{};\n" <<
+           output::indent(1) << "struct FailOnInvalidTag{};\n\n" <<
+           output::indent(1) << "comms::ErrorStatus checkFailOnInvalid() const\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "static_assert(!Base::ParsedOptions::HasFailOnInvalid,\n" <<
+           output::indent(3) << "\"comms::option::IgnoreInvalid option is not supported for \\\"groupList\\\"\");\n" <<
+           output::indent(2) << common::fieldBaseDefStr() <<
+           output::indent(2) << "using Tag = typename std::conditional<\n" <<
+           output::indent(3) << "Base::ParsedOptions::HasFailOnInvalid,\n" <<
+           output::indent(3) << "FailOnInvalidTag,\n" <<
+           output::indent(3) << "NoFailOnInvalidTag>::type;\n" <<
+           output::indent(2) << "return checkFailOnInvalid(Tag());\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) << "static comms::ErrorStatus checkFailOnInvalid(NoFailOnInvalidTag)\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "return comms::ErrorStatus::Success;\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) << "comms::ErrorStatus checkFailOnInvalid(FailOnInvalidTag) const\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << common::fieldBaseDefStr() <<
+           output::indent(2) << "if (!valid()) {\n" <<
+           output::indent(3) << "return Base::ParsedOptions::FailOnInvalidStatus;\n" <<
+           output::indent(2) << "}\n\n" <<
+           output::indent(2) << "return comms::ErrorStatus::Success;\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) << "static_assert(TElement::minLengthUntil<TRootCount>() == TElement::maxLengthUntil<TRootCount>(),\n" <<
+           output::indent(2) << "\"Root block must have fixed length\");\n" <<
+           "};\n";
+}
+} // namespace
 
 bool BuiltIn::write(DB& db)
 {
+    auto builtIns = db.getAllUsedBuiltInTypes();
+    bool hasGroupList = db.isGroupListRecorded();
+    if (builtIns.empty() && (!hasGroupList)) {
+        return true;
+    }
+
     bf::path root(db.getRootPath());
     bf::path protocolRelDir(db.getProtocolRelDir());
 
@@ -85,46 +249,17 @@ bool BuiltIn::write(DB& db)
            "/// \\brief Contains definition of built-in types and helper classes\n"
            "\n\n"
            "#pragma once\n\n"
-           "#include <cstdint>"
+           "#include <cstdint>\n"
            "#include \"comms/fields.h\"\n\n"
            "namespace sbe2comms\n"
            "{\n\n";
-    writeBuiltInInt(out, "int8");
-    writeBuiltInInt(out, "uint8");
-    writeBuiltInInt(out, "int16");
-    writeBuiltInInt(out, "uint16");
-    writeBuiltInInt(out, "int32");
-    writeBuiltInInt(out, "uint32");
-    writeBuiltInInt(out, "int64");
-    writeBuiltInInt(out, "uint64");
-    writeBuiltInFloat(out, "float");
-    writeBuiltInFloat(out, "double");
+    for (auto& t : builtIns) {
+        writeBuiltIn(out, t);
+    }
 
-    out << "/// \\brief Definition of \"groupList\" type.\n"
-           "/// \\details Used to define \"group\" lists."
-           "template <\n"
-           "    typename TFieldBase,\n"
-           "    typename TGroupSize,\n"
-           "    typename TElement,\n"
-           "    typename... TOpt>\n"
-           "struct groupList : public \n"
-           "    comms::field::Bundle<\n"
-           "        TFieldBase,\n"
-           "        std::tuple<\n"
-           "            TGroupSize,\n"
-           "            std::ArrayList<\n"
-           "                TFieldBase,\n"
-           "                TElement\n"
-           "            >\n"
-           "        >\n"
-           "    >\n"
-           "{\n"
-           "    /// \\brief Defining custom read operation\n"
-           "    template <typename TIter>\n"
-           "    comms::ErrorStatus read(TIter& iter, std::size_t len)\n"
-           "    {\n"
-           "    }\n"
-           "};\n\n";
+    if (hasGroupList) {
+        writeGroupList(out);
+    }
 
     out << "}\n\n";
     return out.good();

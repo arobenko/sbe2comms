@@ -330,6 +330,20 @@ void DB::recordGroupListUsage()
     m_groupListUsed = true;
 }
 
+bool DB::isGroupListRecorded() const
+{
+    return m_groupListUsed;
+}
+
+std::list<std::string> DB::getAllUsedBuiltInTypes() const
+{
+    std::list<std::string> list;
+    for (auto& t : m_builtInTypes) {
+        list.push_back(t.first);
+    }
+    return list;
+}
+
 bool DB::recordTypeRef(xmlNodePtr node)
 {
     auto props = xmlParseNodeProps(node, m_doc.get());
