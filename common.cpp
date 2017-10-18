@@ -243,13 +243,25 @@ const std::string& enumNullValueStr()
 
 const std::string& fieldNamespaceStr()
 {
-    static const std::string Str("field::");
+    static const std::string Str(fieldNamespaceNameStr() + "::");
+    return Str;
+}
+
+const std::string& fieldNamespaceNameStr()
+{
+    static const std::string Str("field");
     return Str;
 }
 
 const std::string& messageNamespaceStr()
 {
-    static const std::string Str("message::");
+    static const std::string Str(messageNamespaceNameStr() + "::");
+    return Str;
+}
+
+const std::string& messageNamespaceNameStr()
+{
+    static const std::string Str("message");
     return Str;
 }
 

@@ -141,6 +141,24 @@ bool Message::write()
     return writeMessageDef(filePath.string());
 }
 
+bool Message::writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
+{
+    if (m_fields.empty()) {
+        return true;
+    }
+
+    auto scopeUpd = getName() + common::fieldsSuffixStr();
+    auto fieldScope = scope + scopeUpd + "::";
+    out << output::indent(indent) << "struct " << scopeUpd << '\n' <<
+           output::indent(indent) << "{\n";
+    bool result = true;
+    for (auto& f : m_fields) {
+        result = f->writeDefaultOptions(out, indent + 1, fieldScope) && result;
+    }
+    out << output::indent(indent) << "}; // " << scopeUpd << "\n\n";
+    return result;
+}
+
 const std::string& Message::getName() const
 {
     assert(!m_props.empty());

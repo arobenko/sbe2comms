@@ -24,6 +24,7 @@
 #include "BuiltIn.h"
 #include "common.h"
 #include "output.h"
+#include "log.h"
 
 namespace bf = boost::filesystem;
 
@@ -55,18 +56,18 @@ bool writeTypes(DB& db)
     boost::system::error_code ec;
     bf::create_directories(protocolDir, ec);
     if (ec) {
-        std::cerr << "ERROR: Failed to create \"" << protocolDir.string() <<
+        log::error() << "Failed to create \"" << protocolDir.string() <<
                 "\" with error \"" << ec.message() << "\"!" << std::endl;
         return false;
     }
 
     auto fileRelPath = (protocolRelDir / common::fieldsDefFileName()).string();
-    std::cout << "INFO: Generating " << fileRelPath << std::endl;
+    log::info() << "Generating " << fileRelPath << std::endl;
 
     auto filePath = (protocolDir / common::fieldsDefFileName()).string();
     std::ofstream stream(filePath);
     if (!stream) {
-        std::cerr << "ERROR: Failed to create " << filePath << std::endl;
+        log::error() << "Failed to create " << filePath << std::endl;
         return false;
     }
 
@@ -110,7 +111,7 @@ bool writeTypes(DB& db)
     }
 
     if (!stream.good()) {
-        std::cerr << "ERROR: The file " << fileRelPath << "hasn't been written properly!" << std::endl;
+        log::error() << "The file " << fileRelPath << "hasn't been written properly!" << std::endl;
         return false;
     }
 
@@ -126,18 +127,18 @@ bool writeDefaultOptions(DB& db)
     boost::system::error_code ec;
     bf::create_directories(protocolDir, ec);
     if (ec) {
-        std::cerr << "ERROR: Failed to create \"" << protocolDir.string() <<
+        log::error() << "Failed to create \"" << protocolDir.string() <<
                 "\" with error \"" << ec.message() << "\"!" << std::endl;
         return false;
     }
 
     auto fileRelPath = (protocolRelDir / common::defaultOptionsFileName()).string();
-    std::cout << "INFO: Generating " << fileRelPath << std::endl;
+    log::info() << "Generating " << fileRelPath << std::endl;
 
     auto filePath = (protocolDir / common::defaultOptionsFileName()).string();
     std::ofstream stream(filePath);
     if (!stream) {
-        std::cerr << "ERROR: Failed to create " << filePath << std::endl;
+        log::error() << "Failed to create " << filePath << std::endl;
         return false;
     }
 
@@ -154,7 +155,7 @@ bool writeDefaultOptions(DB& db)
 
     stream << "struct " << common::defaultOptionsStr() << "\n"
               "{\n" <<
-              output::indent(1) << "struct field\n" <<
+              output::indent(1) << "struct " << common::fieldNamespaceNameStr() << '\n' <<
               output::indent(1) << "{\n";
 
     bool result = true;
@@ -163,16 +164,24 @@ bool writeDefaultOptions(DB& db)
         result = t.second->writeDefaultOptions(stream, 2, fieldsScope) && result;
     }
 
-    stream << output::indent(1) << "}; // field\n\n";
+    stream << output::indent(1) << "}; // " << common::fieldNamespaceNameStr() << "\n\n" <<
+              output::indent(1) << "struct " << common::messageNamespaceNameStr() << '\n' <<
+              output::indent(1) << "{\n";
 
-    stream << "}; // DefaultOptions\n\n";
+    auto messagesScope = ns + "::" + common::messageNamespaceStr();
+    for (auto& m : db.getMessages()) {
+        result = m.second.writeDefaultOptions(stream, 2, messagesScope) && result;
+    }
+
+    stream << output::indent(1) << "}; // " << common::messageNamespaceNameStr() << "\n\n" <<
+              "}; // DefaultOptions\n\n";
 
     if (!ns.empty()) {
         stream << "} // namespace " << ns << "\n\n";
     }
 
     if (!stream.good()) {
-        std::cerr << "ERROR: The file " << fileRelPath << "hasn't been written properly!" << std::endl;
+        log::error() << "The file " << fileRelPath << "hasn't been written properly!" << std::endl;
         return false;
     }
 
@@ -185,7 +194,7 @@ int main(int argc, const char* argv[])
 {
 
     if (argc < 2) {
-        std::cerr << "Wrong number of arguments" << std::endl;
+        sbe2comms::log::error() << "Wrong number of arguments" << std::endl;
         return -1;
     }
 

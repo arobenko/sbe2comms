@@ -90,6 +90,8 @@ public:
         return usesBuiltInTypeImpl();
     }
 
+    bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope);
+
 protected:
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();

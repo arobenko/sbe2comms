@@ -54,7 +54,7 @@ void writeBuiltInFloat(std::ostream& out, const std::string& name)
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << name << "Field = \n"
+           "using " << common::renameKeyword(name) << " = \n"
            "    comms::field::FloatValue<\n"
            "        TFieldBase,\n"
            "        " << name << ",\n"

@@ -42,6 +42,7 @@ public:
     bool parse();
 
     bool write();
+    bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope);
     const std::string& getName() const;
     const std::string& getReferenceName() const;
 
