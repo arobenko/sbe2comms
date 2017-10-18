@@ -275,6 +275,7 @@ bool Message::writeMessageClass(std::ostream& out)
     writeFieldsAccess(out);
     writeReadFunc(out);
     writeRefreshFunc(out);
+    writePrivateMembers(out);
     out << "};\n\n";
 
     return true;
@@ -357,6 +358,15 @@ void Message::writeReadFunc(std::ostream& out)
                    output::indent(2) << advanceStr <<
                    output::indent(2) << "return comms::ErrorStatus::Success;\n";
             break;
+        }
+
+        for (auto& f : m_fields) {
+            if (!f->isCommsOptionalWrapped()) {
+                continue;
+            }
+
+            out << output::indent(2) << "updateOptionalFieldMode(field_" << f->getName() << "(), " <<
+                   f->getSinceVersion() << ", " << f->getDeprecated() << ");\n";
         }
 
         auto nonBasicFieldIter =
@@ -442,6 +452,34 @@ void Message::writeRefreshFunc(std::ostream& out)
            output::indent(2) << "Base::setBlockLength(" << compStr << ");\n" <<
            output::indent(2) << "return true;\n" <<
            output::indent(1) << "}\n\n";
+}
+
+void Message::writePrivateMembers(std::ostream& out)
+{
+    bool needsFieldsModeUpdate =
+        std::any_of(
+            m_fields.begin(), m_fields.end(),
+            [](FieldsList::const_reference f)
+            {
+                return f->isCommsOptionalWrapped();
+            });
+
+    if (!needsFieldsModeUpdate) {
+        return;
+    }
+
+    out << "private:\n" <<
+           output::indent(1) << "template <typename TField>\n" <<
+           output::indent(1) << "void updateOptionalFieldMode(TField& field, unsigned sinceVersion, unsigned deprecated)\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << common::messageBaseDefStr() <<
+           output::indent(2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
+           output::indent(2) << "if ((deprecated <= Base::getVersion()) ||\n" <<
+           output::indent(2) << "    (Base::getVersion() < sinceVersion)) {\n" <<
+           output::indent(3) << "mode = comms::field::OptionalMode::Missing;\n" <<
+           output::indent(2) << "}\n" <<
+           output::indent(2) << "field.setMode(mode);\n" <<
+           output::indent(1) << "}\n";
 }
 
 void Message::writeExtraDefHeaders(std::ostream& out)

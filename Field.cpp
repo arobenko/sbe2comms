@@ -187,6 +187,11 @@ void Field::updateExtraHeaders(std::set<std::string>& headers)
     }
 }
 
+bool Field::isCommsOptionalWrapped() const
+{
+    return !getDefaultOptMode().empty();
+}
+
 bool Field::writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
 {
     out << output::indent(indent) << "/// \\brief Default options for \\ref " << scope << getReferenceName() << " field.\n" <<
@@ -225,7 +230,7 @@ void Field::recordExtraHeader(const std::string& header)
     m_extraHeaders.insert(header);
 }
 
-const std::string& Field::getDefaultOptMode()
+const std::string& Field::getDefaultOptMode() const
 {
     if (getDeprecated() <= m_db.getSchemaVersion()) {
         static const std::string Mode("comms::field::OptionalMode::Missing");

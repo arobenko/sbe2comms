@@ -79,6 +79,7 @@ public:
     const std::string& getType() const;
     unsigned getOffset() const;
     void updateExtraHeaders(std::set<std::string>& headers);
+    bool isCommsOptionalWrapped() const;
 
     Kind getKind() const
     {
@@ -127,7 +128,7 @@ protected:
 
 
 private:
-    const std::string& getDefaultOptMode();
+    const std::string& getDefaultOptMode() const;
 
     DB& m_db;
     xmlNodePtr m_node = nullptr;
