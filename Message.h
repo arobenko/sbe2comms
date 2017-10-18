@@ -51,7 +51,10 @@ private:
     bool writeFields(std::ostream& out);
     bool writeAllFieldsDef(std::ostream& out);
     bool writeMessageClass(std::ostream& out);
+    void writeFieldsAccess(std::ostream& out) const;
     bool writeMessageDef(const std::string& filename);
+    void writeReadFunc(std::ostream& out);
+    void writeRefreshFunc(std::ostream& out);
     void writeExtraDefHeaders(std::ostream& out);
 
     DB& m_db;

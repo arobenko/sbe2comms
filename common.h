@@ -41,6 +41,7 @@ const std::string& elementSuffixStr();
 const std::string& extraOptionsTemplParamStr();
 const std::string& fieldBaseStr();
 const std::string& fieldBaseDefStr();
+const std::string& messageBaseDefStr();
 const std::string& enumValSuffixStr();
 const std::string& enumNullValueStr();
 const std::string& fieldNamespaceStr();

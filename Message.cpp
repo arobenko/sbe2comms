@@ -85,7 +85,7 @@ void openFieldsDef(std::ostream& out, const std::string& name)
     out <<
         "/// \\brief Accumulates details of all the " << name << " message fields.\n"
         "/// \\tparam TOpt Extra options to be passed to all fields.\n"
-        "/// \\see " << name << "\n"
+        "/// \\see \\ref " << name << "\n"
         "template <typename TOpt = " << common::defaultOptionsStr() << '\n' <<
         "struct " << name << common::fieldsSuffixStr() << "\n"
         "{\n";
@@ -178,6 +178,9 @@ bool Message::createFields()
 
 bool Message::writeFields(std::ostream& out)
 {
+    if (m_fields.empty()) {
+        return true;
+    }
     auto& msgName = getName();
     openFieldsDef(out, msgName);
     bool result = true;
@@ -217,23 +220,56 @@ bool Message::writeMessageClass(std::ostream& out)
     auto& n = getName();
     out <<
         "/// \\brief Definition of " << n << " message\n"
-        "/// \\details Inherits from \\b comms::MessageBase\n"
+        "/// \\details ";
+    auto& desc = prop::description(m_props);
+    if (!desc.empty()) {
+        out << desc << "\\n\n///     ";
+    }
+    out <<
+        "Inherits from \\b comms::MessageBase\n"
         "///     while providing \\b TMsgBase as common interface class as well as\n"
-        "///     various implementation options. \\n\n"
-        "///     See \\ref " << n << common::fieldsSuffixStr() << " for definition of the fields this message contains\n"
-        "///         and COMMS_MSG_FIELDS_ACCESS() for fields access details.\n"
-        "/// \\tparam TMsgBase Common interface class for all the messages.\n"
-        "/// \\tparam TOpt Extra options to be passed to all fields.\n"
+        "///     various implementation options.\n";
+    if (!m_fields.empty()) {
+        out << "///     \\nSee \\ref " << n << common::fieldsSuffixStr() << " for definition of the fields this message contains\n"
+               "///         and COMMS_MSG_FIELDS_ACCESS() for fields access details.\n"
+               "/// \\tparam TMsgBase Common interface class for all the messages.\n"
+               "/// \\tparam TOpt Extra options to be passed to all fields.\n";
+    }
+
+    out <<
         "template <typename TMsgBase, typename TOpt = " << common::defaultOptionsStr() << ">\n"
         "class " << getReferenceName() << " : public\n" <<
         output::indent(1) << "comms::MessageBase<\n" <<
         output::indent(2) << "TMsgBase,\n" <<
         output::indent(2) << "comms::option::StaticNumIdImpl<MsgId_" << n << ">,\n" <<
-        output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>,\n" <<
-        output::indent(2) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >\n" <<
+        output::indent(2) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >,\n" <<
+        output::indent(2) << "comms::option::HasDoRefresh,\n";
+    if (m_fields.empty()) {
+        out << output::indent(2) << "comms::option::ZeroFieldsImpl\n";
+    }
+    else {
+        out << output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>\n";
+    }
+    out <<
         output::indent(1) << ">\n"
         "{\n"
-        "public:\n" <<
+        "public:\n";
+    writeFieldsAccess(out);
+    writeReadFunc(out);
+    writeRefreshFunc(out);
+    out << "};\n\n";
+
+    return true;
+}
+
+void Message::writeFieldsAccess(std::ostream& out) const
+{
+    if (m_fields.empty()) {
+        return;
+    }
+
+    auto& n = getName();
+    out <<
         output::indent(1) << "/// \\brief Allow access to internal fields.\n" <<
         output::indent(1) << "/// \\details See definition of \\b COMMS_MSG_FIELDS_ACCESS macro\n" <<
         output::indent(1) << "///     related to \\b comms::MessageBase class from COMMS library\n" <<
@@ -259,10 +295,7 @@ bool Message::writeMessageClass(std::ostream& out)
         auto& fieldName = f->getName();
         out << output::indent(2) << fieldName;
     }
-    out << '\n' << output::indent(1) << ");\n";
-    out << "};\n\n";
-
-    return true;
+    out << '\n' << output::indent(1) << ");\n\n";
 }
 
 bool Message::writeMessageDef(const std::string& filename)
@@ -291,9 +324,113 @@ bool Message::writeMessageDef(const std::string& filename)
     return result && written;
 }
 
+void Message::writeReadFunc(std::ostream& out)
+{
+    out << output::indent(1) << "/// \\brief Custom read functionality.\n" <<
+           output::indent(1) << "template <typename TIter>\n" <<
+           output::indent(1) << "comms::ErrorStatus doRead(TIter& iter, std::size_t len)\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << common::messageBaseDefStr() <<
+           output::indent(2) << "GASSERT(Base::getBlockLength() <= len);\n";
+    static const std::string advanceStr("std::advance(iter, Base::getBlockLength());\n");
+    do {
+        if (m_fields.empty()) {
+            out << output::indent(2) << "static_cast<void>(len);\n" <<
+                   output::indent(2) << advanceStr <<
+                   output::indent(2) << "return comms::ErrorStatus::Success;\n";
+            break;
+        }
+
+        auto nonBasicFieldIter =
+            std::find_if(
+                m_fields.begin(), m_fields.end(),
+                [](FieldsList::const_reference f)
+                {
+                    return (f->getKind() != Field::Kind::Basic);
+                });
+
+        if (nonBasicFieldIter == m_fields.begin()) {
+            out << output::indent(2) << advanceStr <<
+                   output::indent(2) << "return Base::doRead(iter, len - Base::getBlockLength());\n";
+            break;
+        }
+
+
+        if (nonBasicFieldIter == m_fields.end()) {
+            out << output::indent(2) << "auto iterTmp = iter;\n" <<
+                   output::indent(2) << "auto es = Base::doRead(iterTmp, Base::getBlockLength());\n" <<
+                   output::indent(2) << "if (es == comms::ErrorStatus::Success) {\n" <<
+                   output::indent(3) << advanceStr <<
+                   output::indent(2) << "}\n\n" <<
+                   output::indent(2) << "return es;\n";
+            break;
+        }
+
+        auto& fieldName = (*nonBasicFieldIter)->getName();
+        out << output::indent(2) << "auto iterTmp = iter;\n" <<
+               output::indent(2) << "auto es = Base::template readFieldsUntil<FieldIdx_" << fieldName << ">(iterTmp, Base::blockLength());\n" <<
+               output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
+               output::indent(3) << "return es;\n" <<
+               output::indent(2) << "}\n\n" <<
+               output::indent(2) << advanceStr <<
+               output::indent(2) << "return Base::template readFieldsFrom<FieldIdx_" << fieldName << "(iter, len - Base::getBlockLength());\n";
+
+    } while (false);
+    out << output::indent(1) << "}\n\n";
+}
+
+void Message::writeRefreshFunc(std::ostream& out)
+{
+    out << output::indent(1) << "/// \\brief Custom refresh functionality.\n" <<
+           output::indent(1) << "/// \\details Updates message's \"blockLength\" information to correct value.\n" <<
+           output::indent(1) << "/// \\return \\b true if and only if the \"blockLength\" value has been updated.\n" <<
+           output::indent(1) << "bool doRefresh()\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << common::messageBaseDefStr();
+    std::string compStr("0U");
+    do {
+        if (m_fields.empty()) {
+            break;
+        }
+
+        auto nonBasicFieldIter =
+            std::find_if(
+                m_fields.begin(), m_fields.end(),
+                [](FieldsList::const_reference f)
+                {
+                    return (f->getKind() != Field::Kind::Basic);
+                });
+
+        if (nonBasicFieldIter == m_fields.begin()) {
+            break;
+        }
+
+
+        if (nonBasicFieldIter == m_fields.end()) {
+            out << output::indent(2) << "static const auto blockLength = Base::doMinLength();\n" <<
+                   output::indent(2) << "GASSERT(blockLength == Base::doLength());\n";
+            compStr = "blockLength";
+            break;
+        }
+
+        auto& fieldName = (*nonBasicFieldIter)->getName();
+        out << output::indent(2) << "static const auto blockLength = Base::template doMinLengthUntil<FieldIdx_" << fieldName << ">();\n" <<
+               output::indent(2) << "GASSERT(blockLength == Base::template doLengthUntil<FieldIdx_" << fieldName << ">());\n";
+        compStr = "blockLength";
+    } while (false);
+    out << output::indent(2) << "if (Base::getBlockLength() == " << compStr << ") {\n" <<
+           output::indent(3) << "return false;\n" <<
+           output::indent(2) << "}\n" <<
+           output::indent(2) << "Base::setBlockLength(" << compStr << ");\n" <<
+           output::indent(2) << "return true;\n" <<
+           output::indent(1) << "}\n\n";
+}
+
 void Message::writeExtraDefHeaders(std::ostream& out)
 {
     std::set<std::string> extraHeaders;
+    extraHeaders.insert("<iterator>");
+
     for (auto& f : m_fields) {
         f->updateExtraHeaders(extraHeaders);
     }
@@ -302,7 +439,8 @@ void Message::writeExtraDefHeaders(std::ostream& out)
         out << "#include " << h << '\n';
     }
 
-    out << "#include \"comms/MessageBase.h\"\n" <<
+    out << "#include \"comms/MessageBase.h\"\n"
+           "#include \"comms/Assert.h\"\n"
            "#include \"" << napespacePrefix(m_db) << common::defaultOptionsFileName() << "\"\n";
 
     if (!m_fields.empty()) {
