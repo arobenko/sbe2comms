@@ -29,7 +29,9 @@ public:
 
     const std::string& package();
     unsigned version() const;
+    unsigned id() const;
     const std::string& byteOrder() const;
+    const std::string& headerType() const;
 
 private:
     XmlPropsMap m_props;

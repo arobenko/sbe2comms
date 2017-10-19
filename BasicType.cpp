@@ -228,35 +228,33 @@ bool BasicType::writeSimpleInt(std::ostream& out,
                 out << output::indent(ind) << "comms::field::IntValue<\n" <<
                        output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
                        output::indent(ind + 1) << intType << ",\n";
+                writeExtraOptions(out, ind + 1);
+
                 if (minVal.first != maxVal.first) {
                     out << output::indent(ind + 1) << "comms::option::ValidNumValueRange<" <<
-                                common::num(minVal.first) << ", " << common::num(maxVal.first) << ">";
+                                common::num(minVal.first) << ", " << common::num(maxVal.first) << ">,\n";
                 }
                 else {
                     out << output::indent(ind + 1) << "comms::option::ValidNumValue<" <<
-                                common::num(minVal.first) << ">";
+                                common::num(minVal.first) << ">,\n";
                 }
 
                 if (extraValidNumber) {
-                    out << ",\n" <<
-                           output::indent(ind + 1) << "comms::option::ValidNumValue<" <<
-                                common::num(*extraValidNumber) << ">";
+                    out << output::indent(ind + 1) << "comms::option::ValidNumValue<" <<
+                                common::num(*extraValidNumber) << ">,\n";
                 }
 
-                if (defValue != 0) {
-                    out << ",\n" <<
-                           output::indent(ind + 1) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">";
+                if ((defValue != 0) && (!hasDefaultValueInExtraOptions())) {
+                    out << output::indent(ind + 1) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">";
                 }
 
                 if (constant) {
-                    out << ",\n" <<
-                           output::indent(ind + 1) << "comms::option::EmptySerialization";
+                    out << output::indent(ind + 1) << "comms::option::EmptySerialization";
                 }
 
                 writeFailOnInvalid(out, ind + 1);
 
-                out << ",\n" <<
-                       output::indent(ind + 1) << "TOpt...\n" <<
+                out << output::indent(ind + 1) << "TOpt...\n" <<
                        output::indent(ind) << ">";
             };
 
@@ -352,18 +350,15 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::FloatValue<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << fpType;
-
-    writeFailOnInvalid(out, indent + 2);
+           output::indent(indent + 2) << fpType << ",\n";
+    writeExtraOptions(out, indent + 1);
 
     if (isConstant()) {
         assert(!isElement);
-        out << ",\n" <<
-               output::indent(indent + 2) << "comms::option::EmptySerialization";
+        out << output::indent(indent + 2) << "comms::option::EmptySerialization,\n";
     }
 
-    out << ",\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+    out << output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
 
@@ -422,7 +417,11 @@ bool BasicType::writeVarLengthString(
     unsigned indent)
 {
     out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
-           output::indent(indent + 1) << " comms::field::String<" << common::fieldBaseStr() << ", TOpt...>\n" <<
+           output::indent(indent + 1) << " comms::field::String<\n" <<
+           output::indent(indent + 2) << common::fieldBaseStr() << ",\n";
+    writeExtraOptions(out, indent + 2);
+    out << output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
     writeStringValidFunc(out, indent + 1);
     out << output::indent(indent) << "}";
@@ -442,8 +441,9 @@ bool BasicType::writeVarLengthArray(
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n";
+    writeExtraOptions(out, indent + 2);
+    out << output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }
@@ -456,8 +456,9 @@ bool BasicType::writeVarLengthRawDataArray(
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << primitiveTypeToStdInt(primType) << ",\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 2) << primitiveTypeToStdInt(primType) << ",\n";
+    writeExtraOptions(out, indent + 2);
+    out << output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }
@@ -484,8 +485,9 @@ bool BasicType::writeFixedLengthString(
         out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
                output::indent(indent + 1) << "comms::field::String<\n" <<
                output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
-               output::indent(indent + 2) << "TOpt...\n" <<
+               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n";
+        writeExtraOptions(out, indent + 2);
+        out << output::indent(indent + 2) << "TOpt...\n" <<
                output::indent(indent + 1) << ">" <<
                output::indent(indent) << "{\n";
         writeStringValidFunc(out, indent + 1);
@@ -497,8 +499,9 @@ bool BasicType::writeFixedLengthString(
     out << output::indent(indent) << "struct " << getReferenceName() << " : public \n" <<
            output::indent(indent + 1) << "comms::field::String<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 2) << "comms::option::EmptySerialization,\n";
+    writeExtraOptions(out, indent + 2);
+    out << output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << getReferenceName() << "()\n" <<
@@ -541,8 +544,9 @@ bool BasicType::writeFixedLengthArray(
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n";
+    writeExtraOptions(out, indent + 2);
+    out << output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }
@@ -558,8 +562,9 @@ bool BasicType::writeFixedLengthRawDataArray(
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << primitiveTypeToStdInt(primType) << ",\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n";
+    writeExtraOptions(out, indent + 2);
+    out << output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
     return true;
 }
@@ -626,6 +631,25 @@ void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
            output::indent(indent + 2) << "}\n\n" <<
            output::indent(indent + 1) << "return true;\n" <<
            output::indent(indent) << "}\n";
+}
+
+void BasicType::writeExtraOptions(std::ostream& out, unsigned indent)
+{
+    for (auto& o : getExtraOptions()) {
+        out << output::indent(indent) << o << ",\n";
+    }
+}
+
+bool BasicType::hasDefaultValueInExtraOptions() const
+{
+    return
+        std::any_of(
+            getExtraOptions().begin(), getExtraOptions().end(),
+            [](const std::string& o)
+            {
+                static const std::string OptStr("DefaultNumValue");
+                return o.find(OptStr) != std::string::npos;
+            });
 }
 
 } // namespace sbe2comms

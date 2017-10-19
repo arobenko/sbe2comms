@@ -192,6 +192,18 @@ unsigned DB::getSchemaVersion()
     return *val;
 }
 
+unsigned DB::getSchemaId() const
+{
+    assert(m_messageSchema);
+    return m_messageSchema->id();
+}
+
+const std::string& DB::getMessageHeaderType() const
+{
+    assert(m_messageSchema);
+    return m_messageSchema->headerType();
+}
+
 unsigned DB::getMinRemoteVersion()
 {
     return 0U;

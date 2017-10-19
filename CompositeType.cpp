@@ -27,6 +27,7 @@
 #include "output.h"
 #include "log.h"
 #include "common.h"
+#include "BasicType.h"
 
 namespace ba = boost::algorithm;
 
@@ -143,6 +144,10 @@ CompositeType::Kind CompositeType::getKindImpl() const
 bool CompositeType::parseImpl()
 {
     if (!prepareMembers()) {
+        return false;
+    }
+
+    if ((isMessageHeader()) && (!checkMessageHeader())) {
         return false;
     }
 
@@ -528,6 +533,90 @@ void CompositeType::writeExtraOptsTemplParams(
         out << output::indent(indent + 1) << "typename TOpt" << common::eqEmptyOptionStr() << '\n';
     }
     out << output::indent(indent) << ">\n";
+}
+
+bool CompositeType::isMessageHeader() const
+{
+    return (getName() == getDb().getMessageHeaderType());
+}
+
+bool CompositeType::checkMessageHeader()
+{
+    if (m_members.size() != 4U) {
+        log::error() << "Message header composite \"" << getName() << "\" is expected to have 4 members" << std::endl;
+        return false;
+    }
+
+    auto checkNameFunc =
+        [this](const std::string& name)
+        {
+            bool result =
+                std::any_of(
+                    m_members.begin(), m_members.end(),
+                    [&name](Members::const_reference m)
+                    {
+                        return m->getName() == name;
+                    });
+            if (!result) {
+                log::error() << "Message header composite \"" << getName() << "\" doesn't have member called \"" << name << "\"." << std::endl;
+            }
+            return result;
+        };
+
+    if ((!checkNameFunc(common::blockLengthStr())) ||
+        (!checkNameFunc(common::templateIdStr())) ||
+        (!checkNameFunc(common::schemaIdStr())) ||
+        (!checkNameFunc(common::versionStr()))) {
+        return false;
+    }
+
+    for (auto& m : m_members) {
+        if (m->getKind() != Type::Kind::Basic) {
+            log::error() << "The member \"" << m->getName() << "\" of message header composite \"" << getName() << "\" " <<
+                            "is expected to be of basic type";
+            return false;
+        }
+
+        if (m->getLengthProp() != 1) {
+            log::error() << "The member \"" << m->getName() << "\" of message header composite \"" << getName() << "\" " <<
+                            "must have length property equal to 1.";
+            return false;
+        }
+
+        if (!asBasicType(m.get())->isIntType()) {
+            return false;
+        }
+    }
+
+    auto schemaIdIter =
+        std::find_if(
+            m_members.begin(), m_members.end(),
+            [](Members::const_reference m)
+            {
+                return m->getName() == common::schemaIdStr();
+            });
+
+    assert(schemaIdIter != m_members.end());
+    auto& schemaIdTypePtr = *schemaIdIter;
+    assert(schemaIdTypePtr);
+    auto schemaIdValue = getDb().getSchemaId();
+    schemaIdTypePtr->addExtraOption("common::field::DefaultNumValue<" + common::num(schemaIdValue) + '>');
+    schemaIdTypePtr->addExtraOption("common::field::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
+
+    auto versionIter =
+        std::find_if(
+            m_members.begin(), m_members.end(),
+            [](Members::const_reference m)
+            {
+                return m->getName() == common::versionStr();
+            });
+
+    assert(versionIter != m_members.end());
+    auto& versionTypePtr = *versionIter;
+    assert(versionTypePtr);
+    auto schemaVersionValue = getDb().getSchemaVersion();
+    versionTypePtr->addExtraOption("common::field::DefaultNumValue<" + common::num(schemaVersionValue) + '>');
+    return true;
 }
 
 } // namespace sbe2comms

@@ -56,6 +56,9 @@ const std::string& optParamPrefixStr();
 const std::string& blockLengthStr();
 const std::string& numInGroupStr();
 const std::string& groupListStr();
+const std::string& templateIdStr();
+const std::string& schemaIdStr();
+const std::string& versionStr();
 std::string num(std::intmax_t val);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);

@@ -36,9 +36,19 @@ unsigned MessageSchema::version() const
     return prop::version(m_props);
 }
 
+unsigned MessageSchema::id() const
+{
+    return prop::id(m_props);
+}
+
 const std::string& MessageSchema::byteOrder() const
 {
     return prop::byteOrder(m_props);
+}
+
+const std::string& MessageSchema::headerType() const
+{
+    return prop::headerType(m_props);
 }
 
 } // namespace sbe2comms

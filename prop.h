@@ -39,6 +39,7 @@ unsigned blockLength(const XmlPropsMap& map);
 const std::string& primitiveType(const XmlPropsMap& map);
 const std::string& semanticType(const XmlPropsMap& map);
 const std::string& byteOrder(const XmlPropsMap& map);
+const std::string& headerType(const XmlPropsMap& map);
 const std::string& presence(const XmlPropsMap& map);
 bool isRequired(const XmlPropsMap& map);
 bool isConstant(const XmlPropsMap& map);
@@ -52,6 +53,7 @@ const std::string& encodingType(const XmlPropsMap& map);
 const std::string& characterEncoding(const XmlPropsMap& map);
 const std::string& valueRef(const XmlPropsMap& map);
 const std::string& dimensionType(const XmlPropsMap& map);
+unsigned id(const XmlPropsMap& map);
 const std::string& ccFailInvalid(const XmlPropsMap& map);
 
 } // namespace prop

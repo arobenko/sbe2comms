@@ -313,6 +313,24 @@ const std::string& groupListStr()
     return Str;
 }
 
+const std::string& templateIdStr()
+{
+    static const std::string Str("templateId");
+    return Str;
+}
+
+const std::string& schemaIdStr()
+{
+    static const std::string Str("schemaId");
+    return Str;
+}
+
+const std::string& versionStr()
+{
+    static const std::string Str("version");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);

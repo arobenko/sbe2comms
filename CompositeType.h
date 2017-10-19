@@ -74,6 +74,8 @@ private:
         unsigned indent,
         const AllExtraOptInfos& infos,
         bool hasExtraOptions = false);
+    bool isMessageHeader() const;
+    bool checkMessageHeader();
 
     Members m_members;
     bool m_dataUse = false;

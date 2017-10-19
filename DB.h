@@ -73,6 +73,10 @@ public:
 
     unsigned getSchemaVersion();
 
+    unsigned getSchemaId() const;
+
+    const std::string& getMessageHeaderType() const;
+
     unsigned getMinRemoteVersion();
 
     const std::string& getEndian();

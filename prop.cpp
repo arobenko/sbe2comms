@@ -42,6 +42,8 @@ const std::string BlockLength("blockLength");
 const std::string PrimitiveType("primitiveType");
 const std::string SemanticType("semanticType");
 const std::string ByteOrder("byteOrder");
+const std::string HeaderType("headerType");
+const std::string MessageHeader("messageHeader");
 const std::string Presence("presence");
 const std::string MinValue("minValue");
 const std::string MaxValue("maxValue");
@@ -51,6 +53,7 @@ const std::string CharacterEncoding("characterEncoding");
 const std::string ValueRef("valueRef");
 const std::string DimensionType("dimensionType");
 const std::string GroupSizeEncoding("groupSizeEncoding");
+const std::string Id("id");
 const std::string FailInvalid("cc_fail_invalid");
 
 const std::string& getProp(
@@ -158,6 +161,11 @@ const std::string& byteOrder(const XmlPropsMap& map)
     return getProp(map, ByteOrder);
 }
 
+const std::string& headerType(const XmlPropsMap& map)
+{
+    return getProp(map, HeaderType, MessageHeader);
+}
+
 const std::string& presence(const XmlPropsMap& map)
 {
     return getProp(map, Presence);
@@ -225,6 +233,11 @@ const std::string& valueRef(const XmlPropsMap& map)
 const std::string& dimensionType(const XmlPropsMap& map)
 {
     return getProp(map, DimensionType, GroupSizeEncoding);
+}
+
+unsigned id(const XmlPropsMap& map)
+{
+    return getPropInt<unsigned>(map, Id);
 }
 
 const std::string& ccFailInvalid(const XmlPropsMap& map)

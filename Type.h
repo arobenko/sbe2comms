@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <utility>
 #include <set>
+#include <vector>
 
 #include "xml_wrap.h"
 #include "prop.h"
@@ -119,6 +120,12 @@ public:
         return getExtraOptInfosImpl();
     }
 
+    template <typename T>
+    void addExtraOption(T&& opt)
+    {
+        m_extraOptions.push_back(std::forward<T>(opt));
+    }
+
 protected:
     xmlNodePtr getNode() const
     {
@@ -133,6 +140,11 @@ protected:
     const DB& getDb() const
     {
         return m_db;
+    }
+
+    const std::vector<std::string>& getExtraOptions() const
+    {
+        return m_extraOptions;
     }
 
     virtual Kind getKindImpl() const = 0;
@@ -167,6 +179,7 @@ private:
     bool m_written = false;
     bool m_writingInProgress = false;
     ExtraIncludes m_extraIncludes;
+    std::vector<std::string> m_extraOptions;
 };
 
 using TypePtr = Type::Ptr;

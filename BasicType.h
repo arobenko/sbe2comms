@@ -99,6 +99,16 @@ private:
     static bool isRawData(const std::string& primType);
 
     void writeStringValidFunc(std::ostream& out, unsigned indent);
+
+    void writeExtraOptions(std::ostream& out, unsigned indent);
+
+    bool hasDefaultValueInExtraOptions() const;
 };
+
+inline
+const BasicType* asBasicType(const Type* type)
+{
+    return static_cast<const BasicType*>(type);
+}
 
 } // namespace sbe2comms
