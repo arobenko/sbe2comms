@@ -21,12 +21,15 @@
 #include <fstream>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "output.h"
 #include "DB.h"
 #include "common.h"
+#include "log.h"
 
 namespace bf = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -213,8 +216,46 @@ void writeGroupList(std::ostream& out)
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "static_assert(TElement::minLengthUntil<TRootCount>() == TElement::maxLengthUntil<TRootCount>(),\n" <<
            output::indent(2) << "\"Root block must have fixed length\");\n" <<
-           "};\n";
+           "};\n\n";
 }
+
+void writeOpenFrameHeader(DB& db, std::ostream& out)
+{
+    static const std::string BigEndianStr("comms::Field<comms::option::BigEndian>");
+    std::string sync("0x5be0");
+    if (ba::ends_with(db.getEndian(), "LittleEndian")) {
+        sync = "0xeb50";
+    }
+    out << "/// \\brief Simple Open Framing Header definition.\n"
+           "struct openFrameHeader : public\n" <<
+           output::indent(1) << "comms::field::Bundle<\n" <<
+           output::indent(2) << BigEndianStr << ",\n" <<
+           output::indent(2) << "std::tuple<\n" <<
+           output::indent(3) << "comms::field::IntValueField<\n" <<
+           output::indent(4) << BigEndianStr << ",\n" <<
+           output::indent(4) << "std::uint32_t\n" <<
+           output::indent(3) << ">,\n" <<
+           output::indent(3) << "comms::field::IntValueField<\n" <<
+           output::indent(4) << BigEndianStr << ",\n" <<
+           output::indent(4) << "std::uint16_t\n" <<
+           output::indent(4) << "comms::option::ValidNumValue<" << sync << ">,\n" <<
+           output::indent(4) << "comms::option::DefaultNumValue<" << sync << ">,\n" <<
+           output::indent(4) << "comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>\n" <<
+           output::indent(3) << ">\n" <<
+           output::indent(2) << ">\n" <<
+           output::indent(1) << ">\n" <<
+           "{\n" <<
+           output::indent(1) << "/// \\brief Allow access to internal fields.\n" <<
+           output::indent(1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
+           output::indent(1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
+           output::indent(1) << "///     for details.\\n\n" <<
+           output::indent(1) << "COMMS_FIELD_MEMBERS_ACCESS(\n" <<
+           output::indent(2) << "messageLength,\n" <<
+           output::indent(2) << "encodingType\n" <<
+           output::indent(1) << ");\n"
+           "};\n\n";
+}
+
 } // namespace
 
 bool BuiltIn::write(DB& db)
@@ -231,22 +272,22 @@ bool BuiltIn::write(DB& db)
     boost::system::error_code ec;
     bf::create_directories(protocolRelDir, ec);
     if (ec) {
-        std::cerr << "ERROR: Failed to create \"" << protocolRelDir.string() <<
+        log::error() << "Failed to create \"" << protocolRelDir.string() <<
                 "\" with error \"" << ec.message() << "\"!" << std::endl;
         return false;
     }
 
     auto relPath = protocolRelDir / common::builtinsDefFileName();
     auto filePath = root / relPath;
-    std::cout << "INFO: Generating " << relPath.string() << std::endl;
+    log::info() << "Generating " << relPath.string() << std::endl;
     std::ofstream out(filePath.string());
     if (!out) {
-        std::cerr << "ERROR: Failed to create " << relPath.string() << std::endl;
+        log::error() << "Failed to create " << relPath.string() << std::endl;
         return false;
     }
 
     out << "/// \\file\n"
-           "/// \\brief Contains definition of built-in types and helper classes\n"
+           "/// \\brief Contains definition of implicitly types\n"
            "\n\n"
            "#pragma once\n\n"
            "#include <cstdint>\n"
@@ -260,6 +301,8 @@ bool BuiltIn::write(DB& db)
     if (hasGroupList) {
         writeGroupList(out);
     }
+
+    writeOpenFrameHeader(db, out);
 
     out << "}\n\n";
     return out.good();
