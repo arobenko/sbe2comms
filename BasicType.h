@@ -100,8 +100,6 @@ private:
 
     void writeStringValidFunc(std::ostream& out, unsigned indent);
 
-    void writeExtraOptions(std::ostream& out, unsigned indent);
-
     bool hasDefaultValueInExtraOptions() const;
 };
 

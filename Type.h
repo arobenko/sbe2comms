@@ -160,8 +160,8 @@ protected:
     void writeHeader(std::ostream& out, unsigned indent, bool extraOpts = true);
     void writeElementBrief(std::ostream& out, unsigned indent);
     void writeElementHeader(std::ostream& out, unsigned indent);
+    void writeExtraOptions(std::ostream& out, unsigned indent);
     static void writeBaseDef(std::ostream& out, unsigned indent);
-    void writeFailOnInvalid(std::ostream& out, unsigned indent);
     std::string nodeText();
     void addExtraInclude(const std::string& val);
     static std::size_t primitiveLength(const std::string& type);

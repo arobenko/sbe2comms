@@ -161,7 +161,6 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
                output::indent(indent + 2) << "comms::option::BitmaskReservedBits<" << stream.str() << ">";
     }
 
-    writeFailOnInvalid(out, indent + 2);
     out << ",\n" <<
            output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">\n" <<

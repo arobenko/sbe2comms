@@ -314,20 +314,16 @@ void Type::writeElementHeader(std::ostream& out, unsigned indent)
     common::writeExtraOptionsDoc(out, indent);
 }
 
+void Type::writeExtraOptions(std::ostream& out, unsigned indent)
+{
+    for (auto& o : m_extraOptions) {
+        out << output::indent(indent) << o << ",\n";
+    }
+}
+
 void Type::writeBaseDef(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n";
-}
-
-void Type::writeFailOnInvalid(std::ostream& out, unsigned indent)
-{
-    auto result = getFailOnInvalid();
-    if (!result.second) {
-        return;
-    }
-
-    out << ",\n" <<
-           output::indent(indent) << "comms::option::FailOnInvalid<" << result.first << ">";
 }
 
 std::string Type::nodeText()

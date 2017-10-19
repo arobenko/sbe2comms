@@ -245,14 +245,12 @@ bool BasicType::writeSimpleInt(std::ostream& out,
                 }
 
                 if ((defValue != 0) && (!hasDefaultValueInExtraOptions())) {
-                    out << output::indent(ind + 1) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">";
+                    out << output::indent(ind + 1) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">,\n";
                 }
 
                 if (constant) {
-                    out << output::indent(ind + 1) << "comms::option::EmptySerialization";
+                    out << output::indent(ind + 1) << "comms::option::EmptySerialization,\n";
                 }
-
-                writeFailOnInvalid(out, ind + 1);
 
                 out << output::indent(ind + 1) << "TOpt...\n" <<
                        output::indent(ind) << ">";
@@ -631,13 +629,6 @@ void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
            output::indent(indent + 2) << "}\n\n" <<
            output::indent(indent + 1) << "return true;\n" <<
            output::indent(indent) << "}\n";
-}
-
-void BasicType::writeExtraOptions(std::ostream& out, unsigned indent)
-{
-    for (auto& o : getExtraOptions()) {
-        out << output::indent(indent) << o << ",\n";
-    }
 }
 
 bool BasicType::hasDefaultValueInExtraOptions() const
