@@ -334,7 +334,7 @@ bool EnumType::readValues()
             return false;
         }
 
-        if (!getDb().doesElementExist(prop::sinceVersion(vProps), prop::deprecated(vProps))) {
+        if (!getDb().doesElementExist(prop::sinceVersion(vProps))) {
             continue;
         }
 

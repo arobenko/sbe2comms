@@ -470,12 +470,11 @@ void Message::writePrivateMembers(std::ostream& out)
 
     out << "private:\n" <<
            output::indent(1) << "template <typename TField>\n" <<
-           output::indent(1) << "void updateOptionalFieldMode(TField& field, unsigned sinceVersion, unsigned deprecated)\n" <<
+           output::indent(1) << "void updateOptionalFieldMode(TField& field, unsigned sinceVersion)\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << common::messageBaseDefStr() <<
            output::indent(2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
-           output::indent(2) << "if ((deprecated <= Base::getVersion()) ||\n" <<
-           output::indent(2) << "    (Base::getVersion() < sinceVersion)) {\n" <<
+           output::indent(2) << "if (Base::getVersion() < sinceVersion) {\n" <<
            output::indent(3) << "mode = comms::field::OptionalMode::Missing;\n" <<
            output::indent(2) << "}\n" <<
            output::indent(2) << "field.setMode(mode);\n" <<
@@ -497,7 +496,8 @@ void Message::writeExtraDefHeaders(std::ostream& out)
 
     out << "#include \"comms/MessageBase.h\"\n"
            "#include \"comms/Assert.h\"\n"
-           "#include \"" << napespacePrefix(m_db) << common::defaultOptionsFileName() << "\"\n";
+           "#include \"" << napespacePrefix(m_db) << common::defaultOptionsFileName() << "\"\n" <<
+           "#include \"" << napespacePrefix(m_db) << common::msgIdFileName() << "\"\n";
 
     if (!m_fields.empty()) {
         out << "#include \"" << napespacePrefix(m_db) << common::fieldsDefFileName() << "\"\n";

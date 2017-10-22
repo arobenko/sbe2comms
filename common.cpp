@@ -59,6 +59,12 @@ const std::string& defaultOptionsFileName()
     return Name;
 }
 
+const std::string& msgIdFileName()
+{
+    static const std::string Name("MsgId.h");
+    return Name;
+}
+
 const std::string& defaultOptionsStr()
 {
     static const std::string Str("DefaultOptions");

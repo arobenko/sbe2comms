@@ -53,7 +53,7 @@ bool Field::parse()
 
 bool Field::doesExist() const
 {
-    return m_db.doesElementExist(prop::sinceVersion(m_props), prop::deprecated(m_props));
+    return m_db.doesElementExist(prop::sinceVersion(m_props));
 }
 
 const std::string& Field::getName() const
@@ -232,11 +232,6 @@ void Field::recordExtraHeader(const std::string& header)
 
 const std::string& Field::getDefaultOptMode() const
 {
-    if (getDeprecated() <= m_db.getSchemaVersion()) {
-        static const std::string Mode("comms::field::OptionalMode::Missing");
-        return Mode;
-    }
-
     if (m_db.getMinRemoteVersion() < getSinceVersion()) {
         static const std::string Mode("comms::field::OptionalMode::Exists");
         return Mode;

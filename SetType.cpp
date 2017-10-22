@@ -255,7 +255,7 @@ bool SetType::readChoices()
             return false;
         }
 
-        if (getDb().doesElementExist(prop::sinceVersion(choiceProps), prop::deprecated(choiceProps))) {
+        if (getDb().doesElementExist(prop::sinceVersion(choiceProps))) {
             m_bits.insert(std::make_pair(castedBitIdx, choiceName));
             processedNames.insert(choiceName);
         }

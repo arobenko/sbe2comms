@@ -229,11 +229,9 @@ const std::string& DB::getEndian()
     return val;
 }
 
-bool DB::doesElementExist(unsigned introducedSince, unsigned deprecatedSince)
+bool DB::doesElementExist(unsigned introducedSince)
 {
-    return
-        ((introducedSince <= getSchemaVersion()) &&
-         (getMinRemoteVersion() < deprecatedSince));
+    return (introducedSince <= getSchemaVersion());
 }
 
 const Type* DB::findType(const std::string& name) const
@@ -378,7 +376,7 @@ bool DB::recordTypeRef(xmlNodePtr node)
         return false;
     }
 
-    if (doesElementExist(prop::sinceVersion(props), prop::deprecated(props))) {
+    if (doesElementExist(prop::sinceVersion(props))) {
         m_typesList.push_back(ptr.get());
         m_types.insert(std::make_pair(name, std::move(ptr)));
     }
@@ -418,7 +416,7 @@ bool DB::parseMessage(xmlNodePtr node)
     }
 
     Message msg(*this, node);
-    if (doesElementExist(prop::sinceVersion(props), prop::deprecated(props))) {
+    if (doesElementExist(prop::sinceVersion(props))) {
         m_messages.insert(std::make_pair(name, std::move(msg)));
     }
 

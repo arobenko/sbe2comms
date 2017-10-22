@@ -33,6 +33,7 @@ const std::string& includeDirName();
 const std::string& fieldsDefFileName();
 const std::string& builtinsDefFileName();
 const std::string& defaultOptionsFileName();
+const std::string& msgIdFileName();
 const std::string& defaultOptionsStr();
 const std::string& emptyString();
 const std::string& renameKeyword(const std::string& value);

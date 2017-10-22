@@ -67,7 +67,7 @@ bool Type::parse()
 bool Type::doesExist()
 {
     assert(!m_props.empty());
-    return m_db.doesElementExist(prop::sinceVersion(m_props), prop::deprecated(m_props));
+    return m_db.doesElementExist(prop::sinceVersion(m_props));
 }
 
 const char* Type::getNodeName() const

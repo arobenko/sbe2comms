@@ -81,7 +81,7 @@ public:
 
     const std::string& getEndian();
 
-    bool doesElementExist(unsigned introducedSince, unsigned deprecatedSince);
+    bool doesElementExist(unsigned introducedSince);
 
     const Type* findType(const std::string& name) const;
 
