@@ -61,7 +61,7 @@ const std::string& defaultOptionsFileName()
 
 const std::string& msgIdFileName()
 {
-    static const std::string Name("MsgId.h");
+    static const std::string Name(msgIdEnumName() + ".h");
     return Name;
 }
 
@@ -337,6 +337,12 @@ const std::string& versionStr()
     return Str;
 }
 
+const std::string& msgIdEnumName()
+{
+    static const std::string Str("MsgId");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);
@@ -352,6 +358,27 @@ std::string num(std::intmax_t val)
 
     return str;
 }
+
+std::string scopeFor(const std::string& ns, const std::string type)
+{
+    std::string result = ns;
+    if (!ns.empty()) {
+        result += "::";
+    }
+    result += type;
+    return result;
+}
+
+std::string pathTo(const std::string& ns, const std::string path)
+{
+    std::string result = ns;
+    if (!ns.empty()) {
+        result += '/';
+    }
+    result += path;
+    return result;
+}
+
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc)
 {

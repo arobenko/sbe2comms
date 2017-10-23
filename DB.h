@@ -36,7 +36,9 @@ class DB
 public:
     using TypesMap = std::map<std::string, TypePtr>;
     using TypesList = std::list<Type*>;
-    using MessagesMap = std::map<std::string, Message>;
+    using MessagePtr = std::unique_ptr<Message>;
+    using MessagesMap = std::map<std::string, MessagePtr>;
+    using MessagesIdMap = std::map<unsigned, MessagesMap::const_iterator>;
 
     bool parseSchema(std::string filename);
 
@@ -102,6 +104,8 @@ public:
 
     std::list<std::string> getAllUsedBuiltInTypes() const;
 
+    xmlNodePtr createMsgIdEnumNode(const std::string& name, const std::string& encType);
+
 private:
     struct GeneratedTypeInfo
     {
@@ -117,11 +121,13 @@ private:
 
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
+    XmlNodePtr m_msgIdEnum;
     TypesMap m_types;
     TypesList m_typesList;
     GeneratedTypeMap m_builtInTypes;
     GeneratedTypeMap m_paddingTypes;
     MessagesMap m_messages;
+    MessagesIdMap m_messagesById;
     std::list<std::string> m_groups;
     bool m_groupListUsed = false;
 

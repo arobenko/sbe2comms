@@ -28,6 +28,7 @@
 #include "log.h"
 #include "common.h"
 #include "BasicType.h"
+#include "EnumType.h"
 
 namespace ba = boost::algorithm;
 
@@ -588,14 +589,19 @@ bool CompositeType::checkMessageHeader()
         }
     }
 
-    auto schemaIdIter =
-        std::find_if(
-            m_members.begin(), m_members.end(),
-            [](Members::const_reference m)
-            {
-                return m->getName() == common::schemaIdStr();
-            });
+    auto findMemberFunc =
+        [this](const std::string& name)
+        {
+            return std::find_if(
+                m_members.begin(), m_members.end(),
+                [&name](Members::const_reference m)
+                {
+                    return m->getName() == name;
+                });
 
+        };
+
+    auto schemaIdIter = findMemberFunc(common::schemaIdStr());
     assert(schemaIdIter != m_members.end());
     auto& schemaIdTypePtr = *schemaIdIter;
     assert(schemaIdTypePtr);
@@ -603,19 +609,27 @@ bool CompositeType::checkMessageHeader()
     schemaIdTypePtr->addExtraOption("common::field::DefaultNumValue<" + common::num(schemaIdValue) + '>');
     schemaIdTypePtr->addExtraOption("common::field::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
 
-    auto versionIter =
-        std::find_if(
-            m_members.begin(), m_members.end(),
-            [](Members::const_reference m)
-            {
-                return m->getName() == common::versionStr();
-            });
-
+    auto versionIter = findMemberFunc(common::versionStr());
     assert(versionIter != m_members.end());
     auto& versionTypePtr = *versionIter;
     assert(versionTypePtr);
     auto schemaVersionValue = getDb().getSchemaVersion();
     versionTypePtr->addExtraOption("common::field::DefaultNumValue<" + common::num(schemaVersionValue) + '>');
+
+    auto templateIdIter = findMemberFunc(common::templateIdStr());
+    assert(templateIdIter != m_members.end());
+    auto& templateIdTypePtr = *templateIdIter;
+    assert(templateIdTypePtr->getKind() == Type::Kind::Basic);
+    auto* newNode = getDb().createMsgIdEnumNode(templateIdTypePtr->getName(), asBasicType(*templateIdTypePtr).getPrimitiveType());
+    templateIdTypePtr = Type::create(getDb(), newNode);
+    assert(templateIdTypePtr);
+    assert(templateIdTypePtr->getKind() == Type::Kind::Enum);
+    if (!templateIdTypePtr->parse()) {
+        log::error() << "Failed to parse modified templateId" << std::endl;
+        return false;
+    }
+
+    asEnumType(*templateIdTypePtr).setMessageId();
     return true;
 }
 

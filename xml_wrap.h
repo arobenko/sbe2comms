@@ -1,4 +1,4 @@
-//
+﻿//
 // Copyright 2017 (C). Alex Robenko. All rights reserved.
 //
 
@@ -21,6 +21,7 @@
 #include <string>
 #include <map>
 #include <list>
+#include <vector>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
@@ -57,6 +58,8 @@ using XmlDocPtr = std::unique_ptr<xmlDoc, XmlDocFree>;
 using XmlCharPtr = std::unique_ptr<xmlChar, XmlCharFree>;
 using XmlPropsMap = std::map<std::string, std::string>;
 using XmlNodePtr = std::unique_ptr<xmlNode, XmlNodeFree>;
+using XmlEnumValue = std::pair<std::string, std::string>;
+using XmlEnumValuesList = std::vector<XmlEnumValue>;
 
 XmlPropsMap xmlParseNodeProps(xmlNodePtr node, xmlDocPtr doc);
 std::string xmlText(xmlNodePtr node);
@@ -65,5 +68,7 @@ XmlNodePtr xmlCreatePadding(unsigned idx, unsigned len);
 XmlNodePtr xmlCreateRawDataType(const std::string& name, unsigned len);
 XmlNodePtr xmlCreateBuiltInType(const std::string& name);
 XmlNodePtr xmlCreatePaddingField(unsigned idx, const std::string& typeName);
+
+XmlNodePtr xmlEnumValidValue(const std::string& name, const std::string& encType, const XmlEnumValuesList& values);
 
 } // namespace sbe2comms

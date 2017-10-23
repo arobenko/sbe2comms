@@ -154,22 +154,33 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     auto& underlying = getUnderlyingType();
     assert(!underlying.empty());
 
-    auto enumName = getName() + common::enumValSuffixStr();
-    out << output::indent(indent) << "/// \\brief Enumeration for \\ref " << getReferenceName() << " field.\n" <<
-           output::indent(indent) << "enum class " << enumName << " : " << underlying << '\n' <<
-           output::indent(indent) << "{\n";
-    for (auto& v : m_values) {
-        out << output::indent(indent + 1) << v.second << " = static_cast<" <<
-               underlying << ">(" << v.first << "), ///< ";
-        auto descIter = m_desc.find(v.second);
-        if (descIter == m_desc.end()) {
-            out << "\\b " << v.second << " value.\n";
-            continue;
+    std::string enumName;
+    std::string valuePrefix;
+    do {
+        if (m_msgId) {
+            enumName = common::scopeFor(getDb().getProtocolNamespace(), common::msgIdEnumName());
+            valuePrefix = enumName + '_';
+            break;
         }
 
-        out << descIter->second << "\n";
-    }
-    out << output::indent(indent) << "};\n\n";
+        enumName = getName() + common::enumValSuffixStr();
+        valuePrefix = enumName + "::";
+        out << output::indent(indent) << "/// \\brief Enumeration for \\ref " << getReferenceName() << " field.\n" <<
+               output::indent(indent) << "enum class " << enumName << " : " << underlying << '\n' <<
+               output::indent(indent) << "{\n";
+        for (auto& v : m_values) {
+            out << output::indent(indent + 1) << v.second << " = static_cast<" <<
+                   underlying << ">(" << v.first << "), ///< ";
+            auto descIter = m_desc.find(v.second);
+            if (descIter == m_desc.end()) {
+                out << "\\b " << v.second << " value.\n";
+                continue;
+            }
+
+            out << descIter->second << "\n";
+        }
+        out << output::indent(indent) << "};\n\n";
+    } while (false);
 
     std::string name;
     if (isElement) {
@@ -236,7 +247,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 
             firstValue = false;
             last = v.first;
-            out << output::indent(indent + 3) << enumName << "::" << v.second << ",\n";
+            out << output::indent(indent + 3) << valuePrefix << v.second << ",\n";
         }
         out << output::indent(indent + 2) << "};\n\n" <<
                output::indent(indent + 2) << "if (!Base::valid()) {\n" <<

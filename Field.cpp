@@ -45,8 +45,7 @@ bool Field::parse()
     unsigned deprecated = prop::deprecated(m_props);
     unsigned sinceVer = prop::sinceVersion(m_props);
     if (deprecated <= sinceVer) {
-        log::error() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
-        return false;
+        log::warning() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
     }
     return parseImpl();
 }

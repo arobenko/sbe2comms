@@ -60,7 +60,10 @@ const std::string& groupListStr();
 const std::string& templateIdStr();
 const std::string& schemaIdStr();
 const std::string& versionStr();
+const std::string& msgIdEnumName();
 std::string num(std::intmax_t val);
+std::string scopeFor(const std::string& ns, const std::string type);
+std::string pathTo(const std::string& ns, const std::string path);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
 void writeExtraOptionsDoc(std::ostream& out, unsigned indent);

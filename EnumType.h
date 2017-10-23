@@ -34,6 +34,10 @@ public:
     bool hasValue(const std::string& name) const;
     std::intmax_t getNumericValue(const std::string& name) const;
     std::intmax_t getDefultNullValue() const;
+    void setMessageId()
+    {
+        m_msgId = true;
+    }
 
 protected:
     virtual Kind getKindImpl() const override;
@@ -48,6 +52,7 @@ private:
     using RangeInfo = std::pair<std::intmax_t, std::intmax_t>;
     using RangeInfosList = std::list<RangeInfo>;
 
+    void writeEnumVal(std::ostream& out, unsigned indent);
     void writeSingle(std::ostream& out, unsigned indent, bool isElement = false);
     void writeList(std::ostream& out, unsigned indent, unsigned count);
     const std::string& getUnderlyingType() const;
@@ -58,6 +63,13 @@ private:
 
     Values m_values;
     Descriptions m_desc;
+    bool m_msgId = false;
 };
+
+inline
+EnumType& asEnumType(Type& type)
+{
+    return static_cast<EnumType&>(type);
+}
 
 } // namespace sbe2comms

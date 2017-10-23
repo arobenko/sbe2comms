@@ -147,5 +147,45 @@ XmlNodePtr xmlCreatePaddingField(unsigned idx, const std::string& typeName)
     return ptr;
 }
 
+XmlNodePtr xmlEnumValidValue(
+    const std::string& name,
+    const std::string& encType,
+    const XmlEnumValuesList& values)
+{
+    static const std::string enumStr("enum");
+    auto* enumStrPtr = reinterpret_cast<const xmlChar*>(enumStr.c_str());
+    XmlNodePtr ptr(xmlNewNode(nullptr, enumStrPtr));
+
+    static const std::string nameStr("name");
+    auto* namePtr = reinterpret_cast<const xmlChar*>(nameStr.c_str());
+    auto* nameValPtr = reinterpret_cast<const xmlChar*>(name.c_str());
+    xmlNewProp(ptr.get(), namePtr, nameValPtr);
+
+    static const std::string typeStr("encodingType");
+    auto* typePtr = reinterpret_cast<const xmlChar*>(typeStr.c_str());
+    auto* typeValPtr = reinterpret_cast<const xmlChar*>(encType.c_str());
+    xmlNewProp(ptr.get(), typePtr, typeValPtr);
+
+    for (auto& v : values) {
+        static const std::string validValueStr("validValue");
+        auto* validValueStrPtr = reinterpret_cast<const xmlChar*>(validValueStr.c_str());
+        XmlNodePtr valuePtr(xmlNewNode(nullptr, validValueStrPtr));
+
+        auto* valueNamePtr = reinterpret_cast<const xmlChar*>(v.first.c_str());
+        xmlNewProp(valuePtr.get(), namePtr, valueNamePtr);
+
+        auto* valueNumPtr = reinterpret_cast<const xmlChar*>(v.second.c_str());
+        XmlNodePtr valueTextPtr(xmlNewText(valueNumPtr));
+        auto result = xmlAddChild(valuePtr.get(), valueTextPtr.release());
+        static_cast<void>(result);
+        assert(result != nullptr);
+        result = xmlAddChild(ptr.get(), valuePtr.release());
+        static_cast<void>(result);
+        assert(result != nullptr);
+    }
+
+    return ptr;
+}
+
 
 } // namespace sbe2comms

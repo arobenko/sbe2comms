@@ -132,7 +132,8 @@ bool DB::parseSchema(std::string filename)
     }
 
     for (auto& m : m_messages) {
-        if (!m.second.parse()) {
+        assert(m.second);
+        if (!m.second->parse()) {
             return false;
         }
     }
@@ -354,6 +355,25 @@ std::list<std::string> DB::getAllUsedBuiltInTypes() const
     return list;
 }
 
+xmlNodePtr DB::createMsgIdEnumNode(const std::string& name, const std::string& encType)
+{
+    if (m_msgIdEnum) {
+        return m_msgIdEnum.get();
+    }
+
+    XmlEnumValuesList values;
+    values.reserve(m_messagesById.size());
+    for (auto& m : m_messagesById) {
+        values.push_back(
+            std::make_pair(
+                m.second->first,
+                std::to_string(m.first)));
+    }
+
+    m_msgIdEnum = xmlEnumValidValue(name, encType, values);
+    return m_msgIdEnum.get();
+}
+
 bool DB::recordTypeRef(xmlNodePtr node)
 {
     auto props = xmlParseNodeProps(node, m_doc.get());
@@ -415,21 +435,23 @@ bool DB::parseMessage(xmlNodePtr node)
         return false;
     }
 
-    Message msg(*this, node);
-    if (doesElementExist(prop::sinceVersion(props))) {
-        m_messages.insert(std::make_pair(name, std::move(msg)));
+    if (!doesElementExist(prop::sinceVersion(props))) {
+        return true;
     }
+
+    std::unique_ptr<Message> msg(new Message(*this, node));
+    auto id = prop::id(props);
+    auto iterById = m_messagesById.find(id);
+    if (iterById != m_messagesById.end()) {
+        log::error() << "Message \"" << name << "\" doesn't have unique ID." << std::endl;
+        return false;
+    }
+
+    auto insertIter = m_messages.insert(m_messages.end(), std::make_pair(name, std::move(msg)));
+    assert(insertIter != m_messages.end());
+    m_messagesById.insert(std::make_pair(id, insertIter));
 
     return true;
 }
-
-
-//bool updateConfig(DB& db)
-//{
-//    auto props = parseNodeProps(db.m_schema.m_messageSchema, db);
-//    return
-//        updateConfigNamespace(props, db) &&
-//        updateConfigEndian(props, db);
-//}
 
 } // namespace sbe2comms

@@ -109,4 +109,11 @@ const BasicType* asBasicType(const Type* type)
     return static_cast<const BasicType*>(type);
 }
 
+inline
+const BasicType& asBasicType(const Type& type)
+{
+    return static_cast<const BasicType&>(type);
+}
+
+
 } // namespace sbe2comms

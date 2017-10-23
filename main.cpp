@@ -40,7 +40,8 @@ bool writeMessages(DB& db)
 {
     auto& messages = db.getMessages();
     for (auto iter = messages.begin(); iter != messages.end(); ++iter) {
-        if (!iter->second.write()) {
+        assert(iter->second);
+        if (!iter->second->write()) {
             return false;
         }
     }
@@ -84,10 +85,11 @@ bool writeTypes(DB& db)
     for (auto& i : extraIncludes) {
         stream << "#include " << i << '\n';
     }
+    auto& ns = db.getProtocolNamespace();
     stream << "\n"
               "#include \"comms/fields.h\"\n"
-              "#include \"comms/Field.h\"\n\n";
-    auto& ns = db.getProtocolNamespace();
+              "#include \"comms/Field.h\"\n"
+              "#include \"" << common::pathTo(ns, common::msgIdFileName()) << "\"\n\n";
     if (!ns.empty()) {
         stream << "namespace " << ns << "\n"
                   "{\n\n";
@@ -170,7 +172,8 @@ bool writeDefaultOptions(DB& db)
 
     auto messagesScope = ns + "::" + common::messageNamespaceStr();
     for (auto& m : db.getMessages()) {
-        result = m.second.writeDefaultOptions(stream, 2, messagesScope) && result;
+        assert(m.second);
+        result = m.second->writeDefaultOptions(stream, 2, messagesScope) && result;
     }
 
     stream << output::indent(1) << "}; // " << common::messageNamespaceNameStr() << "\n\n" <<

@@ -111,6 +111,11 @@ bool Message::parse()
         return false;
     }
 
+    if (getId() == 0U) {
+        log::error() << "Message \"" << getName() << "\" has unspecified or invalid ID." << std::endl;
+        return false;
+    }
+
     if (!createFields()) {
         return false;
     }
@@ -168,6 +173,12 @@ const std::string& Message::getName() const
 const std::string& Message::getReferenceName() const
 {
     return common::renameKeyword(getName());
+}
+
+unsigned Message::getId() const
+{
+    assert(!m_props.empty());
+    return prop::id(m_props);
 }
 
 bool Message::createFields()
