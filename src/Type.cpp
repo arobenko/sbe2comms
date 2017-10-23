@@ -367,28 +367,6 @@ std::pair<std::intmax_t, bool> Type::stringToInt(const std::string& str)
     }
 }
 
-const std::string& Type::primitiveTypeToStdInt(const std::string& type)
-{
-    static const std::map<std::string, std::string> Map = {
-        std::make_pair("char", "char"),
-        std::make_pair("int8", "std::int8_t"),
-        std::make_pair("uint8", "std::uint8_t"),
-        std::make_pair("int16", "std::int16_t"),
-        std::make_pair("uint16", "std::uint16_t"),
-        std::make_pair("int32", "std::int32_t"),
-        std::make_pair("uint32", "std::uint32_t"),
-        std::make_pair("int64", "std::int64_t"),
-        std::make_pair("uint64", "std::uint64_t")
-    };
-
-    auto iter = Map.find(type);
-    if (iter == Map.end()) {
-        return common::emptyString();
-    }
-
-    return iter->second;
-}
-
 std::pair<std::intmax_t, bool> Type::intMinValue(const std::string& type, const std::string& value)
 {
     if (value.empty()) {

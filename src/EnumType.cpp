@@ -292,7 +292,7 @@ const std::string& EnumType::getUnderlyingType() const
     auto& types = getDb().getTypes();
     auto typeIter = types.find(encType);
     if (typeIter == types.end()) {
-        return primitiveTypeToStdInt(encType);
+        return common::primitiveTypeToStdInt(encType);
     }
 
     assert(typeIter->second);
@@ -310,7 +310,7 @@ const std::string& EnumType::getUnderlyingType() const
         return common::emptyString();
     }
 
-    return primitiveTypeToStdInt(primType);
+    return common::primitiveTypeToStdInt(primType);
 }
 
 bool EnumType::readValues()

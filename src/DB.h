@@ -67,6 +67,11 @@ public:
         return m_messages;
     }
 
+    const MessagesIdMap& getMessagesById() const
+    {
+        return m_messagesById;
+    }
+
     const std::string& getRootPath();
 
     const std::string& getProtocolNamespace();
@@ -105,6 +110,7 @@ public:
     std::list<std::string> getAllUsedBuiltInTypes() const;
 
     xmlNodePtr createMsgIdEnumNode(const std::string& name, const std::string& encType);
+    xmlNodePtr getMsgIdEnumNode() const;
 
 private:
     struct GeneratedTypeInfo

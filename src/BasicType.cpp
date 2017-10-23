@@ -63,7 +63,7 @@ std::intmax_t BasicType::getDefultIntNullValue() const
 {
     auto& primType = getPrimitiveType();
     assert(!primType.empty());
-    auto& intType = primitiveTypeToStdInt(primType);
+    auto& intType = common::primitiveTypeToStdInt(primType);
     assert(!intType.empty());
     return builtInIntNullValue(intType);
 }
@@ -72,7 +72,7 @@ bool BasicType::isIntType() const
 {
     auto& primType = getPrimitiveType();
     assert(!primType.empty());
-    auto& intType = primitiveTypeToStdInt(primType);
+    auto& intType = common::primitiveTypeToStdInt(primType);
     return !intType.empty();
 }
 
@@ -173,7 +173,7 @@ bool BasicType::writeSimpleType(std::ostream& out,
     bool isElement)
 {
     auto& primType = getPrimitiveType();
-    auto& intType = primitiveTypeToStdInt(primType);
+    auto& intType = common::primitiveTypeToStdInt(primType);
     if (!intType.empty()) {
         return writeSimpleInt(out, indent, intType, isElement);
     }
@@ -454,7 +454,7 @@ bool BasicType::writeVarLengthRawDataArray(
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << primitiveTypeToStdInt(primType) << ",\n";
+           output::indent(indent + 2) << common::primitiveTypeToStdInt(primType) << ",\n";
     writeExtraOptions(out, indent + 2);
     out << output::indent(indent + 2) << "TOpt...\n" <<
            output::indent(indent + 1) << ">";
@@ -559,7 +559,7 @@ bool BasicType::writeFixedLengthRawDataArray(
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << primitiveTypeToStdInt(primType) << ",\n" <<
+           output::indent(indent + 2) << common::primitiveTypeToStdInt(primType) << ",\n" <<
            output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n";
     writeExtraOptions(out, indent + 2);
     out << output::indent(indent + 2) << "TOpt...\n" <<

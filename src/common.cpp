@@ -379,6 +379,27 @@ std::string pathTo(const std::string& ns, const std::string path)
     return result;
 }
 
+const std::string& primitiveTypeToStdInt(const std::string& type)
+{
+    static const std::map<std::string, std::string> Map = {
+        std::make_pair("char", "char"),
+        std::make_pair("int8", "std::int8_t"),
+        std::make_pair("uint8", "std::uint8_t"),
+        std::make_pair("int16", "std::int16_t"),
+        std::make_pair("uint16", "std::uint16_t"),
+        std::make_pair("int32", "std::int32_t"),
+        std::make_pair("uint32", "std::uint32_t"),
+        std::make_pair("int64", "std::int64_t"),
+        std::make_pair("uint64", "std::uint64_t")
+    };
+
+    auto iter = Map.find(type);
+    if (iter == Map.end()) {
+        return common::emptyString();
+    }
+
+    return iter->second;
+}
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc)
 {
@@ -482,6 +503,26 @@ void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allH
         return;
     }
     allHeaders.insert(newHeader);
+}
+
+void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out)
+{
+    if (ns.empty()) {
+        return;
+    }
+
+    out << "namespace " << ns << "\n"
+           "{\n"
+           "\n";
+}
+
+void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out)
+{
+    if (ns.empty()) {
+        return;
+    }
+
+    out << "} // namespace " << ns << "\n\n";
 }
 
 } // namespace common

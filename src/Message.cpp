@@ -56,12 +56,7 @@ void writeFileHeader(std::ostream& out, const std::string& name)
 
 void openNamespaces(std::ostream& out, DB& db)
 {
-    auto& ns = db.getProtocolNamespace();
-    if (!ns.empty()) {
-        out << "namespace " << ns << "\n"
-               "{\n"
-               "\n";
-    }
+    common::writeProtocolNamespaceBegin(db.getProtocolNamespace(), out);
 
     out << "namespace " << common::messageDirName() << "\n"
             "{\n"
@@ -73,11 +68,7 @@ void closeNamespaces(std::ostream& out, DB& db)
     out << "} // namespace " << common::messageDirName() << "\n"
             "\n";
 
-    auto& ns = db.getProtocolNamespace();
-    if (!ns.empty()) {
-        out << "} // namespace " << ns << "\n"
-               "\n";
-    }
+    common::writeProtocolNamespaceEnd(db.getProtocolNamespace(), out);
 }
 
 void openFieldsDef(std::ostream& out, const std::string& name)
@@ -265,12 +256,13 @@ bool Message::writeMessageClass(std::ostream& out)
                "/// \\tparam TOpt Extra options to be passed to all fields.\n";
     }
 
+    auto id = common::scopeFor(m_db.getProtocolNamespace(), common::msgIdEnumName()) + '_' + n;
     out <<
         "template <typename TMsgBase, typename TOpt = " << common::defaultOptionsStr() << ">\n"
         "class " << getReferenceName() << " : public\n" <<
         output::indent(1) << "comms::MessageBase<\n" <<
         output::indent(2) << "TMsgBase,\n" <<
-        output::indent(2) << "comms::option::StaticNumIdImpl<MsgId_" << n << ">,\n" <<
+        output::indent(2) << "comms::option::StaticNumIdImpl<" << id << ">,\n" <<
         output::indent(2) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >,\n" <<
         output::indent(2) << "comms::option::HasDoRefresh,\n";
     if (m_fields.empty()) {
@@ -377,7 +369,7 @@ void Message::writeReadFunc(std::ostream& out)
             }
 
             out << output::indent(2) << "updateOptionalFieldMode(field_" << f->getName() << "(), " <<
-                   f->getSinceVersion() << ", " << f->getDeprecated() << ");\n";
+                   f->getSinceVersion() << ");\n";
         }
 
         auto nonBasicFieldIter =

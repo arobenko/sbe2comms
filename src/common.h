@@ -64,6 +64,7 @@ const std::string& msgIdEnumName();
 std::string num(std::intmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
 std::string pathTo(const std::string& ns, const std::string path);
+const std::string& primitiveTypeToStdInt(const std::string& type);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
 void writeExtraOptionsDoc(std::ostream& out, unsigned indent);
@@ -77,6 +78,8 @@ void writeFpOptConstructor(
     const std::string& customDefault = std::string());
 void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
 void writeEnumIsNullFunc(std::ostream& out, unsigned indent);
+void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
+void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders);
 
 } // namespace common

@@ -22,6 +22,7 @@
 
 #include "DB.h"
 #include "BuiltIn.h"
+#include "MsgId.h"
 #include "common.h"
 #include "output.h"
 #include "log.h"
@@ -191,6 +192,12 @@ bool writeDefaultOptions(DB& db)
     return result;
 }
 
+bool writeMsgId(DB& db)
+{
+    MsgId msgId(db);
+    return msgId.write();
+}
+
 } // namespace sbe2comms
 
 int main(int argc, const char* argv[])
@@ -207,7 +214,9 @@ int main(int argc, const char* argv[])
         sbe2comms::writeBuiltIn(db) &&
         sbe2comms::writeMessages(db) &&
         sbe2comms::writeTypes(db) &&
-        sbe2comms::writeDefaultOptions(db);
+        sbe2comms::writeDefaultOptions(db) &&
+        sbe2comms::writeMsgId(db)
+    ;
 
     if (result) {
         std::cout << "SUCCESS" << std::endl;

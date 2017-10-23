@@ -357,10 +357,7 @@ std::list<std::string> DB::getAllUsedBuiltInTypes() const
 
 xmlNodePtr DB::createMsgIdEnumNode(const std::string& name, const std::string& encType)
 {
-    if (m_msgIdEnum) {
-        return m_msgIdEnum.get();
-    }
-
+    assert(!m_msgIdEnum);
     XmlEnumValuesList values;
     values.reserve(m_messagesById.size());
     for (auto& m : m_messagesById) {
@@ -371,6 +368,12 @@ xmlNodePtr DB::createMsgIdEnumNode(const std::string& name, const std::string& e
     }
 
     m_msgIdEnum = xmlEnumValidValue(name, encType, values);
+    return m_msgIdEnum.get();
+}
+
+xmlNodePtr DB::getMsgIdEnumNode() const
+{
+    assert(m_msgIdEnum);
     return m_msgIdEnum.get();
 }
 
