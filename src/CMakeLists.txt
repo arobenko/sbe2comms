@@ -28,6 +28,7 @@ set (
     "DataField.cpp"
     "BuiltIn.cpp"
     "MsgId.cpp"
+    "MsgInterface.cpp"
     "common.cpp"
     "prop.cpp"
     "output.cpp"

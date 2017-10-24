@@ -23,6 +23,7 @@
 #include "DB.h"
 #include "BuiltIn.h"
 #include "MsgId.h"
+#include "MsgInterface.h"
 #include "common.h"
 #include "output.h"
 #include "log.h"
@@ -198,6 +199,13 @@ bool writeMsgId(DB& db)
     return msgId.write();
 }
 
+bool writeMsgInterface(DB& db)
+{
+    MsgInterface msgInterface(db);
+    return msgInterface.write();
+}
+
+
 } // namespace sbe2comms
 
 int main(int argc, const char* argv[])
@@ -215,7 +223,8 @@ int main(int argc, const char* argv[])
         sbe2comms::writeMessages(db) &&
         sbe2comms::writeTypes(db) &&
         sbe2comms::writeDefaultOptions(db) &&
-        sbe2comms::writeMsgId(db)
+        sbe2comms::writeMsgId(db) &&
+        sbe2comms::writeMsgInterface(db)
     ;
 
     if (result) {

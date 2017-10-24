@@ -65,6 +65,12 @@ const std::string& msgIdFileName()
     return Name;
 }
 
+const std::string& msgInterfaceFileName()
+{
+    static const std::string Name("Message.h");
+    return Name;
+}
+
 const std::string& defaultOptionsStr()
 {
     static const std::string Str("DefaultOptions");
