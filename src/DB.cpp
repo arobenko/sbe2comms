@@ -20,6 +20,7 @@
 #include <iostream>
 #include <cassert>
 #include <functional>
+#include <algorithm>
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -38,41 +39,14 @@ namespace ba = boost::algorithm;
 namespace sbe2comms
 {
 
-namespace
+bool DB::parseSchema(const ProgramOptions& options)
 {
+    auto filename = options.getFile();
+    if (filename.empty()) {
+        sbe2comms::log::error() << "Message schema hasn't been provided." << std::endl;
+        return false;
+    }
 
-//bool updateConfigNamespace(const PropsMap& map, DB& db)
-//{
-//    const std::string PackageProp("package");
-//    auto iter = map.find(PackageProp);
-//    if (iter == map.end()) {
-//        db.m_config.m_namespace.clear();
-//        return true;
-//    }
-
-//    auto& name = iter->second;
-//    // TODO: remove spaces
-//    db.m_config.m_namespace = name;
-//    return true;
-//}
-
-//bool updateConfigEndian(const PropsMap& map, DB& db)
-//{
-//    const std::string EndianProp("byteOrder");
-////    const std::string LittleEndian("comms::option::LittleEndian");
-////    const std::string BigEndian("comms::option::BigEndian");
-//    static_cast<void>(db);
-//    auto iter = map.find(EndianProp);
-//    if (iter == map.end()) {
-//        return false;
-//    }
-//    return true;
-//}
-
-} // namespace
-
-bool DB::parseSchema(std::string filename)
-{
     m_doc.reset(xmlParseFile(filename.c_str()));
     if (!m_doc) {
         log::error() << "Invalid schema file: \"" << filename << "\"!" << std::endl;
@@ -94,6 +68,14 @@ bool DB::parseSchema(std::string filename)
     }
 
     m_messageSchema.reset(new MessageSchema(root, m_doc.get()));
+
+    if (!processMessageSchema()) {
+        return false;
+    }
+
+    if (!processOptions(options)) {
+        return false;
+    }
 
     using ParseChildNodeFunc = bool (DB::*)(xmlNodePtr node);
 
@@ -125,6 +107,8 @@ bool DB::parseSchema(std::string filename)
         cur = cur->next;
     }
 
+    log::info() << "Generating files in " << m_rootDir << std::endl;
+
     for (auto& t : m_types) {
         if (!t.second->parse()) {
             return false;
@@ -141,56 +125,25 @@ bool DB::parseSchema(std::string filename)
     return true;
 }
 
-const std::string& DB::getRootPath()
+const std::string& DB::getRootPath() const
 {
-    if (m_cache.m_rootDir.empty()) {
-        // TODO: program options
-        m_cache.m_rootDir = bf::current_path().string();
-    }
-
-    assert(!m_cache.m_rootDir.empty());
-    return m_cache.m_rootDir;
+    assert(!m_rootDir.empty());
+    return m_rootDir;
 }
 
-const std::string& DB::getProtocolNamespace()
+const std::string& DB::getProtocolNamespace() const
 {
-    if (m_cache.m_namespace) {
-        return *m_cache.m_namespace;
-    }
-
-    assert(m_messageSchema);
-    auto package = m_messageSchema->package();
-    ba::replace_all(package, " ", "_");
-    m_cache.m_namespace = std::move(package);
-    return *m_cache.m_namespace;
+    return m_namespace;
 }
 
 const std::string& DB::getProtocolRelDir()
 {
-    if (m_cache.m_protocolRelDir.empty()) {
-        bf::path path(common::includeDirName());
-        auto& ns = getProtocolNamespace();
-        if (!ns.empty()) {
-            path /= ns;
-        }
-
-        m_cache.m_protocolRelDir = path.string();
-    }
-
-    assert(!m_cache.m_protocolRelDir.empty());
-    return m_cache.m_protocolRelDir;
+    return m_protocolRelDir;
 }
 
-unsigned DB::getSchemaVersion()
+unsigned DB::getSchemaVersion() const
 {
-    auto& val = m_cache.m_schemaVersion;
-    if (!val) {
-        // TODO: check options for override
-        assert(m_messageSchema);
-        val = m_messageSchema->version();
-    }
-
-    return *val;
+    return m_schemaVersion;
 }
 
 unsigned DB::getSchemaId() const
@@ -205,34 +158,19 @@ const std::string& DB::getMessageHeaderType() const
     return m_messageSchema->headerType();
 }
 
-unsigned DB::getMinRemoteVersion()
+unsigned DB::getMinRemoteVersion() const
 {
-    return 0U;
+    return m_minRemoteVersion;
 }
 
-const std::string& DB::getEndian()
+const std::string& DB::getEndian() const
 {
-    auto& val = m_cache.m_endian;
-    if (!val.empty()) {
-        return val;
-    }
-
-    assert(m_messageSchema);
-    auto& byteOrder = m_messageSchema->byteOrder();
-
-    static const std::string BigEndianStr("bigEndian");
-    if (byteOrder == BigEndianStr) {
-        val = "comms::option::BigEndian";
-        return val;
-    }
-
-    val = "comms::option::LittleEndian";
-    return val;
+    return m_endian;
 }
 
-bool DB::doesElementExist(unsigned introducedSince)
+bool DB::doesElementExist(unsigned introducedSince) const
 {
-    return (introducedSince <= getSchemaVersion());
+    return (introducedSince <= m_schemaVersion);
 }
 
 const Type* DB::findType(const std::string& name) const
@@ -454,6 +392,95 @@ bool DB::parseMessage(xmlNodePtr node)
     assert(insertIter != m_messages.end());
     m_messagesById.insert(std::make_pair(id, insertIter));
 
+    return true;
+}
+
+bool DB::processOptions(const ProgramOptions& options)
+{
+    return
+        processOutputDirectory(options) &&
+        processNamespace(options) &&
+        processForcedSchemaVersion(options);
+}
+
+bool DB::processOutputDirectory(const ProgramOptions& options)
+{
+    auto dir = options.getOutputDirectory();
+    if (dir.empty()) {
+        m_rootDir = bf::current_path().string();
+        return true;
+    }
+
+    bf::path dirPath(dir);
+    if (dirPath.is_absolute()) {
+        m_rootDir = dir;
+        return true;
+    }
+
+    m_rootDir = (bf::current_path() / dirPath).string();
+    return true;
+}
+
+bool DB::processNamespace(const ProgramOptions& options)
+{
+    if (options.hasNamespaceOverride()) {
+        m_namespace = options.getNamespace();
+    }
+    else {
+        assert(m_messageSchema);
+        m_namespace = m_messageSchema->package();
+    }
+
+    ba::replace_all(m_namespace, " ", "_");
+    bf::path path(common::includeDirName());
+    if (!m_namespace.empty()) {
+        path /= m_namespace;
+    }
+
+    m_protocolRelDir = path.string();
+    return true;
+}
+
+bool DB::processForcedSchemaVersion(const ProgramOptions& options)
+{
+    assert(m_messageSchema);
+    m_schemaVersion = m_messageSchema->version();
+    if (!options.hasForcedSchemaVersion()) {
+        return true;
+    }
+
+    auto newVer = options.getForcedSchemaVersion();
+    if (m_schemaVersion < newVer) {
+        log::error() << "Forced schema version is greater than specified in the schema file." << std::endl;
+        return false;
+    }
+
+    if (newVer < m_schemaVersion) {
+        log::info() << "Forcing schema version to " << newVer << std::endl;
+    }
+
+    m_schemaVersion = newVer;
+    return true;
+}
+
+bool DB::processMinRemoteVersion(const ProgramOptions& options)
+{
+    m_minRemoteVersion = std::min(options.getMinRemoteVersion(), m_schemaVersion);
+    return true;
+}
+
+bool DB::processMessageSchema()
+{
+    assert(m_messageSchema);
+    auto& byteOrder = m_messageSchema->byteOrder();
+
+    static const std::string BigEndianStr("bigEndian");
+    if (byteOrder == BigEndianStr) {
+        m_endian = "comms::option::BigEndian";
+    }
+    else {
+        m_endian = "comms::option::LittleEndian";
+    }
     return true;
 }
 

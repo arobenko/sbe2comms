@@ -21,6 +21,7 @@
 #include <boost/filesystem.hpp>
 
 #include "DB.h"
+#include "ProgramOptions.h"
 #include "BuiltIn.h"
 #include "MsgId.h"
 #include "MsgInterface.h"
@@ -210,15 +211,17 @@ bool writeMsgInterface(DB& db)
 
 int main(int argc, const char* argv[])
 {
-
-    if (argc < 2) {
-        sbe2comms::log::error() << "Wrong number of arguments" << std::endl;
-        return -1;
+    sbe2comms::ProgramOptions options;
+    options.parse(argc, argv);
+    if (options.helpRequested()) {
+        std::cout << "Usage:\n\t" << argv[0] << " [OPTIONS] schema_file\n";
+        options.printHelp(std::cout);
+        return 0;
     }
 
     sbe2comms::DB db;
     bool result =
-        db.parseSchema(argv[1]) &&
+        db.parseSchema(options) &&
         sbe2comms::writeBuiltIn(db) &&
         sbe2comms::writeMessages(db) &&
         sbe2comms::writeTypes(db) &&

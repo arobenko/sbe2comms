@@ -14,6 +14,7 @@ set (
     "main.cpp"
     "xml_wrap.cpp"
     "DB.cpp"
+    "ProgramOptions.cpp"
     "MessageSchema.cpp"
     "Type.cpp"
     "BasicType.cpp"

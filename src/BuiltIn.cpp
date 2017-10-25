@@ -268,11 +268,11 @@ bool BuiltIn::write(DB& db)
 
     bf::path root(db.getRootPath());
     bf::path protocolRelDir(db.getProtocolRelDir());
-
+    bf::path protocolDirPath = root / protocolRelDir;
     boost::system::error_code ec;
-    bf::create_directories(protocolRelDir, ec);
+    bf::create_directories(protocolDirPath, ec);
     if (ec) {
-        log::error() << "Failed to create \"" << protocolRelDir.string() <<
+        log::error() << "Failed to create \"" << protocolDirPath.string() <<
                 "\" with error \"" << ec.message() << "\"!" << std::endl;
         return false;
     }
@@ -282,7 +282,7 @@ bool BuiltIn::write(DB& db)
     log::info() << "Generating " << relPath.string() << std::endl;
     std::ofstream out(filePath.string());
     if (!out) {
-        log::error() << "Failed to create " << relPath.string() << std::endl;
+        log::error() << "Failed to create " << filePath.string() << std::endl;
         return false;
     }
 

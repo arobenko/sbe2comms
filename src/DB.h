@@ -27,6 +27,7 @@
 #include "MessageSchema.h"
 #include "Type.h"
 #include "Message.h"
+#include "ProgramOptions.h"
 
 namespace sbe2comms
 {
@@ -40,7 +41,7 @@ public:
     using MessagesMap = std::map<std::string, MessagePtr>;
     using MessagesIdMap = std::map<unsigned, MessagesMap::const_iterator>;
 
-    bool parseSchema(std::string filename);
+    bool parseSchema(const ProgramOptions& options);
 
     xmlDocPtr getDoc()
     {
@@ -72,23 +73,23 @@ public:
         return m_messagesById;
     }
 
-    const std::string& getRootPath();
+    const std::string& getRootPath() const;
 
-    const std::string& getProtocolNamespace();
+    const std::string& getProtocolNamespace() const;
 
     const std::string& getProtocolRelDir();
 
-    unsigned getSchemaVersion();
+    unsigned getSchemaVersion() const;
 
     unsigned getSchemaId() const;
 
     const std::string& getMessageHeaderType() const;
 
-    unsigned getMinRemoteVersion();
+    unsigned getMinRemoteVersion() const;
 
-    const std::string& getEndian();
+    const std::string& getEndian() const;
 
-    bool doesElementExist(unsigned introducedSince);
+    bool doesElementExist(unsigned introducedSince) const;
 
     const Type* findType(const std::string& name) const;
 
@@ -124,6 +125,12 @@ private:
     bool recordTypeRef(xmlNodePtr node);
     bool parseTypes(xmlNodePtr node);
     bool parseMessage(xmlNodePtr node);
+    bool processOptions(const ProgramOptions& options);
+    bool processOutputDirectory(const ProgramOptions& options);
+    bool processNamespace(const ProgramOptions& options);
+    bool processForcedSchemaVersion(const ProgramOptions& options);
+    bool processMinRemoteVersion(const ProgramOptions& options);
+    bool processMessageSchema();
 
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
@@ -136,14 +143,12 @@ private:
     MessagesIdMap m_messagesById;
     std::list<std::string> m_groups;
     bool m_groupListUsed = false;
-
-    struct Cache {
-        std::string m_rootDir;
-        std::string m_protocolRelDir;
-        std::string m_endian;
-        boost::optional<std::string> m_namespace;
-        boost::optional<unsigned> m_schemaVersion;
-    } m_cache;
+    std::string m_rootDir;
+    std::string m_protocolRelDir;
+    std::string m_endian;
+    std::string m_namespace;
+    unsigned m_schemaVersion;
+    unsigned m_minRemoteVersion;
 };
 
 } // namespace sbe2comms
