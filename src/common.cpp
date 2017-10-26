@@ -303,7 +303,7 @@ const std::string& eqEmptyOptionStr()
 
 const std::string& optParamPrefixStr()
 {
-    static const std::string Str("TOpt::");
+    static const std::string Str("typename TOpt::");
     return Str;
 }
 

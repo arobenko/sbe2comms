@@ -78,7 +78,7 @@ bool MsgInterface::writeProtocolDef()
            output::indent(1) << "comms::Message<\n" <<
            output::indent(2) << "comms::option::MsgIdType<" << common::msgIdEnumName() << ">,\n" <<
            output::indent(2) << m_db.getEndian() << ",\n" <<
-           output::indent(2) << "Opt...\n" <<
+           output::indent(2) << "TOpt...\n" <<
            output::indent(1) << ">\n" <<
            "{\n"
            "public:\n" <<

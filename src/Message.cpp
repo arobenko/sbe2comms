@@ -77,7 +77,7 @@ void openFieldsDef(std::ostream& out, const std::string& name)
         "/// \\brief Accumulates details of all the " << name << " message fields.\n"
         "/// \\tparam TOpt Extra options to be passed to all fields.\n"
         "/// \\see \\ref " << name << "\n"
-        "template <typename TOpt = " << common::defaultOptionsStr() << '\n' <<
+        "template <typename TOpt = " << common::defaultOptionsStr() << ">\n" <<
         "struct " << name << common::fieldsSuffixStr() << "\n"
         "{\n";
 }

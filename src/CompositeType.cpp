@@ -408,13 +408,14 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
         out << output::indent(indent + 1) << "///     \\li \\b " << prop::name(mProps) << " for \\ref " << memsScope << prop::name(mProps) << '.' << std::endl;
     }
     out << output::indent(indent + 1) << "COMMS_FIELD_MEMBERS_ACCESS(\n";
-    bool first = true;
     for (auto& m : m_members) {
-        if (!first) {
-            out << ",\n";
-        }
         auto& mProps = m->getProps();
-        out << output::indent(indent + 2) << prop::name(mProps) << std::endl;
+        out << output::indent(indent + 2) << prop::name(mProps);
+        bool comma = (&m != &m_members.back());
+        if (comma) {
+            out << ',';
+        }
+        out << '\n';
     }
     out << output::indent(indent + 1) << ");\n";
     if (isBundleOptional()) {
@@ -606,15 +607,15 @@ bool CompositeType::checkMessageHeader()
     auto& schemaIdTypePtr = *schemaIdIter;
     assert(schemaIdTypePtr);
     auto schemaIdValue = getDb().getSchemaId();
-    schemaIdTypePtr->addExtraOption("common::field::DefaultNumValue<" + common::num(schemaIdValue) + '>');
-    schemaIdTypePtr->addExtraOption("common::field::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
+    schemaIdTypePtr->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaIdValue) + '>');
+    schemaIdTypePtr->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
 
     auto versionIter = findMemberFunc(common::versionStr());
     assert(versionIter != m_members.end());
     auto& versionTypePtr = *versionIter;
     assert(versionTypePtr);
     auto schemaVersionValue = getDb().getSchemaVersion();
-    versionTypePtr->addExtraOption("common::field::DefaultNumValue<" + common::num(schemaVersionValue) + '>');
+    versionTypePtr->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaVersionValue) + '>');
 
     auto templateIdIter = findMemberFunc(common::templateIdStr());
     assert(templateIdIter != m_members.end());

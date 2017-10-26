@@ -265,7 +265,7 @@ void GroupField::writeBundle(std::ostream& out, unsigned indent)
 
     for (auto& m : m_members) {
         out << output::indent(indent + 2) << m->getName();
-        bool comma = (&m == &m_members.back());
+        bool comma = (&m != &m_members.back());
         if (comma) {
             out << ',';
         }
