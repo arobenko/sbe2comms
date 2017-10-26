@@ -15,10 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <vector>
 
 #include "cxxtest/TestSuite.h"
 #include "mine/Message.h"
 #include "mine/message/Msg1.h"
+#include "orig/Msg1.h"
 
 class Test1Suite : public CxxTest::TestSuite
 {
@@ -26,20 +28,50 @@ public:
     void test1();
 
 private:
+    using DataBuf = std::vector<std::uint8_t>;
+
     using MineMessage =
         mine::Message<
             comms::option::ReadIterator<const std::uint8_t*>,
             comms::option::WriteIterator<std::uint8_t*>,
             comms::option::IdInfoInterface,
             comms::option::LengthInfoInterface,
-            comms::option::ValidCheckInterface
+            comms::option::ValidCheckInterface,
+            comms::option::RefreshInterface
         >;
 
     using MineMsg1 = mine::message::Msg1<MineMessage>;
+
+    template <typename TMsg>
+    TMsg doWriteRead(MineMessage& msg)
+    {
+        DataBuf buf;
+        buf.resize(msg.length());
+        msg.refresh();
+        auto writeIter = comms::writeIteratorFor<MineMessage>(&buf[0]);
+        auto es = msg.write(writeIter, buf.size());
+        static_cast<void>(es);
+        assert(es == comms::ErrorStatus::Success);
+
+        TMsg msg2;
+        msg2.setBlockLength(msg.getBlockLength());
+        auto readIter = comms::readIteratorFor<MineMessage>(&buf[0]);
+        es = msg2.read(readIter, buf.size());
+        TS_ASSERT_EQUALS(es, comms::ErrorStatus::Success);
+        return msg2;
+    }
 };
 
 void Test1Suite::test1()
 {
     MineMsg1 msg;
-    TS_ASSERT_EQUALS(msg.doLength(), 2U);
+    static_assert(msg.doMinLength() == 2U, "Invalid min length");
+    static_assert(msg.doMaxLength() == 2U, "Invalid max length");
+    TS_ASSERT_EQUALS(msg.length(), 2U);
+    TS_ASSERT_EQUALS(msg.getId(), mine::MsgId_Msg1);
+
+    msg.field_field1().value() = 0xabcd;
+
+    auto msg2 = doWriteRead<MineMsg1>(msg);
+    TS_ASSERT_EQUALS(msg2.field_field1(), msg.field_field1());
 }

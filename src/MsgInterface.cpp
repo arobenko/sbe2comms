@@ -83,7 +83,7 @@ bool MsgInterface::writeProtocolDef()
            "{\n"
            "public:\n" <<
            output::indent(1) << "/// \\brief Set the value of the root block length.\n" <<
-           output::indent(1) << "void setBlockLength(std::size_t value) const\n" <<
+           output::indent(1) << "void setBlockLength(std::size_t value)\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << "m_blockLength = value;\n" <<
            output::indent(1) << "}\n\n" <<
@@ -93,7 +93,7 @@ bool MsgInterface::writeProtocolDef()
            output::indent(2) << "return m_blockLength;\n" <<
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "/// \\brief Set the value of the schema version.\n" <<
-           output::indent(1) << "void setVersion(unsigned value) const\n" <<
+           output::indent(1) << "void setVersion(unsigned value)\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << "m_version = value;\n" <<
            output::indent(1) << "}\n\n" <<
