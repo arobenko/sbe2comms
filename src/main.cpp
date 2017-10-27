@@ -25,6 +25,7 @@
 #include "BuiltIn.h"
 #include "MsgId.h"
 #include "MsgInterface.h"
+#include "AllMessages.h"
 #include "common.h"
 #include "output.h"
 #include "log.h"
@@ -53,22 +54,14 @@ bool writeMessages(DB& db)
 
 bool writeTypes(DB& db)
 {
-    bf::path root(db.getRootPath());
-    bf::path protocolRelDir(db.getProtocolRelDir());
-    bf::path protocolDir(root / protocolRelDir);
-
-    boost::system::error_code ec;
-    bf::create_directories(protocolDir, ec);
-    if (ec) {
-        log::error() << "Failed to create \"" << protocolDir.string() <<
-                "\" with error \"" << ec.message() << "\"!" << std::endl;
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace())) {
         return false;
     }
 
-    auto fileRelPath = (protocolRelDir / common::fieldsDefFileName()).string();
+    auto fileRelPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::fieldsDefFileName());
     log::info() << "Generating " << fileRelPath << std::endl;
 
-    auto filePath = (protocolDir / common::fieldsDefFileName()).string();
+    auto filePath = (bf::path(db.getRootPath()) / fileRelPath).string();
     std::ofstream stream(filePath);
     if (!stream) {
         log::error() << "Failed to create " << filePath << std::endl;
@@ -125,22 +118,15 @@ bool writeTypes(DB& db)
 
 bool writeDefaultOptions(DB& db)
 {
-    bf::path root(db.getRootPath());
-    bf::path protocolRelDir(db.getProtocolRelDir());
-    bf::path protocolDir(root / protocolRelDir);
-
-    boost::system::error_code ec;
-    bf::create_directories(protocolDir, ec);
-    if (ec) {
-        log::error() << "Failed to create \"" << protocolDir.string() <<
-                "\" with error \"" << ec.message() << "\"!" << std::endl;
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace())) {
         return false;
     }
 
-    auto fileRelPath = (protocolRelDir / common::defaultOptionsFileName()).string();
+    auto fileRelPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::defaultOptionsFileName());
     log::info() << "Generating " << fileRelPath << std::endl;
 
-    auto filePath = (protocolDir / common::defaultOptionsFileName()).string();
+    auto filePath = (bf::path(db.getRootPath()) / fileRelPath).string();
+
     std::ofstream stream(filePath);
     if (!stream) {
         log::error() << "Failed to create " << filePath << std::endl;
@@ -206,6 +192,11 @@ bool writeMsgInterface(DB& db)
     return msgInterface.write();
 }
 
+bool writeAllMessages(DB& db)
+{
+    AllMessages obj(db);
+    return obj.write();
+}
 
 } // namespace sbe2comms
 
@@ -227,7 +218,8 @@ int main(int argc, const char* argv[])
         sbe2comms::writeTypes(db) &&
         sbe2comms::writeDefaultOptions(db) &&
         sbe2comms::writeMsgId(db) &&
-        sbe2comms::writeMsgInterface(db)
+        sbe2comms::writeMsgInterface(db) &&
+        sbe2comms::writeAllMessages(db)
     ;
 
     if (result) {

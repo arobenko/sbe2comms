@@ -21,7 +21,12 @@
 #include <iostream>
 #include <limits>
 
+#include <boost/filesystem.hpp>
+
 #include "output.h"
+#include "log.h"
+
+namespace bf = boost::filesystem;
 
 namespace sbe2comms
 {
@@ -69,6 +74,18 @@ const std::string& msgInterfaceFileName()
 {
     static const std::string Name("Message.h");
     return Name;
+}
+
+const std::string& allMessagesFileName()
+{
+    static const std::string Name(allMessagesStr() + ".h");
+    return Name;
+}
+
+const std::string& allMessagesStr()
+{
+    static const std::string Str("AllMessages");
+    return Str;
 }
 
 const std::string& defaultOptionsStr()
@@ -529,6 +546,39 @@ void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out)
     }
 
     out << "} // namespace " << ns << "\n\n";
+}
+
+std::string protocolDirRelPath(const std::string& ns, const std::string& extraDir)
+{
+    bf::path path(includeDirName());
+    if (!ns.empty()) {
+        path /= ns;
+    }
+
+    if (!extraDir.empty()) {
+        path /= extraDir;
+    }
+    return path.string();
+}
+
+bool createProtocolDefDir(
+    const std::string& root,
+    const std::string& ns,
+    const std::string& extraDir)
+{
+    bf::path rootPath(root);
+    bf::path protocolRelDir(protocolDirRelPath(ns, extraDir));
+
+    bf::path protocolDir = rootPath / protocolRelDir;
+
+    boost::system::error_code ec;
+    bf::create_directories(protocolDir, ec);
+    if (ec) {
+        log::error() << "Failed to create \"" << protocolRelDir.string() <<
+                "\" with error \"" << ec.message() << "\"!" << std::endl;
+        return false;
+    }
+    return true;
 }
 
 } // namespace common

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "MsgId.h"
+#include "AllMessages.h"
 
 #include <fstream>
 #include <boost/filesystem.hpp>
@@ -31,18 +31,18 @@ namespace bf = boost::filesystem;
 namespace sbe2comms
 {
 
-bool MsgId::write()
+bool AllMessages::write()
 {
     return writeProtocolDef();
 }
 
-bool MsgId::writeProtocolDef()
+bool AllMessages::writeProtocolDef()
 {
     if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace())) {
         return false;
     }
 
-    auto relPath = common::protocolDirRelPath(m_db.getProtocolNamespace(), common::msgIdFileName());
+    auto relPath = common::protocolDirRelPath(m_db.getProtocolNamespace(), common::allMessagesFileName());
     auto filePath = bf::path(m_db.getRootPath()) / relPath;
     log::info() << "Generating " << relPath << std::endl;
     std::ofstream out(filePath.string());
@@ -51,31 +51,41 @@ bool MsgId::writeProtocolDef()
         return false;
     }
 
+
     out << "/// \\file\n"
-           "/// \\brief Contains definition of " << common::msgIdEnumName() << " enumeration.\n\n"
-           "#pragma once\n\n" <<
-           "#include <cstdint>\n\n";
+           "/// \\brief Contains definition of all the message classes bundled in std::tuple.\n\n"
+           "#pragma once\n\n"
+           "#include <tuple>\n\n"
+           "#include \"" << common::defaultOptionsFileName() << "\"\n";
+    std::string prefix = m_db.getProtocolNamespace();
+    if (!prefix.empty()) {
+        prefix += '/';
+    }
+    prefix += common::messageNamespaceNameStr();
+    prefix += '/';
+    for (auto& m : m_db.getMessagesById()) {
+        out << "#include \"" << prefix << m.second->first << ".h\"\n";
+    }
+    out << "\n\n";
 
     auto& ns = m_db.getProtocolNamespace();
     common::writeProtocolNamespaceBegin(ns, out);
 
-    auto* msgIdNode = m_db.getMsgIdEnumNode();
-    auto props = xmlParseNodeProps(msgIdNode, m_db.getDoc());
-    auto& encType = prop::encodingType(props);
-    auto& underlyingType = common::primitiveTypeToStdInt(encType);
-    assert(!underlyingType.empty());
-    out << "/// \\brief Enumeration of message ID value.\n"
-           "enum " << common::msgIdEnumName() << " : " << underlyingType << '\n' <<
-           "{\n";
-    auto prefix = common::msgIdEnumName() + '_';
-    auto& msgs = m_db.getMessagesById();
-    for (auto& m : msgs) {
-        auto& msgName = m.second->first;
-        auto id = m.first;
-        out << output::indent(1) << prefix << msgName << " = " << common::num(id) << ", ///< ID of message \\ref " <<
-               common::messageNamespaceStr() << msgName << '\n';
+    out << "/// \\brief All the protocol messages bundled in std::tuple.\n"
+           "/// \\tparam TMsgBase Common base (interface) class of all the messages.\n"
+           "/// \\tparam TOpt Extra options, expected to be of the same format as \\ref " << common::defaultOptionsStr() << ".\n" <<
+           "template <typename TMsgBase, typename TOpt = " << common::defaultOptionsStr() << ">\n"
+           "using " << common::allMessagesStr() << " = std::tuple<\n";
+    std::size_t remCount = m_db.getMessagesById().size();
+    for (auto& m : m_db.getMessagesById()) {
+        out << output::indent(1) << common::messageNamespaceNameStr() << m.second->first << "<TMsgBase, TOpt>";
+        --remCount;
+        if (0 < remCount) {
+            out << ',';
+        }
+        out << '\n';
     }
-    out << "}; // " << common::msgIdEnumName() << "\n\n";
+    out << ">;\n\n";
     common::writeProtocolNamespaceEnd(ns, out);
     return true;
 }

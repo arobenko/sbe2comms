@@ -30,6 +30,7 @@ set (
     "BuiltIn.cpp"
     "MsgId.cpp"
     "MsgInterface.cpp"
+    "AllMessages.cpp"
     "common.cpp"
     "prop.cpp"
     "output.cpp"

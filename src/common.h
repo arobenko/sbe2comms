@@ -35,6 +35,8 @@ const std::string& builtinsDefFileName();
 const std::string& defaultOptionsFileName();
 const std::string& msgIdFileName();
 const std::string& msgInterfaceFileName();
+const std::string& allMessagesFileName();
+const std::string& allMessagesStr();
 const std::string& defaultOptionsStr();
 const std::string& emptyString();
 const std::string& renameKeyword(const std::string& value);
@@ -82,6 +84,11 @@ void writeEnumIsNullFunc(std::ostream& out, unsigned indent);
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders);
+std::string protocolDirRelPath(const std::string& ns, const std::string& extraDir = std::string());
+bool createProtocolDefDir(
+    const std::string& root,
+    const std::string& ns,
+    const std::string& extraDir = std::string());
 
 } // namespace common
 

@@ -38,25 +38,17 @@ bool MsgInterface::write()
 
 bool MsgInterface::writeProtocolDef()
 {
-    bf::path root(m_db.getRootPath());
-    bf::path protocolRelDir(m_db.getProtocolRelDir());
-    bf::path protocolDir = root / protocolRelDir;
-
-    boost::system::error_code ec;
-    bf::create_directories(protocolDir, ec);
-    if (ec) {
-        log::error() << "Failed to create \"" << protocolRelDir.string() <<
-                "\" with error \"" << ec.message() << "\"!" << std::endl;
+    if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace())) {
         return false;
     }
 
-    auto relPath = protocolRelDir / common::msgInterfaceFileName();
-    log::info() << "Generating " << relPath.string() << std::endl;
+    auto relPath = common::protocolDirRelPath(m_db.getProtocolNamespace(), common::msgInterfaceFileName());
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
 
-    auto filePath = protocolDir / common::msgInterfaceFileName();;
+    log::info() << "Generating " << relPath << std::endl;
     std::ofstream out(filePath.string());
     if (!out) {
-        log::error() << "Failed to create " << relPath.string() << std::endl;
+        log::error() << "Failed to create " << filePath.string() << std::endl;
         return false;
     }
 

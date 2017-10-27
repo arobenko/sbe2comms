@@ -136,11 +136,6 @@ const std::string& DB::getProtocolNamespace() const
     return m_namespace;
 }
 
-const std::string& DB::getProtocolRelDir()
-{
-    return m_protocolRelDir;
-}
-
 unsigned DB::getSchemaVersion() const
 {
     return m_schemaVersion;
@@ -432,12 +427,6 @@ bool DB::processNamespace(const ProgramOptions& options)
     }
 
     ba::replace_all(m_namespace, " ", "_");
-    bf::path path(common::includeDirName());
-    if (!m_namespace.empty()) {
-        path /= m_namespace;
-    }
-
-    m_protocolRelDir = path.string();
     return true;
 }
 

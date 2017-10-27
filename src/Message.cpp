@@ -116,22 +116,18 @@ bool Message::parse()
 
 bool Message::write()
 {
-    bf::path root(m_db.getRootPath());
-    bf::path protocolRelDir(m_db.getProtocolRelDir());
-    bf::path messagesDir(root / protocolRelDir / common::messageDirName());
 
-    boost::system::error_code ec;
-    bf::create_directories(messagesDir, ec);
-    if (ec) {
-        log::error() << "Failed to create \"" << messagesDir.string() <<
-                "\" with error \"" << ec.message() << "\"!" << std::endl;
+    if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace(), common::messageDirName())) {
         return false;
     }
 
+    auto messageDirRelPath =
+            common::protocolDirRelPath(m_db.getProtocolNamespace(), common::messageDirName());
+
     const std::string Ext(".h");
     auto filename = getName() + Ext;
-    auto relPath = protocolRelDir / common::messageDirName() / filename;
-    auto filePath = messagesDir / filename;
+    auto relPath = bf::path(messageDirRelPath) / filename;
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
 
     log::info() << "Generating " << relPath.string() << std::endl;
     return writeMessageDef(filePath.string());

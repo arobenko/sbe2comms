@@ -77,8 +77,6 @@ public:
 
     const std::string& getProtocolNamespace() const;
 
-    const std::string& getProtocolRelDir();
-
     unsigned getSchemaVersion() const;
 
     unsigned getSchemaId() const;
@@ -144,7 +142,6 @@ private:
     std::list<std::string> m_groups;
     bool m_groupListUsed = false;
     std::string m_rootDir;
-    std::string m_protocolRelDir;
     std::string m_endian;
     std::string m_namespace;
     unsigned m_schemaVersion;
