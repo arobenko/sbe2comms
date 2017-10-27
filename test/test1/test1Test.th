@@ -36,18 +36,16 @@ private:
             comms::option::WriteIterator<std::uint8_t*>,
             comms::option::IdInfoInterface,
             comms::option::LengthInfoInterface,
-            comms::option::ValidCheckInterface,
-            comms::option::RefreshInterface
+            comms::option::ValidCheckInterface
         >;
 
     using MineMsg1 = mine::message::Msg1<MineMessage>;
 
     template <typename TMsg>
-    TMsg doWriteRead(MineMessage& msg)
+    TMsg doWriteRead(const MineMessage& msg)
     {
         DataBuf buf;
         buf.resize(msg.length());
-        msg.refresh();
         auto writeIter = comms::writeIteratorFor<MineMessage>(&buf[0]);
         auto es = msg.write(writeIter, buf.size());
         static_cast<void>(es);

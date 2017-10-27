@@ -259,8 +259,7 @@ bool Message::writeMessageClass(std::ostream& out)
         output::indent(1) << "comms::MessageBase<\n" <<
         output::indent(2) << "TMsgBase,\n" <<
         output::indent(2) << "comms::option::StaticNumIdImpl<" << id << ">,\n" <<
-        output::indent(2) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >,\n" <<
-        output::indent(2) << "comms::option::HasDoRefresh,\n";
+        output::indent(2) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >,\n";
     if (m_fields.empty()) {
         out << output::indent(2) << "comms::option::ZeroFieldsImpl\n";
     }
@@ -272,8 +271,8 @@ bool Message::writeMessageClass(std::ostream& out)
         "{\n"
         "public:\n";
     writeFieldsAccess(out);
+    writeConstructors(out);
     writeReadFunc(out);
-    writeRefreshFunc(out);
     writePrivateMembers(out);
     out << "};\n\n";
 
@@ -342,6 +341,54 @@ bool Message::writeMessageDef(const std::string& filename)
     return result && written;
 }
 
+void Message::writeConstructors(std::ostream& out)
+{
+    std::string nonBasicFieldName;
+    do {
+        if (m_fields.empty()) {
+            break;
+        }
+
+        auto nonBasicFieldIter =
+            std::find_if(
+                m_fields.begin(), m_fields.end(),
+                [](FieldsList::const_reference f)
+                {
+                    return (f->getKind() != Field::Kind::Basic);
+                });
+
+        if (nonBasicFieldIter == m_fields.end()) {
+            nonBasicFieldName = "numOfValues";
+            break;
+        }
+
+        nonBasicFieldName = (*nonBasicFieldIter)->getName();
+    } while (false);
+
+    auto& name = getReferenceName();
+    out << output::indent(1) << "/// \\brief Default constructor.\n";
+    if (nonBasicFieldName.empty()) {
+        out << output::indent(1) << name << "() = default;\n\n";
+    }
+    else {
+        out << output::indent(1) << "/// \\details Sets the \\\"blockLength\\\" value.\n" <<
+               output::indent(1) << name << "()\n" <<
+               output::indent(1) << "{\n" <<
+               output::indent(2) << common::messageBaseDefStr() <<
+               output::indent(2) << "Base::setBlockLength(Base::template doMaxLengthUntil<FieldIdx_" << nonBasicFieldName << ">());\n" <<
+               output::indent(1) << "}\n\n";
+    }
+
+    out << output::indent(1) << "/// \\brief Copy constructor.\n" <<
+           output::indent(1) << name << "(const " << name << "&) = default;\n\n" <<
+           output::indent(1) << "/// \\brief Move constructor.\n" <<
+           output::indent(1) << name << "(" << name << "&&) = default;\n\n" <<
+           output::indent(1) << "/// \\brief Copy assignment.\n" <<
+           output::indent(1) << name << "& operator=(const " << name << "&) = default;\n\n" <<
+           output::indent(1) << "/// \\brief Move assignment.\n" <<
+           output::indent(1) << name << "& operator=(" << name << "&&) = default;\n\n";
+}
+
 void Message::writeReadFunc(std::ostream& out)
 {
     out << output::indent(1) << "/// \\brief Custom read functionality.\n" <<
@@ -404,53 +451,6 @@ void Message::writeReadFunc(std::ostream& out)
 
     } while (false);
     out << output::indent(1) << "}\n\n";
-}
-
-void Message::writeRefreshFunc(std::ostream& out)
-{
-    out << output::indent(1) << "/// \\brief Custom refresh functionality.\n" <<
-           output::indent(1) << "/// \\details Updates message's \"blockLength\" information to correct value.\n" <<
-           output::indent(1) << "/// \\return \\b true if and only if the \"blockLength\" value has been updated.\n" <<
-           output::indent(1) << "bool doRefresh()\n" <<
-           output::indent(1) << "{\n" <<
-           output::indent(2) << common::messageBaseDefStr();
-    std::string compStr("0U");
-    do {
-        if (m_fields.empty()) {
-            break;
-        }
-
-        auto nonBasicFieldIter =
-            std::find_if(
-                m_fields.begin(), m_fields.end(),
-                [](FieldsList::const_reference f)
-                {
-                    return (f->getKind() != Field::Kind::Basic);
-                });
-
-        if (nonBasicFieldIter == m_fields.begin()) {
-            break;
-        }
-
-
-        if (nonBasicFieldIter == m_fields.end()) {
-            out << output::indent(2) << "static const auto blockLength = Base::doMinLength();\n" <<
-                   output::indent(2) << "GASSERT(blockLength == Base::doLength());\n";
-            compStr = "blockLength";
-            break;
-        }
-
-        auto& fieldName = (*nonBasicFieldIter)->getName();
-        out << output::indent(2) << "static const auto blockLength = Base::template doMinLengthUntil<FieldIdx_" << fieldName << ">();\n" <<
-               output::indent(2) << "GASSERT(blockLength == Base::template doLengthUntil<FieldIdx_" << fieldName << ">());\n";
-        compStr = "blockLength";
-    } while (false);
-    out << output::indent(2) << "if (Base::getBlockLength() == " << compStr << ") {\n" <<
-           output::indent(3) << "return false;\n" <<
-           output::indent(2) << "}\n" <<
-           output::indent(2) << "Base::setBlockLength(" << compStr << ");\n" <<
-           output::indent(2) << "return true;\n" <<
-           output::indent(1) << "}\n\n";
 }
 
 void Message::writePrivateMembers(std::ostream& out)
