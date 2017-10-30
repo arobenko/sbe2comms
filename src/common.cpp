@@ -366,6 +366,18 @@ const std::string& msgIdEnumName()
     return Str;
 }
 
+const std::string& messageHeaderLayerFileName()
+{
+    static const std::string Str(messageHeaderLayerStr() + ".h");
+    return Str;
+}
+
+const std::string& messageHeaderLayerStr()
+{
+    static const std::string Str("MessageHeaderLayer");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);

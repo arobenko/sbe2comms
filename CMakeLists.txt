@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.1)
 project ("sbe2comms")
 
 option (SBE2COMMS_NO_WARN_AS_ERR "Do NOT treat warning as error" OFF)
+option (SBE2COMMS_NO_CCACHE "Disable use of ccache on UNIX system" OFF)
 
 if (NOT CMAKE_CXX_STANDARD)
     set (CMAKE_CXX_STANDARD 11)
@@ -50,6 +51,14 @@ elseif (MSVC)
 endif ()
 
 enable_testing ()
+
+if ((UNIX) AND (NOT SBE2COMMS_NO_CCACHE))
+    find_program(CCACHE_FOUND ccache)
+    if(CCACHE_FOUND)
+        set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+        set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+    endif(CCACHE_FOUND)
+endif ()
 
 add_subdirectory(src)
 add_subdirectory(test)

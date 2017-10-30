@@ -26,6 +26,7 @@
 #include "MsgId.h"
 #include "MsgInterface.h"
 #include "AllMessages.h"
+#include "MessageHeaderLayer.h"
 #include "common.h"
 #include "output.h"
 #include "log.h"
@@ -71,6 +72,7 @@ bool writeTypes(DB& db)
     stream << "/// \\file\n"
               "/// \\brief Contains definition of all the field types\n"
               "\n\n"
+              "#pragma once\n\n"
               "#include <cstdint>\n";
     std::set<std::string> extraIncludes;
     for (auto& t : db.getTypes()) {
@@ -136,6 +138,7 @@ bool writeDefaultOptions(DB& db)
     stream << "/// \\file\n"
               "/// \\brief Contains definition of default options.\n"
               "\n\n"
+              "#pragma once\n\n"
               "#include \"comms/options.h\"\n\n";
 
     auto& ns = db.getProtocolNamespace();
@@ -198,6 +201,12 @@ bool writeAllMessages(DB& db)
     return obj.write();
 }
 
+bool writeMessageHeaderLayer(DB& db)
+{
+    MessageHeaderLayer obj(db);
+    return obj.write();
+}
+
 } // namespace sbe2comms
 
 int main(int argc, const char* argv[])
@@ -219,7 +228,8 @@ int main(int argc, const char* argv[])
         sbe2comms::writeDefaultOptions(db) &&
         sbe2comms::writeMsgId(db) &&
         sbe2comms::writeMsgInterface(db) &&
-        sbe2comms::writeAllMessages(db)
+        sbe2comms::writeAllMessages(db) &&
+        sbe2comms::writeMessageHeaderLayer(db)
     ;
 
     if (result) {

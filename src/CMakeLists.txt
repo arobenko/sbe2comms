@@ -31,6 +31,7 @@ set (
     "MsgId.cpp"
     "MsgInterface.cpp"
     "AllMessages.cpp"
+    "MessageHeaderLayer.cpp"
     "common.cpp"
     "prop.cpp"
     "output.cpp"
