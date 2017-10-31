@@ -78,7 +78,7 @@ bool AllMessages::writeProtocolDef()
            "using " << common::allMessagesStr() << " = std::tuple<\n";
     std::size_t remCount = m_db.getMessagesById().size();
     for (auto& m : m_db.getMessagesById()) {
-        out << output::indent(1) << common::messageNamespaceNameStr() << m.second->first << "<TMsgBase, TOpt>";
+        out << output::indent(1) << common::messageNamespaceStr() << m.second->first << "<TMsgBase, TOpt>";
         --remCount;
         if (0 < remCount) {
             out << ',';

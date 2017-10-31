@@ -20,6 +20,8 @@
 #include "cxxtest/TestSuite.h"
 #include "mine/Message.h"
 #include "mine/message/Msg1.h"
+#include "mine/TransportFrame.h"
+#include "mine/AllMessages.h"
 #include "orig/Msg1.h"
 
 class Test1Suite : public CxxTest::TestSuite
@@ -40,21 +42,21 @@ private:
         >;
 
     using MineMsg1 = mine::message::Msg1<MineMessage>;
+    using AllMessages = mine::AllMessages<MineMessage>;
+    using MessageHeaderFrame = mine::MessageHeaderFrame<MineMessage, AllMessages>;
 
-    template <typename TMsg>
-    TMsg doWriteRead(const MineMessage& msg)
+    MessageHeaderFrame::MsgPtr doWriteRead(const MineMessage& msg, DataBuf& buf)
     {
-        DataBuf buf;
-        buf.resize(msg.length());
+        MessageHeaderFrame frame;
+        buf.resize(frame.length(msg));
         auto writeIter = comms::writeIteratorFor<MineMessage>(&buf[0]);
-        auto es = msg.write(writeIter, buf.size());
+        auto es = frame.write(msg, writeIter, buf.size());
         static_cast<void>(es);
         assert(es == comms::ErrorStatus::Success);
 
-        TMsg msg2;
-        msg2.setBlockLength(msg.getBlockLength());
+        MessageHeaderFrame::MsgPtr msg2;
         auto readIter = comms::readIteratorFor<MineMessage>(&buf[0]);
-        es = msg2.read(readIter, buf.size());
+        es = frame.read(msg2, readIter, buf.size());
         TS_ASSERT_EQUALS(es, comms::ErrorStatus::Success);
         return msg2;
     }
@@ -70,6 +72,26 @@ void Test1Suite::test1()
 
     msg.field_field1().value() = 0xabcd;
 
-    auto msg2 = doWriteRead<MineMsg1>(msg);
-    TS_ASSERT_EQUALS(msg2.field_field1(), msg.field_field1());
+    DataBuf buf;
+    auto msg2 = doWriteRead(msg, buf);
+    TS_ASSERT(msg2);
+    TS_ASSERT_EQUALS(msg2->getId(), msg.doGetId());
+    auto msg2Ptr = static_cast<MineMsg1*>(msg2.get());
+    TS_ASSERT_EQUALS(msg2Ptr->field_field1(), msg.field_field1());
+    TS_ASSERT_EQUALS(msg, *msg2Ptr);
+
+    orig::MessageHeader hdr;
+    hdr.wrap((char*)&buf[0], 0, 0, buf.size());
+    auto templateId = hdr.templateId();
+    TS_ASSERT_EQUALS(msg.doGetId(), templateId);
+    int actingVersion = hdr.version();
+    int actingBlockLength = hdr.blockLength();
+    auto headerLen =
+        hdr.blockLengthEncodingLength() +
+        hdr.templateIdEncodingLength() +
+        hdr.schemaIdEncodingLength() +
+        hdr.versionEncodingLength();
+    orig::Msg1 origMsg;
+    origMsg.wrapForDecode((char*)&buf[0], headerLen, actingBlockLength, actingVersion, buf.size());
+    TS_ASSERT_EQUALS(msg.field_field1().value(), origMsg.field1());
 }

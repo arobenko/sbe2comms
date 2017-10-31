@@ -378,6 +378,18 @@ const std::string& messageHeaderLayerStr()
     return Str;
 }
 
+const std::string& transportFrameFileName()
+{
+    static const std::string Str("TransportFrame.h");
+    return Str;
+}
+
+const std::string& messageHeaderFrameStr()
+{
+    static const std::string Str("MessageHeaderFrame");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);

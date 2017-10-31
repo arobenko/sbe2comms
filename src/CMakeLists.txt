@@ -32,6 +32,7 @@ set (
     "MsgInterface.cpp"
     "AllMessages.cpp"
     "MessageHeaderLayer.cpp"
+    "TransportFrame.cpp"
     "common.cpp"
     "prop.cpp"
     "output.cpp"

@@ -87,7 +87,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            "using " << fieldName << "=\n" <<
            output::indent(1) << common::fieldNamespaceStr() << messageHeaderType << "<\n";
     for (auto& o : opts) {
-        out << output::indent(2) << "TOpt::" << common::fieldNamespaceStr() << o.second;
+        out << output::indent(2) << "typename TOpt::" << common::fieldNamespaceStr() << o.second;
         bool comma = (&o != &opts.back());
         if (comma) {
             out << ',';
@@ -124,7 +124,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(2) << name << "<TMessage, TAllMessages, TNextLayer, TOpt, TFactoryOpt>\n" <<
            output::indent(1) << ">\n"
            "{\n" <<
-           output::indent(1) << "static_assert(util::IsTuple<TAllMessages>::Value,\n" <<
+           output::indent(1) << "static_assert(comms::util::IsTuple<TAllMessages>::Value,\n" <<
            output::indent(2) << "\"TAllMessages must be of std::tuple type\");\n\n" <<
            output::indent(1) << "using BaseImpl =\n" <<
            output::indent(2) << "comms::protocol::ProtocolLayerBase<\n" <<
@@ -208,7 +208,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(2) << "if (es == comms::ErrorStatus::NotEnoughData) {\n" <<
            output::indent(3) << "BaseImpl::updateMissingSize(header, size, missingSize);\n" <<
            output::indent(2) << "}\n\n" <<
-           output::indent(2) << "if (es != ErrorStatus::Success) {\n" <<
+           output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
            output::indent(3) << "return es;" <<
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "auto id = header.field_templateId().value();\n" <<
@@ -227,12 +227,12 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(2) << "msgPtr->setVersion(header.field_version().value());\n" <<
            output::indent(2) << "es = nextLayerReader.read(msgPtr, iter, size - header.length(), missingSize);\n" <<
            output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
-           output::indent(3) << "return msgPtr.reset();\n" <<
+           output::indent(3) << "msgPtr.reset();\n" <<
            output::indent(2) << "}\n" <<
            output::indent(2) << "return es;\n" <<
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "/// \\brief Serialise message into output data sequence.\n" <<
-           output::indent(1) << "/// \\details The function will write \\ref " << common::fieldNamespaceStr() << " to the data\n" <<
+           output::indent(1) << "/// \\details The function will write \\ref " << common::fieldNamespaceStr() << messageHeaderType << " to the data\n" <<
            output::indent(1) << "///     sequence, then call write() member function of the next\n" <<
            output::indent(1) << "///     protocol layer. If \\b TMsg type is recognised to be actual message\n" <<
            output::indent(1) << "///     type (inherited from comms::MessageBase while using\n" <<
@@ -267,10 +267,10 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(1) << "{\n" <<
            output::indent(2) << "using MsgType = typename std::decay<decltype(msg)>::type;\n\n" <<
            output::indent(2) << "auto blockLength = \n" <<
-           output::indent(3) << "static_cast<decltype(" << messageHeaderType << common::memembersSuffixStr() << "::blockLength::ValueType)>(\n" <<
+           output::indent(3) << "static_cast<typename " << common::fieldNamespaceStr() << messageHeaderType << common::memembersSuffixStr() << "::blockLength<>::ValueType>(\n" <<
            output::indent(4) << "msg.getBlockLength());\n" <<
            output::indent(2) << "auto version = \n" <<
-           output::indent(3) << "static_cast<decltype(" << messageHeaderType << common::memembersSuffixStr() << "::version::ValueType>(\n" <<
+           output::indent(3) << "static_cast<typename " << common::fieldNamespaceStr() << messageHeaderType << common::memembersSuffixStr() << "::version<>::ValueType>(\n" <<
            output::indent(4) << "msg.getVersion());\n\n" <<
            output::indent(2) << "header.field_blockLength().value() = blockLength;\n" <<
            output::indent(2) << "header.field_templateId().value() = getMsgId(msg, IdRetrieveTag<MsgType>());\n" <<
@@ -300,7 +300,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(1) << "template <typename TMsg>\n" <<
            output::indent(1) << "using IdRetrieveTag =\n" <<
            output::indent(2) << "typename std::conditional<\n" <<
-           output::indent(3) << "comms::details::ProtocolLayerHasDoGetId<TMsg>::Value,\n" <<
+           output::indent(3) << "comms::protocol::details::ProtocolLayerHasDoGetId<TMsg>::Value,\n" <<
            output::indent(3) << "DirectIdTag,\n" <<
            output::indent(3) << "PolymorphicIdTag\n" <<
            output::indent(2) << ">::type;\n\n" <<
@@ -308,7 +308,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(1) << "static MsgIdParamType getMsgId(const TMsg& msg, PolymorphicIdTag)\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << "using MsgType = typename std::decay<decltype(msg)>::type;\n" <<
-           output::indent(2) << "static_assert(comms::details::ProtocolLayerHasInterfaceOptions<MsgType>::Value,\n" <<
+           output::indent(2) << "static_assert(comms::protocol::details::ProtocolLayerHasInterfaceOptions<MsgType>::Value,\n" <<
            output::indent(3) << "\"The message class is expected to inherit from comms::Message\");\n" <<
            output::indent(2) << "static_assert(MsgType::InterfaceOptions::HasMsgIdInfo,\n" <<
            output::indent(3) << "\"The message interface class must expose polymorphic ID retrieval functionality, \"\n" <<
@@ -320,7 +320,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(1) << "{\n" <<
            output::indent(2) << "return msg.doGetId();\n" <<
            output::indent(1) << "}\n\n" <<
-           output::indent(1) << "comms::Factory factory_;\n" <<
+           output::indent(1) << "Factory factory_;\n" <<
            "};\n\n";
 
     common::writeProtocolNamespaceEnd(ns, out);
