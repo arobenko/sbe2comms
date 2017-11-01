@@ -390,6 +390,30 @@ const std::string& messageHeaderFrameStr()
     return Str;
 }
 
+const std::string& openFramingHeaderStr()
+{
+    static const std::string Str("openFramingHeader");
+    return Str;
+}
+
+const std::string& openFramingHeaderLayerFileName()
+{
+    static const std::string Str(openFramingHeaderLayerStr() + ".h");
+    return Str;
+}
+
+const std::string& openFramingHeaderLayerStr()
+{
+    static const std::string Str("OpenFramingHeaderLayer");
+    return Str;
+}
+
+const std::string& openFramingHeaderFrameStr()
+{
+    static const std::string Str("OpenFramingHeaderFrame");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);

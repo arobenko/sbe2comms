@@ -58,6 +58,8 @@ bool TransportFrame::writeProtocolDef()
         return false;
     }
 
+    auto openFramingHeaderType = common::builtinNamespaceStr() + common::openFramingHeaderStr();
+
     out << "/// \\file\n"
            "/// \\brief Contains definition of transport frames.\n\n"
            "#pragma once\n\n"
@@ -67,6 +69,7 @@ bool TransportFrame::writeProtocolDef()
            "#include \"comms/field/ArrayList.h\"\n"
            "#include \"" << common::fieldsDefFileName() << "\"\n"
            "#include \"" << common::messageHeaderLayerFileName() << "\"\n"
+           "#include \"" << common::openFramingHeaderLayerFileName() << "\"\n"
            "#include \"" << common::defaultOptionsFileName() << "\"\n\n";
 
 
@@ -109,6 +112,34 @@ bool TransportFrame::writeProtocolDef()
            output::indent(2) << ">,\n" <<
            output::indent(2) << "TOpt,\n" <<
            output::indent(2) << "TFactoryOpt\n" <<
+           output::indent(1) << ">;\n\n" <<
+           "/// \\brief Definition of transport frame involving both message header\n"
+           "///     (\\ref " << common::fieldNamespaceStr() << messageHeaderType << ") and open framing header\n"
+           "///     (\\ref " << openFramingHeaderType << ").\n"
+           "/// \\tparam TMsgBase Common base (interface) class of all the messages.\n"
+           "/// \\tparam TMessages All the message types that need to be recognized in the\n"
+           "///     input and created.\n"
+           "/// \\tparam TOpt Protocol definition options, expected to be \\ref DefaultOptions or\n"
+           "///     derived class with similar types inside.\n"
+           "/// \\tparam TFactoryOpt Options from \\b comms::option namespace \n"
+           "///     to be passed to \\b comms::MsgFactory object\n"
+           "///     contained by \\ref " << common::messageHeaderLayerStr() << ". It controls the way the message\n"
+           "///     objects are created.\n"
+           "/// \\tparam TDataStorageOpt Extra options from \\b comms::option namespace\n" <<
+           "///     to be passed to raw data storage field used by \\b comms::protocol::MsgDataLayer.\n"
+           "///     \\b NOTE, that this field is used only when \"cached\" read write operations\n"
+           "///     are performed, where the read/written raw data needs to be stored for\n"
+           "///     future reference or display. It is not used in normal read/write operations.\n"
+           "template <\n" <<
+           output::indent(1) << "typename TMsgBase,\n" <<
+           output::indent(1) << "typename TMessages,\n" <<
+           output::indent(1) << "typename TOpt = DefaultOptions,\n" <<
+           output::indent(1) << "typename TFactoryOpt = comms::option::EmptyOption,\n" <<
+           output::indent(1) << "typename TDataStorageOpt = comms::option::EmptyOption\n" <<
+           ">\n"
+           "using " << common::openFramingHeaderFrameStr() << " =\n" <<
+           output::indent(1) << common::openFramingHeaderLayerStr() << "<\n" <<
+           output::indent(2) << common::messageHeaderFrameStr() << "<TMsgBase, TMessages, TOpt, TFactoryOpt, TDataStorageOpt>\n" <<
            output::indent(1) << ">;\n\n";
 
     common::writeProtocolNamespaceEnd(ns, out);

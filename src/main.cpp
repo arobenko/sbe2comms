@@ -27,6 +27,7 @@
 #include "MsgInterface.h"
 #include "AllMessages.h"
 #include "MessageHeaderLayer.h"
+#include "OpenFramingHeaderLayer.h"
 #include "TransportFrame.h"
 #include "common.h"
 #include "output.h"
@@ -208,6 +209,12 @@ bool writeMessageHeaderLayer(DB& db)
     return obj.write();
 }
 
+bool writeOpenFramingHeaderLayer(DB& db)
+{
+    OpenFramingHeaderLayer obj(db);
+    return obj.write();
+}
+
 bool writeTransportFrame(DB& db)
 {
     TransportFrame obj(db);
@@ -237,6 +244,7 @@ int main(int argc, const char* argv[])
         sbe2comms::writeMsgInterface(db) &&
         sbe2comms::writeAllMessages(db) &&
         sbe2comms::writeMessageHeaderLayer(db) &&
+        sbe2comms::writeOpenFramingHeaderLayer(db) &&
         sbe2comms::writeTransportFrame(db)
     ;
 

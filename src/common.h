@@ -68,7 +68,10 @@ const std::string& messageHeaderLayerFileName();
 const std::string& messageHeaderLayerStr();
 const std::string& transportFrameFileName();
 const std::string& messageHeaderFrameStr();
-
+const std::string& openFramingHeaderStr();
+const std::string& openFramingHeaderLayerFileName();
+const std::string& openFramingHeaderLayerStr();
+const std::string& openFramingHeaderFrameStr();
 std::string num(std::intmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
 std::string pathTo(const std::string& ns, const std::string path);

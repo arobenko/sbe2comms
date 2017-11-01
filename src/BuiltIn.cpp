@@ -227,17 +227,18 @@ void writeOpenFrameHeader(DB& db, std::ostream& out)
         sync = "0xeb50";
     }
     out << "/// \\brief Simple Open Framing Header definition.\n"
-           "struct openFrameHeader : public\n" <<
+           "struct " << common::openFramingHeaderStr() << " : public\n" <<
            output::indent(1) << "comms::field::Bundle<\n" <<
            output::indent(2) << BigEndianStr << ",\n" <<
            output::indent(2) << "std::tuple<\n" <<
-           output::indent(3) << "comms::field::IntValueField<\n" <<
+           output::indent(3) << "comms::field::IntValue<\n" <<
            output::indent(4) << BigEndianStr << ",\n" <<
-           output::indent(4) << "std::uint32_t\n" <<
+           output::indent(4) << "std::uint32_t,\n" <<
+           output::indent(4) << "comms::option::NumValueSerOffset<sizeof(std::uint32_t) + sizeof(std::uint16_t)>\n" <<
            output::indent(3) << ">,\n" <<
-           output::indent(3) << "comms::field::IntValueField<\n" <<
+           output::indent(3) << "comms::field::IntValue<\n" <<
            output::indent(4) << BigEndianStr << ",\n" <<
-           output::indent(4) << "std::uint16_t\n" <<
+           output::indent(4) << "std::uint16_t,\n" <<
            output::indent(4) << "comms::option::ValidNumValue<" << sync << ">,\n" <<
            output::indent(4) << "comms::option::DefaultNumValue<" << sync << ">,\n" <<
            output::indent(4) << "comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>\n" <<
@@ -262,9 +263,6 @@ bool BuiltIn::write(DB& db)
 {
     auto builtIns = db.getAllUsedBuiltInTypes();
     bool hasGroupList = db.isGroupListRecorded();
-    if (builtIns.empty() && (!hasGroupList)) {
-        return true;
-    }
 
     if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace())) {
         return false;
@@ -284,7 +282,9 @@ bool BuiltIn::write(DB& db)
            "\n\n"
            "#pragma once\n\n"
            "#include <cstdint>\n"
-           "#include \"comms/fields.h\"\n\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/fields.h\"\n"
+           "#include \"comms/options.h\"\n"
            "namespace sbe2comms\n"
            "{\n\n";
     for (auto& t : builtIns) {

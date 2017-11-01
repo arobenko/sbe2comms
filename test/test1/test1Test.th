@@ -32,29 +32,55 @@ public:
 private:
     using DataBuf = std::vector<std::uint8_t>;
 
+    class Handler;
+
     using MineMessage =
         mine::Message<
             comms::option::ReadIterator<const std::uint8_t*>,
             comms::option::WriteIterator<std::uint8_t*>,
             comms::option::IdInfoInterface,
             comms::option::LengthInfoInterface,
-            comms::option::ValidCheckInterface
+            comms::option::ValidCheckInterface,
+            comms::option::Handler<Handler>
         >;
 
     using MineMsg1 = mine::message::Msg1<MineMessage>;
     using AllMessages = mine::AllMessages<MineMessage>;
-    using MessageHeaderFrame = mine::MessageHeaderFrame<MineMessage, AllMessages>;
+    using OpenFramingHeaderFrame = mine::OpenFramingHeaderFrame<MineMessage, AllMessages>;
 
-    MessageHeaderFrame::MsgPtr doWriteRead(const MineMessage& msg, DataBuf& buf)
+    class Handler
     {
-        MessageHeaderFrame frame;
+    public:
+        template <typename TMsg>
+        void handle(TMsg& msg)
+        {
+            m_lastId = msg.doGetId();
+        }
+
+        void clear()
+        {
+            m_lastId = static_cast<mine::MsgId>(0);
+        }
+
+        mine::MsgId getLastId() const
+        {
+            return m_lastId;
+        }
+
+    private:
+        mine::MsgId m_lastId = static_cast<mine::MsgId>(0);
+    };
+
+    OpenFramingHeaderFrame::MsgPtr doWriteRead(const MineMessage& msg, DataBuf& buf)
+    {
+        OpenFramingHeaderFrame frame;
         buf.resize(frame.length(msg));
         auto writeIter = comms::writeIteratorFor<MineMessage>(&buf[0]);
         auto es = frame.write(msg, writeIter, buf.size());
         static_cast<void>(es);
         assert(es == comms::ErrorStatus::Success);
 
-        MessageHeaderFrame::MsgPtr msg2;
+        OpenFramingHeaderFrame::MsgPtr msg2;
         auto readIter = comms::readIteratorFor<MineMessage>(&buf[0]);
         es = frame.read(msg2, readIter, buf.size());
         TS_ASSERT_EQUALS(es, comms::ErrorStatus::Success);
@@ -75,13 +101,15 @@ void Test1Suite::test1()
     DataBuf buf;
     auto msg2 = doWriteRead(msg, buf);
     TS_ASSERT(msg2);
-    TS_ASSERT_EQUALS(msg2->getId(), msg.doGetId());
+    Handler handler;
+    msg2->dispatch(handler);
+    TS_ASSERT_EQUALS(handler.getLastId(), msg.doGetId());
     auto msg2Ptr = static_cast<MineMsg1*>(msg2.get());
     TS_ASSERT_EQUALS(msg2Ptr->field_field1(), msg.field_field1());
     TS_ASSERT_EQUALS(msg, *msg2Ptr);
 
     orig::MessageHeader hdr;
-    hdr.wrap((char*)&buf[0], 0, 0, buf.size());
+    hdr.wrap((char*)&buf[0], sbe2comms::openFramingHeader::minLength(), 0, buf.size());
     auto templateId = hdr.templateId();
     TS_ASSERT_EQUALS(msg.doGetId(), templateId);
     int actingVersion = hdr.version();
@@ -92,6 +120,7 @@ void Test1Suite::test1()
         hdr.schemaIdEncodingLength() +
         hdr.versionEncodingLength();
     orig::Msg1 origMsg;
-    origMsg.wrapForDecode((char*)&buf[0], headerLen, actingBlockLength, actingVersion, buf.size());
+    origMsg.wrapForDecode((char*)&buf[0], sbe2comms::openFramingHeader::minLength() + headerLen, actingBlockLength, actingVersion, buf.size());
     TS_ASSERT_EQUALS(msg.field_field1().value(), origMsg.field1());
+    //TS_TRACE(buf);
 }
