@@ -33,23 +33,28 @@ function (test_func name)
     set (mine_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${name}/mine)
     set (mine_output_tgt ${name}_mine_tgt)
     add_custom_command(
-        OUTPUT ${mine_output_dir}
+        OUTPUT ${mine_output_dir}.tmp
         DEPENDS ${schema_file} ${PROJECT_NAME}
-        COMMAND $<TARGET_FILE:${PROJECT_NAME}> -o ${mine_output_dir} -n "mine" ${schema_file}
+        COMMAND $<TARGET_FILE:${PROJECT_NAME}> -o ${mine_output_dir}.tmp -n "mine" ${schema_file}
     )
-    add_custom_target(${mine_output_tgt} DEPENDS ${mine_output_dir})
+    add_custom_target(${mine_output_tgt} DEPENDS ${mine_output_dir}.tmp)
 
     set (orig_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${name}/orig)
     set (orig_output_tgt ${name}_orig_tgt)
     add_custom_command(
-        OUTPUT ${orig_output_dir}
+        OUTPUT ${orig_output_dir}.tmp
         DEPENDS ${schema_file} ${SBE_JAR}
         COMMAND ${Java_JAVA_EXECUTABLE}
-            -Dsbe.output.dir=${orig_output_dir} -Dsbe.target.language="cpp"
+            -Dsbe.output.dir=${orig_output_dir}.tmp -Dsbe.target.language="cpp"
             -Dsbe.target.namespace=orig -jar ${SBE_JAR}
         ${schema_file}
     )
-    add_custom_target(${orig_output_tgt} DEPENDS ${orig_output_dir})
+    add_custom_target(${orig_output_tgt}
+        COMMAND ${CMAKE_COMMAND}
+            -DGENERATED_MINE="${mine_output_dir}.tmp" -DOUTPUT_MINE="${mine_output_dir}"
+            -DGENERATED_ORIG="${orig_output_dir}.tmp" -DOUTPUT_ORIG="${orig_output_dir}"
+            -P "${CMAKE_CURRENT_LIST_DIR}/CopyGenerated.cmake"
+        DEPENDS ${orig_output_dir}.tmp)
 
     set (tests "${CMAKE_CURRENT_SOURCE_DIR}/${name}/${name}Test.th")
 
