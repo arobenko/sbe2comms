@@ -23,11 +23,14 @@
 #include "mine/TransportFrame.h"
 #include "mine/AllMessages.h"
 #include "orig/Msg1.h"
+#include "common.h"
 
 class Test1Suite : public CxxTest::TestSuite
 {
 public:
     void test1();
+    void test2();
+    void test3();
 
 private:
     using DataBuf = std::vector<std::uint8_t>;
@@ -44,83 +47,95 @@ private:
             comms::option::Handler<Handler>
         >;
 
-    using MineMsg1 = mine::message::Msg1<MineMessage>;
-    using AllMessages = mine::AllMessages<MineMessage>;
-    using OpenFramingHeaderFrame = mine::OpenFramingHeaderFrame<MineMessage, AllMessages>;
+    template <typename TMessage>
+    using MineMsg1 = mine::message::Msg1<TMessage>;
 
-    class Handler
+    template <typename TMessage>
+    using AllMessages = mine::AllMessages<TMessage>;
+
+    template <typename TMessage>
+    using Frame = mine::OpenFramingHeaderFrame<TMessage, AllMessages<TMessage> >;
+
+    template <typename TMsg>
+    TMsg construct()
     {
-    public:
-        template <typename TMsg>
-        void handle(TMsg& msg)
-        {
-            m_lastId = msg.doGetId();
-        }
+        TMsg msg;
+        static_assert(msg.doMinLength() == 2U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 2U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 2U);
+        TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 
-        void clear()
-        {
-            m_lastId = static_cast<mine::MsgId>(0);
-        }
-
-        mine::MsgId getLastId() const
-        {
-            return m_lastId;
-        }
-
-    private:
-        mine::MsgId m_lastId = static_cast<mine::MsgId>(0);
-    };
-
-    OpenFramingHeaderFrame::MsgPtr doWriteRead(const MineMessage& msg, DataBuf& buf)
-    {
-        OpenFramingHeaderFrame frame;
-        buf.resize(frame.length(msg));
-        auto writeIter = comms::writeIteratorFor<MineMessage>(&buf[0]);
-        auto es = frame.write(msg, writeIter, buf.size());
-        static_cast<void>(es);
-        assert(es == comms::ErrorStatus::Success);
-
-        OpenFramingHeaderFrame::MsgPtr msg2;
-        auto readIter = comms::readIteratorFor<MineMessage>(&buf[0]);
-        es = frame.read(msg2, readIter, buf.size());
-        TS_ASSERT_EQUALS(es, comms::ErrorStatus::Success);
-        return msg2;
+        msg.field_field1().value() = 0xabcd;
+        return msg;
     }
+
+    template <typename TMine, typename TOrig>
+    void verifyOrig(const TMine& mineMsg, const TOrig origMsg)
+    {
+        TS_ASSERT_EQUALS(mineMsg.field_field1().value(), origMsg.field1());
+    }
+
 };
 
 void Test1Suite::test1()
 {
-    MineMsg1 msg;
-    static_assert(msg.doMinLength() == 2U, "Invalid min length");
-    static_assert(msg.doMaxLength() == 2U, "Invalid max length");
-    TS_ASSERT_EQUALS(msg.length(), 2U);
-    TS_ASSERT_EQUALS(msg.getId(), mine::MsgId_Msg1);
+    using TestMessage = test::common::MineMessageFull;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
 
-    msg.field_field1().value() = 0xabcd;
+    auto msg = construct<TestMsg1>();
 
-    DataBuf buf;
-    auto msg2 = doWriteRead(msg, buf);
+    TestFrame frame;
+    auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
+    TS_ASSERT(!buf.empty());
+    auto msg2 = test::common::readMsg(buf, frame);
     TS_ASSERT(msg2);
-    Handler handler;
-    msg2->dispatch(handler);
-    TS_ASSERT_EQUALS(handler.getLastId(), msg.doGetId());
-    auto msg2Ptr = static_cast<MineMsg1*>(msg2.get());
-    TS_ASSERT_EQUALS(msg2Ptr->field_field1(), msg.field_field1());
-    TS_ASSERT_EQUALS(msg, *msg2Ptr);
+    test::common::verifyMine(msg, *msg2);
 
-    orig::MessageHeader hdr;
-    hdr.wrap((char*)&buf[0], sbe2comms::openFramingHeader::minLength(), 0, buf.size());
-    auto templateId = hdr.templateId();
-    TS_ASSERT_EQUALS(msg.doGetId(), templateId);
-    int actingVersion = hdr.version();
-    int actingBlockLength = hdr.blockLength();
-    auto headerLen =
-        hdr.blockLengthEncodingLength() +
-        hdr.templateIdEncodingLength() +
-        hdr.schemaIdEncodingLength() +
-        hdr.versionEncodingLength();
-    orig::Msg1 origMsg;
-    origMsg.wrapForDecode((char*)&buf[0], sbe2comms::openFramingHeader::minLength() + headerLen, actingBlockLength, actingVersion, buf.size());
-    TS_ASSERT_EQUALS(msg.field_field1().value(), origMsg.field1());
-    //TS_TRACE(buf);
+    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    verifyOrig(msg, origMsg);
 }
+
+void Test1Suite::test2()
+{
+    using TestMessage = test::common::MineMessageFullOutput;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgOutputIter<TestMessage>(msg, frame);
+    TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    test::common::verifyMine(msg, *msg2);
+
+    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    verifyOrig(msg, origMsg);
+}
+
+void Test1Suite::test3()
+{
+    using TestMessage = test::common::MineMessageEmpty;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgOutputIter(msg, frame);
+    TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
+
+
+    using OtherTestMessage = test::common::MineMessageFull;
+    using OtherTestMsg1 = MineMsg1<OtherTestMessage>;
+    using OtherTestFrame = Frame<OtherTestMessage>;
+
+    auto otherMsg = construct<OtherTestMsg1>();
+    OtherTestFrame otherFrame;
+    auto otherBuf = test::common::writeMsgIntoBuf(otherMsg, otherFrame);
+    TS_ASSERT_EQUALS(buf, otherBuf);
+}
+
+
