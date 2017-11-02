@@ -159,6 +159,12 @@ void verifyMine(const TMsg& msg1, TMsgInterface& msg2)
     TS_ASSERT_EQUALS(msg1, *msg2Ptr);
 }
 
+template <typename TField>
+void fillPadding(TField& field)
+{
+    field.value().resize(TField::ParsedOptions::SequenceFixedSize);
+}
+
 } // namespace common
 
 } // namespace test

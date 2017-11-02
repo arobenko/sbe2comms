@@ -114,8 +114,9 @@ bool GroupField::prepareMembers()
     unsigned padCount = 0;
     bool rootBlock = true;
     bool dataMembers = false;
+    auto scope = getScope() + getName() + common::memembersSuffixStr() + "::";
     for (auto* c : children) {
-        auto mem = Field::create(getDb(), c, getScope() + getName() + common::memembersSuffixStr() + "::");
+        auto mem = Field::create(getDb(), c, scope);
         if (!mem) {
             log::error() << "Failed to create members of \"" << getName() << "\" group." << std::endl;
             return false;
@@ -177,7 +178,7 @@ bool GroupField::prepareMembers()
 
             auto padNode = xmlCreatePaddingField(padCount, padType->getName());
             assert(padNode);
-            auto padMem = Field::create(getDb(), padNode.get(), std::string());
+            auto padMem = Field::create(getDb(), padNode.get(), scope);
             assert(padMem);
             assert(padMem->getKind() == Field::Kind::Basic);
             auto* castedPadMem = static_cast<BasicField*>(padMem.get());

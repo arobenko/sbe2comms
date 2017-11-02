@@ -72,6 +72,7 @@ const std::string& openFramingHeaderStr();
 const std::string& openFramingHeaderLayerFileName();
 const std::string& openFramingHeaderLayerStr();
 const std::string& openFramingHeaderFrameStr();
+const std::string& padStr();
 std::string num(std::intmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
 std::string pathTo(const std::string& ns, const std::string path);

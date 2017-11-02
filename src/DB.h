@@ -93,6 +93,8 @@ public:
 
     Type* findType(const std::string& name);
 
+    bool isIntroducedType(const std::string& name) const;
+
     const Type* getBuiltInType(const std::string& name);
 
     bool isRecordedBuiltInType(const std::string& name) const;
@@ -105,6 +107,8 @@ public:
 
     void recordGroupListUsage();
     bool isGroupListRecorded() const;
+
+    bool isPaddingRecorded() const;
 
     std::list<std::string> getAllUsedBuiltInTypes() const;
 

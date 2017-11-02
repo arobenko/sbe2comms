@@ -257,12 +257,34 @@ void writeOpenFrameHeader(DB& db, std::ostream& out)
            "};\n\n";
 }
 
+void writePad(std::ostream& out)
+{
+    out << "/// \\brief Padding type definition.\n"
+           "/// \\tparam TFieldBase Base class of all the fields.\n"
+           "/// \\tparam TLen Length of the padding.\n"
+           "/// \\tparam TOpt Extra options...\n"
+           "template <\n" <<
+           output::indent(1) << "typename TFieldBase,\n" <<
+           output::indent(1) << "std::size_t TLen,\n" <<
+           output::indent(1) << "typename... TOpt\n" <<
+           ">\n"
+           "using " << common::padStr() << " =\n" <<
+           output::indent(1) << "comms::field::ArrayList<\n" <<
+           output::indent(2) << "TFieldBase,\n" <<
+           output::indent(2) << "std::uint8_t,\n" <<
+           output::indent(2) << "comms::option::SequenceFixedSize<TLen>,\n" <<
+           output::indent(2) << "TOpt...\n" <<
+           output::indent(1) << ">;\n\n";
+}
+
+
 } // namespace
 
 bool BuiltIn::write(DB& db)
 {
     auto builtIns = db.getAllUsedBuiltInTypes();
     bool hasGroupList = db.isGroupListRecorded();
+    bool hasPadding = db.isPaddingRecorded();
 
     if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace())) {
         return false;
@@ -289,6 +311,10 @@ bool BuiltIn::write(DB& db)
            "{\n\n";
     for (auto& t : builtIns) {
         writeBuiltIn(out, t);
+    }
+
+    if (hasPadding) {
+        writePad(out);
     }
 
     if (hasGroupList) {

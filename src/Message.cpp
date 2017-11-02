@@ -28,6 +28,7 @@
 #include "output.h"
 #include "DB.h"
 #include "log.h"
+#include "BasicField.h"
 
 namespace bf = boost::filesystem;
 
@@ -172,19 +173,102 @@ bool Message::createFields()
 {
     assert(m_fields.empty());
     auto children = xmlChildren(m_node);
+    unsigned expOffset = 0U;
+    unsigned padCount = 0;
+    bool rootBlock = true;
+    bool dataMembers = false;
+    auto blockLength = prop::blockLength(m_props);
+    auto scope = getName() + common::fieldsSuffixStr() + "::";
     for (auto c : children) {
-        auto fieldPtr = Field::create(m_db, c, getName() + common::fieldsSuffixStr() + "::");
+        auto fieldPtr = Field::create(m_db, c, scope);
         if (!fieldPtr) {
             log::error() << "Unknown field kind \"" << c->name << "\"!" << std::endl;
             return false;
         }
 
+        std::string cName(reinterpret_cast<const char*>(c->name));
         if (!fieldPtr->parse()) {
+            log::error() << "Failed to parse \"" << cName  << "\" field of \"" << getName() << "\" message." << std::endl;
             return false;
         }
 
         if (!fieldPtr->doesExist()) {
             continue;
+        }
+
+        if ((!rootBlock) && (fieldPtr->getKind() == Field::Kind::Basic)) {
+            log::error() << "Basic field \"" << cName << "\" of \"" << getName() << "\" message cannot follow group or data" << std::endl;
+            return false;
+        }
+
+        if ((dataMembers) && (fieldPtr->getKind() != Field::Kind::Data)) {
+            log::error() << "Field \"" << cName << "\" of \"" << getName() << "\" message cannot follow other group or data" << std::endl;
+            return false;
+        }
+
+        if (fieldPtr->getKind() == Field::Kind::Data) {
+            rootBlock = false;
+            dataMembers = true;
+        }
+
+        do {
+            if (!rootBlock) {
+                break;
+            }
+
+            auto offset = fieldPtr->getOffset();
+            if (fieldPtr->getKind() != Field::Kind::Basic) {
+                rootBlock = false;
+                offset = std::max(offset, blockLength);
+            }
+
+            if ((blockLength != 0) && (offset < blockLength)) {
+                log::error() << "Invalid offset of \"" << cName << "\" or blockLength is to small." << std::endl;
+                return false;
+            }
+
+
+            if ((offset == 0U) || (offset == expOffset)) {
+                break;
+            }
+
+            if (offset < expOffset) {
+                log::error() << "Invalid offset of \"" << cName <<
+                                "\" field of \"" << getName() << "\" message, causing overlap.\n" << std::endl;
+                return false;
+            }
+
+            auto padLen = offset - expOffset;
+            ++padCount;
+            auto* padType = m_db.getPaddingType(padLen);
+            if (padType == nullptr) {
+                log::error() << "Failed to generate padding type for \"" << getName() << "\" message." << std::endl;
+                return false;
+            }
+
+            auto padNode = xmlCreatePaddingField(padCount, padType->getName());
+            assert(padNode);
+            auto padField = Field::create(m_db, padNode.get(), scope);
+            assert(padField);
+            assert(padField->getKind() == Field::Kind::Basic);
+            auto* castedPadMem = static_cast<BasicField*>(padField.get());
+            castedPadMem->setGeneratedPadding();
+
+            auto* padNodeName = reinterpret_cast<const char*>(padNode->name);
+            if (!padField->parse()) {
+                log::error() << "Failed to parse \"" << padNodeName  << "\" field of \"" << getName() << "\" message." << std::endl;
+                return false;
+            }
+
+            assert(castedPadMem->getSerializationLength() == padLen);
+            expOffset += padLen;
+            m_fields.push_back(std::move(padField));
+            xmlAddPrevSibling(c, padNode.release());
+        } while (false);
+
+        if (rootBlock) {
+            assert(fieldPtr->getKind() == Field::Kind::Basic);
+            expOffset += static_cast<const BasicField*>(fieldPtr.get())->getSerializationLength();
         }
 
         m_fields.push_back(std::move(fieldPtr));

@@ -60,19 +60,27 @@ private:
     TMsg construct()
     {
         TMsg msg;
-        static_assert(msg.doMinLength() == 2U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 2U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 2U);
+        static_assert(msg.doMinLength() == 8U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 8U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 8U);
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 
         msg.field_field1().value() = 0xabcd;
+        msg.field_field2().value() = -157;
         return msg;
+    }
+
+    template <typename TMsg>
+    void fillPadding(TMsg& msg)
+    {
+        test::common::fillPadding(msg.field_pad1_());
     }
 
     template <typename TMine, typename TOrig>
     void verifyOrig(const TMine& mineMsg, const TOrig origMsg)
     {
         TS_ASSERT_EQUALS(mineMsg.field_field1().value(), origMsg.field1());
+        TS_ASSERT_EQUALS(mineMsg.field_field2().value(), origMsg.field2());
     }
 
 };
@@ -87,9 +95,12 @@ void Test1Suite::test1()
 
     TestFrame frame;
     auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
+
+//    TS_TRACE(buf);
     TS_ASSERT(!buf.empty());
     auto msg2 = test::common::readMsg(buf, frame);
     TS_ASSERT(msg2);
+    fillPadding(msg);
     test::common::verifyMine(msg, *msg2);
 
     auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
@@ -109,6 +120,7 @@ void Test1Suite::test2()
     TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
     auto msg2 = test::common::readMsg(buf, frame);
     TS_ASSERT(msg2);
+    fillPadding(msg);
     test::common::verifyMine(msg, *msg2);
 
     auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());

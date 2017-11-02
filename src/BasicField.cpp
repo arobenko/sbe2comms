@@ -41,10 +41,12 @@ namespace
 
 const std::string& getNamespaceForType(const DB& db, const std::string& name)
 {
-    if ((db.isRecordedBuiltInType(name)) || db.isRecordedPaddingType(name)) {
-        return common::builtinNamespaceStr();
+    if (db.isIntroducedType(name)) {
+        return common::fieldNamespaceStr();
     }
-    return common::fieldNamespaceStr();
+
+    assert ((db.isRecordedBuiltInType(name)) || db.isRecordedPaddingType(name));
+    return common::builtinNamespaceStr();
 }
 
 } // namespace
@@ -87,7 +89,6 @@ bool BasicField::parseImpl()
 
         if (m_generatedPadding) {
             m_type = getDb().findPaddingType(typeName);
-            log::error() << "Failed to find padding type: " << typeName << std::endl;
             assert(m_type != nullptr);
             break;
         }
@@ -184,7 +185,7 @@ bool BasicField::writeImpl(std::ostream& out, unsigned indent, const std::string
 bool BasicField::usesBuiltInTypeImpl() const
 {
     assert(m_type != nullptr);
-    return getDb().isRecordedBuiltInType(m_type->getName());
+    return m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName());
 }
 
 bool BasicField::checkRequired() const
@@ -320,28 +321,26 @@ bool BasicField::isSimpleAlias() const
     return false;
 }
 
-void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std::string& name)
+
+void BasicField::writePaddingAlias(std::ostream& out, unsigned indent, const std::string& name)
+{
+    assert(m_type != nullptr);
+    auto& ns = getNamespaceForType(getDb(), m_type->getName());
+
+    out << output::indent(indent) << "using " << name << " = " << ns << common::padStr() << "<\n" <<
+           output::indent(indent + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 1) << common::num(m_type->getSerializationLength()) << ",\n" <<
+           output::indent(indent + 1) << getFieldOptString() << '\n' <<
+           output::indent(indent) << ">;\n\n";
+    return;
+
+}
+
+void BasicField::writeCompositeAlias(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
     auto& ns = getNamespaceForType(getDb(), m_type->getName());
     out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<\n";
-
-    if (m_type->getKind() != Type::Kind::Composite) {
-        bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
-        if (builtIn) {
-            out << output::indent(indent + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
-            out << output::indent(indent + 1) << getFieldOptString() << '\n';
-        }
-        else {
-            auto typeOpts = m_type->getExtraOptInfos();
-            assert(typeOpts.size() == 1U);
-            out << output::indent(indent + 1) << getTypeOptString(*m_type) << ",\n" <<
-                   output::indent(indent + 1) << getFieldOptString() << '\n';
-        }
-        out << output::indent(indent) << ">;\n\n";
-        return;
-    }
-
     auto typeOpts = m_type->getExtraOptInfos();
     for (auto& o : typeOpts) {
         out << output::indent(indent + 1) << common::optParamPrefixStr();
@@ -357,6 +356,39 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
     }
 
     out << output::indent(indent) << ">;\n\n";
+
+}
+
+void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std::string& name)
+{
+    if (m_generatedPadding) {
+        writePaddingAlias(out, indent, name);
+        return;
+    }
+
+    assert(m_type != nullptr);
+    if (m_type->getKind() == Type::Kind::Composite) {
+        writeCompositeAlias(out, indent, name);
+        return;
+    }
+
+    auto& ns = getNamespaceForType(getDb(), m_type->getName());
+
+    out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<\n";
+
+    bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
+    if (builtIn) {
+        out << output::indent(indent + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+               output::indent(indent + 1) << getFieldOptString() << '\n' <<
+               output::indent(indent) << ">;\n\n";
+        return;
+    }
+
+    auto typeOpts = m_type->getExtraOptInfos();
+    assert(typeOpts.size() == 1U);
+    out << output::indent(indent + 1) << getTypeOptString(*m_type) << ",\n" <<
+           output::indent(indent + 1) << getFieldOptString() << '\n' <<
+           output::indent(indent) << ">;\n\n";
 }
 
 void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::string& name)

@@ -48,6 +48,8 @@ private:
     bool checkConstant() const;
     const Type* getTypeFromValueRef() const;
     bool isSimpleAlias() const;
+    void writePaddingAlias(std::ostream& out, unsigned indent, const std::string& name);
+    void writeCompositeAlias(std::ostream& out, unsigned indent, const std::string& name);
     void writeSimpleAlias(std::ostream& out, unsigned indent, const std::string& name);
     void writeConstant(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptional(std::ostream& out, unsigned indent, const std::string& name);

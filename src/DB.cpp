@@ -184,6 +184,11 @@ Type* DB::findType(const std::string& name)
     return const_cast<Type*>(static_cast<const DB*>(this)->findType(name));
 }
 
+bool DB::isIntroducedType(const std::string& name) const
+{
+    return findType(name) != nullptr;
+}
+
 const Type* DB::getBuiltInType(const std::string& name)
 {
     auto iter = m_builtInTypes.find(name);
@@ -232,7 +237,7 @@ bool DB::isRecordedBuiltInType(const std::string& name) const
 
 const Type* DB::getPaddingType(unsigned len)
 {
-    auto name = "padding" + std::to_string(len);
+    auto name = common::padStr() + std::to_string(len);
     auto iter = m_paddingTypes.find(name);
     if (iter != m_paddingTypes.end()) {
         assert(iter->second.m_type);
@@ -277,6 +282,11 @@ void DB::recordGroupListUsage()
 bool DB::isGroupListRecorded() const
 {
     return m_groupListUsed;
+}
+
+bool DB::isPaddingRecorded() const
+{
+    return !m_paddingTypes.empty();
 }
 
 std::list<std::string> DB::getAllUsedBuiltInTypes() const

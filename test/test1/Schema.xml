@@ -11,9 +11,12 @@
             <type name="schemaId" primitiveType="uint16"/>
             <type name="version" primitiveType="uint16"/>
         </composite>
-        <type name="IntValue" primitiveType="uint16"/>
+        <type name="UInt8" primitiveType="uint8"/>
+        <type name="UInt16" primitiveType="uint16"/>
+        <type name="Int32" primitiveType="int32"/>
     </types>
     <message name="Msg1" id="1" description="TestMessage">
-        <field name="field1" id="10" type="IntValue"/>
+        <field name="field1" id="10" type="uint16"/>
+        <field name="field2" id="11" type="Int32" offset="4"/>
     </message>
 </messageSchema>

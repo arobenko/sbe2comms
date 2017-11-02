@@ -414,6 +414,12 @@ const std::string& openFramingHeaderFrameStr()
     return Str;
 }
 
+const std::string& padStr()
+{
+    static const std::string Str("pad");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     auto str = std::to_string(val);
