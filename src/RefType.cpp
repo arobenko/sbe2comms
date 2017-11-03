@@ -19,12 +19,16 @@
 
 #include <iostream>
 
+#include <boost/algorithm/string.hpp>
+
 #include "DB.h"
 #include "prop.h"
 #include "output.h"
 #include "log.h"
 #include "common.h"
 #include "CompositeType.h"
+
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -100,8 +104,10 @@ Type::ExtraOptInfosList RefType::getExtraOptInfosImpl() const
     assert(m_type != nullptr);
     auto opts = m_type->getExtraOptInfos();
     for (auto& o : opts) {
-        auto newRef = common::fieldNamespaceStr() + o.second;
-        o.second = std::move(newRef);
+        if (!ba::starts_with(o.second, common::fieldNamespaceStr())) {
+            auto newRef = common::fieldNamespaceStr() + o.second;
+            o.second = std::move(newRef);
+        }
     }
     return opts;
 }

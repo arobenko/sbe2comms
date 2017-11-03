@@ -30,10 +30,15 @@
             <choice name="bit10">10</choice>
         </set>
         <composite name="Composite">
-            <ref name="Mem1" type="Int32" />
-            <ref name="Mem2" type="BooleanType"/>
-            <ref name="Mem3" type="Bitset16" offset="6" />
+            <type name="mem1" primitiveType="uint32" />
+            <ref name="mem2" type="BooleanType"/>
+            <ref name="mem3" type="Bitset16" offset="6" />
         </composite>
+        
+        <composite name="Composite2">
+            <ref name="mem1" type="Int32" />
+            <ref name="mem2" type="Composite"/>
+        </composite>        
         
     </types>
     <message name="Msg1" id="1" description="TestMessage">
@@ -42,5 +47,6 @@
         <field name="field3" id="12" type="BooleanType" offset="8"/>
         <field name="field4" id="13" type="Bitset8"/>
         <field name="field5" id="14" type="Composite"/>                
+        <field name="field6" id="15" type="Composite2"/>   
     </message>
 </messageSchema>

@@ -58,9 +58,9 @@ private:
     TMsg construct()
     {
         TMsg msg;
-        static_assert(msg.doMinLength() == 18U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 18U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 18U);
+        static_assert(msg.doMinLength() == 30U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 30U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 30U);
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 
         msg.field_field1().value() = 0xabcd;
@@ -68,6 +68,11 @@ private:
         msg.field_field3().value() = mine::field::BooleanTypeVal::T;
         msg.field_field4().setBitValue_bit0(true);
         msg.field_field4().setBitValue_bit5(true);
+        msg.field_field5().field_mem1().value() = 0x12345678LL;
+        msg.field_field5().field_mem2().value() = mine::field::BooleanTypeVal::T;
+        msg.field_field5().field_mem3().setBitValue_bit10(true);
+        msg.field_field6().field_mem1().value() = 0xdeadbeef;
+        msg.field_field6().field_mem2().field_mem3().setBitValue_bit1(true);
         return msg;
     }
 
@@ -88,8 +93,18 @@ private:
         TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit0(), origMsg.field4().bit0());
         TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit1(), origMsg.field4().bit1());
         TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit5(), origMsg.field4().bit5());
+        TS_ASSERT_EQUALS(mineMsg.field_field5().field_mem1().value(), origMsg.field5().mem1());
+        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field5().field_mem2().value(), (unsigned)origMsg.field5().mem2());
+        TS_ASSERT_EQUALS(mineMsg.field_field5().field_mem3().getBitValue_bit0(), origMsg.field5().mem3().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field5().field_mem3().getBitValue_bit1(), origMsg.field5().mem3().bit1());
+        TS_ASSERT_EQUALS(mineMsg.field_field5().field_mem3().getBitValue_bit10(), origMsg.field5().mem3().bit10());
+        TS_ASSERT_EQUALS(mineMsg.field_field6().field_mem1().value(), origMsg.field6().mem1());
+        TS_ASSERT_EQUALS(mineMsg.field_field6().field_mem2().field_mem1().value(), origMsg.field6().mem2().mem1());
+        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field6().field_mem2().field_mem2().value(), (unsigned)origMsg.field6().mem2().mem2());
+        TS_ASSERT_EQUALS(mineMsg.field_field6().field_mem2().field_mem3().getBitValue_bit0(), origMsg.field6().mem2().mem3().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field6().field_mem2().field_mem3().getBitValue_bit1(), origMsg.field6().mem2().mem3().bit1());
+        TS_ASSERT_EQUALS(mineMsg.field_field6().field_mem2().field_mem3().getBitValue_bit10(), origMsg.field6().mem2().mem3().bit10());
     }
-
 };
 
 void Test1Suite::test1()
