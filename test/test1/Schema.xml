@@ -14,9 +14,33 @@
         <type name="UInt8" primitiveType="uint8"/>
         <type name="UInt16" primitiveType="uint16"/>
         <type name="Int32" primitiveType="int32"/>
+        <enum name="BooleanType" encodingType="uint8">
+            <validValue name="F">0</validValue>
+            <validValue name="T">1</validValue>
+        </enum>
+        <set name="Bitset8" encodingType="UInt8">
+            <choice name="bit0">0</choice>
+            <choice name="bit1">1</choice>
+            <choice name="bit5">5</choice>
+        </set>
+        <set name="Bitset16" encodingType="uint16">
+            <choice name="bit0">0</choice>
+            <choice name="bit1">1</choice>
+            <choice name="bit5">5</choice>
+            <choice name="bit10">10</choice>
+        </set>
+        <composite name="Composite">
+            <ref name="Mem1" type="Int32" />
+            <ref name="Mem2" type="BooleanType"/>
+            <ref name="Mem3" type="Bitset16" offset="6" />
+        </composite>
+        
     </types>
     <message name="Msg1" id="1" description="TestMessage">
         <field name="field1" id="10" type="uint16"/>
         <field name="field2" id="11" type="Int32" offset="4"/>
+        <field name="field3" id="12" type="BooleanType" offset="8"/>
+        <field name="field4" id="13" type="Bitset8"/>
+        <field name="field5" id="14" type="Composite"/>                
     </message>
 </messageSchema>

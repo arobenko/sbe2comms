@@ -17,8 +17,6 @@
 
 #include <vector>
 
-#include "cxxtest/TestSuite.h"
-#include "mine/Message.h"
 #include "mine/message/Msg1.h"
 #include "mine/TransportFrame.h"
 #include "mine/AllMessages.h"
@@ -60,13 +58,16 @@ private:
     TMsg construct()
     {
         TMsg msg;
-        static_assert(msg.doMinLength() == 8U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 8U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 8U);
+        static_assert(msg.doMinLength() == 18U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 18U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 18U);
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 
         msg.field_field1().value() = 0xabcd;
         msg.field_field2().value() = -157;
+        msg.field_field3().value() = mine::field::BooleanTypeVal::T;
+        msg.field_field4().setBitValue_bit0(true);
+        msg.field_field4().setBitValue_bit5(true);
         return msg;
     }
 
@@ -77,10 +78,16 @@ private:
     }
 
     template <typename TMine, typename TOrig>
-    void verifyOrig(const TMine& mineMsg, const TOrig origMsg)
+    void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
     {
+        TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
+        TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength())
         TS_ASSERT_EQUALS(mineMsg.field_field1().value(), origMsg.field1());
         TS_ASSERT_EQUALS(mineMsg.field_field2().value(), origMsg.field2());
+        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field3().value(), (unsigned)origMsg.field3());
+        TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit0(), origMsg.field4().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit1(), origMsg.field4().bit1());
+        TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit5(), origMsg.field4().bit5());
     }
 
 };

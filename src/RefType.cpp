@@ -97,10 +97,6 @@ bool RefType::hasFixedLengthImpl() const
 
 Type::ExtraOptInfosList RefType::getExtraOptInfosImpl() const
 {
-    if (!isBundle()) {
-        return Base::getExtraOptInfosImpl();
-    }
-
     assert(m_type != nullptr);
     auto opts = m_type->getExtraOptInfos();
     for (auto& o : opts) {
