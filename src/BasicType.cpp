@@ -627,7 +627,8 @@ void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
            output::indent(indent + 2) << "    (" << maxValue.first << " < ch)) {\n" <<
            output::indent(indent + 2) << "    return false;\n" <<
            output::indent(indent + 2) << "}\n\n" <<
-           output::indent(indent + 1) << "return true;\n" <<
+           output::indent(indent + 2) << "return true;\n" <<
+           output::indent(indent + 1) << "}\n" <<
            output::indent(indent) << "}\n";
 }
 

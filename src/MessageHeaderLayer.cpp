@@ -87,7 +87,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            "using " << fieldName << "=\n" <<
            output::indent(1) << common::fieldNamespaceStr() << messageHeaderType << "<\n";
     for (auto& o : opts) {
-        out << output::indent(2) << "typename TOpt::" << common::fieldNamespaceStr() << o.second;
+        out << output::indent(2) << common::optParamPrefixStr() << common::fieldNamespaceStr() << o.second;
         bool comma = (&o != &opts.back());
         if (comma) {
             out << ',';

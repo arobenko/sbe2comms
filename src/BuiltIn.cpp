@@ -134,19 +134,19 @@ void writeGroupList(std::ostream& out)
            output::indent(3) << common::fieldBaseDefStr() <<
            output::indent(3) << "Base::value().emplace_back();\n" <<
            output::indent(3) << "auto& lastElem = Base::value().back();\n" <<
-           output::indent(3) << "es = lastElem.readUntil<TRootCount>(iterTmp, blockLength);\n" <<
-           output::indent(3) << "if (es != comm::ErrorStatus::Success) {\n" <<
+           output::indent(3) << "es = lastElem.template readUntil<TRootCount>(iterTmp, blockLength);\n" <<
+           output::indent(3) << "if (es != comms::ErrorStatus::Success) {\n" <<
            output::indent(4) << "Base::value().pop_back();\n" <<
            output::indent(4) << "return es;\n" <<
            output::indent(3) << "}\n\n" <<
            output::indent(3) << "std::advance(iter, blockLength);\n" <<
            output::indent(3) << "remLen -= blockLength;\n\n" <<
-           output::indent(3) << "es = lastElem.readFrom<TRootCount>(iter, remLen);\n" <<
-           output::indent(3) << "if (es != comm::ErrorStatus::Success) {\n" <<
+           output::indent(3) << "es = lastElem.template readFrom<TRootCount>(iter, remLen);\n" <<
+           output::indent(3) << "if (es != comms::ErrorStatus::Success) {\n" <<
            output::indent(4) << "Base::value().pop_back();\n" <<
            output::indent(4) << "return es;\n" <<
            output::indent(3) << "}\n\n" <<
-           output::indent(3) << "remLen -= Base::value().back().lengthFrom<TRootCount>();\n" <<
+           output::indent(3) << "remLen -= Base::value().back().template lengthFrom<TRootCount>();\n" <<
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "return checkFailOnInvalid();\n" <<
            output::indent(1) << "}\n\n" <<
@@ -167,20 +167,28 @@ void writeGroupList(std::ostream& out)
            output::indent(1) << "template <typename TIter>\n" <<
            output::indent(1) << "void writeNoStatus(TIter& iter) const\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << "TDimensionType dimType;\n" <<
-           output::indent(2) << "dimType.field_blockLength() = TElement::maxLengthUntil<TRootCount>();\n" <<
-           output::indent(2) << "dimType.field_numInGroup() = Base::value().size();\n" <<
-           output::indent(2) << "dimType.writeNoStatus(iter);\n\n" <<
            output::indent(2) << common::fieldBaseDefStr() <<
+           output::indent(2) << "TDimensionType dimType;\n" <<
+           output::indent(2) << "auto& blockLengthVal = dimType.field_blockLength().value();\n" <<
+           output::indent(2) << "using BlockLengthValType = typename std::decay<decltype(blockLengthVal)>::type;\n" <<
+           output::indent(2) << "blockLengthVal = static_cast<BlockLengthValType>(TElement::template maxLengthUntil<TRootCount>());\n\n" <<
+           output::indent(2) << "auto& numInGroupVal = dimType.field_numInGroup().value();\n" <<
+           output::indent(2) << "using NumInGroupValType = typename std::decay<decltype(numInGroupVal)>::type;\n" <<
+           output::indent(2) << "numInGroupVal = static_cast<NumInGroupValType>(Base::value().size());\n" <<
+           output::indent(2) << "dimType.writeNoStatus(iter);\n\n" <<
            output::indent(2) << "Base::writeNoStatus(iter);\n" <<
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "/// \\brief Check validity of the field value.\n" <<
            output::indent(1) << "bool valid() const\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << "TDimensionType dimType;\n" <<
-           output::indent(2) << "dimType.field_blockLength() = TElement::maxLengthUntil<TRootCount>();\n" <<
-           output::indent(2) << "dimType.field_numInGroup() = Base::value().size();\n\n" <<
            output::indent(2) << common::fieldBaseDefStr() <<
+           output::indent(2) << "TDimensionType dimType;\n" <<
+           output::indent(2) << "auto& blockLengthVal = dimType.field_blockLength().value();\n" <<
+           output::indent(2) << "using BlockLengthValType = typename std::decay<decltype(blockLengthVal)>::type;\n" <<
+           output::indent(2) << "blockLengthVal = static_cast<BlockLengthValType>(TElement::template maxLengthUntil<TRootCount>());\n\n" <<
+           output::indent(2) << "auto& numInGroupVal = dimType.field_numInGroup().value();\n" <<
+           output::indent(2) << "using NumInGroupValType = typename std::decay<decltype(numInGroupVal)>::type;\n" <<
+           output::indent(2) << "numInGroupVal = static_cast<NumInGroupValType>(Base::value().size());\n" <<
            output::indent(2) << "return Base::valid() && dimType.valid();\n" <<
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "/// \\brief Get minimal length that is required to serialise field of this type.\n" <<
@@ -193,9 +201,9 @@ void writeGroupList(std::ostream& out)
            output::indent(1) << "struct FailOnInvalidTag{};\n\n" <<
            output::indent(1) << "comms::ErrorStatus checkFailOnInvalid() const\n" <<
            output::indent(1) << "{\n" <<
+           output::indent(2) << common::fieldBaseDefStr() <<
            output::indent(2) << "static_assert(!Base::ParsedOptions::HasFailOnInvalid,\n" <<
            output::indent(3) << "\"comms::option::IgnoreInvalid option is not supported for \\\"groupList\\\"\");\n" <<
-           output::indent(2) << common::fieldBaseDefStr() <<
            output::indent(2) << "using Tag = typename std::conditional<\n" <<
            output::indent(3) << "Base::ParsedOptions::HasFailOnInvalid,\n" <<
            output::indent(3) << "FailOnInvalidTag,\n" <<
@@ -214,7 +222,7 @@ void writeGroupList(std::ostream& out)
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "return comms::ErrorStatus::Success;\n" <<
            output::indent(1) << "}\n\n" <<
-           output::indent(1) << "static_assert(TElement::minLengthUntil<TRootCount>() == TElement::maxLengthUntil<TRootCount>(),\n" <<
+           output::indent(1) << "static_assert(TElement::template minLengthUntil<TRootCount>() == TElement::template maxLengthUntil<TRootCount>(),\n" <<
            output::indent(2) << "\"Root block must have fixed length\");\n" <<
            "};\n\n";
 }

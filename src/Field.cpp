@@ -191,15 +191,15 @@ bool Field::isCommsOptionalWrapped() const
     return !getDefaultOptMode().empty();
 }
 
-bool Field::writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
+bool Field::parseImpl()
 {
-    out << output::indent(indent) << "/// \\brief Default options for \\ref " << scope << getReferenceName() << " field.\n" <<
-           output::indent(indent) << "using " << getReferenceName() << common::eqEmptyOptionStr() << ";\n\n";
     return true;
 }
 
-bool Field::parseImpl()
+bool Field::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
 {
+    out << output::indent(indent) << "/// \\brief Default options for \\ref " << scope << getReferenceName() << " field.\n" <<
+           output::indent(indent) << "using " << getReferenceName() << common::eqEmptyOptionStr() << ";\n\n";
     return true;
 }
 

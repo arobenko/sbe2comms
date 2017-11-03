@@ -243,6 +243,7 @@ Type::ExtraOptInfosList CompositeType::getExtraOptInfosImpl() const
         }
         list.splice(list.end(), infos);
     }
+
     return list;
 }
 

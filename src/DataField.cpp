@@ -18,6 +18,7 @@
 #include "DataField.h"
 
 #include <iostream>
+#include <boost/algorithm/string.hpp>
 
 #include "DB.h"
 #include "prop.h"
@@ -25,6 +26,8 @@
 #include "log.h"
 #include "common.h"
 #include "CompositeType.h"
+
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -79,9 +82,13 @@ bool DataField::writeImpl(std::ostream& out, unsigned indent, const std::string&
 
     out << output::indent(indent) << "using " << name << " = \n" <<
            output::indent(indent + 1) << common::fieldNamespaceStr() << m_type->getReferenceName() << "<\n";
-    auto& members = asCompositeType(m_type)->getMembers();
-    for (auto& m : members) {
-        out << output::indent(indent + 2) << getTypeOptString(*m) << ",\n";
+    auto extraOpts = m_type->getExtraOptInfos();
+    for (auto& o : extraOpts) {
+        out << output::indent(indent + 2) << common::optParamPrefixStr();
+        if (!ba::starts_with(o.second, common::fieldNamespaceStr())) {
+            out << common::fieldNamespaceStr();
+        }
+        out << o.second << ",\n";
     }
     out << output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">;\n\n";

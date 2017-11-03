@@ -91,13 +91,17 @@ public:
         return usesBuiltInTypeImpl();
     }
 
-    bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope);
+    bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
+    {
+        return writeDefaultOptionsImpl(out, indent, scope);
+    }
 
 protected:
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool usesBuiltInTypeImpl() const = 0;
+    virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope);
 
     void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);
     static void writeOptions(std::ostream& out, unsigned indent);

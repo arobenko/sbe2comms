@@ -39,6 +39,7 @@ protected:
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool usesBuiltInTypeImpl() const override;
+    virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope) override;
 
 private:
     bool prepareMembers();
@@ -46,6 +47,7 @@ private:
     bool writeMembers(std::ostream& out, unsigned indent);
     void writeBundle(std::ostream& out, unsigned indent);
     const std::string& getDimensionType() const;
+    bool writeMembersDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope);
 
     std::list<FieldPtr> m_fields;
     std::vector<FieldPtr> m_members;

@@ -526,12 +526,14 @@ void Message::writeReadFunc(std::ostream& out)
 
         auto& fieldName = (*nonBasicFieldIter)->getName();
         out << output::indent(2) << "auto iterTmp = iter;\n" <<
-               output::indent(2) << "auto es = Base::template readFieldsUntil<FieldIdx_" << fieldName << ">(iterTmp, Base::blockLength());\n" <<
+               output::indent(2) << "std::size_t rootBlockLen = Base::getBlockLength();\n" <<
+               output::indent(2) << "auto es = Base::template doReadFieldsUntil<FieldIdx_" << fieldName << ">(iterTmp, rootBlockLen);\n" <<
                output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
                output::indent(3) << "return es;\n" <<
                output::indent(2) << "}\n\n" <<
                output::indent(2) << advanceStr <<
-               output::indent(2) << "return Base::template readFieldsFrom<FieldIdx_" << fieldName << "(iter, len - Base::getBlockLength());\n";
+               output::indent(2) << "auto remLen = len - rootBlockLen;\n" <<
+               output::indent(2) << "return Base::template doReadFieldsFrom<FieldIdx_" << fieldName << ">(iter, remLen);\n";
 
     } while (false);
     out << output::indent(1) << "}\n\n";

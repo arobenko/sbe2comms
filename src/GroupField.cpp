@@ -20,6 +20,8 @@
 #include <iostream>
 #include <algorithm>
 
+#include <boost/algorithm/string.hpp>
+
 #include "DB.h"
 #include "prop.h"
 #include "output.h"
@@ -27,6 +29,8 @@
 #include "BasicField.h"
 #include "CompositeType.h"
 #include "common.h"
+
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -89,11 +93,27 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
                 return m->getKind() == Kind::Basic;
             });
 
+    assert(m_type != nullptr);
+    auto extraOpts = m_type->getExtraOptInfos();
+
     out << output::indent(indent) << "using " << getName() << " =\n" <<
            output::indent(indent + 1) << common::builtinNamespaceStr() << common::groupListStr() << "<\n" <<
            output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << ",\n" <<
-           output::indent(indent + 2) << common::fieldNamespaceStr() << getDimensionType() << ",\n" <<
+           output::indent(indent + 2) << common::fieldNamespaceStr() << getDimensionType() << "<\n";
+    for (auto& o : extraOpts) {
+        out << output::indent(indent + 3) << common::optParamPrefixStr();
+        if (!ba::starts_with(o.second, common::fieldNamespaceStr())) {
+            out << common::fieldNamespaceStr();
+        }
+        out << o.second;
+        bool comma = (&o != &extraOpts.back());
+        if (comma) {
+            out << ',';
+        }
+        out << '\n';
+    }
+    out << output::indent(indent + 2) << ">,\n" <<
            output::indent(indent + 2) << basicFieldCount << ",\n" <<
            output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">;\n\n";
@@ -103,6 +123,12 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
 bool GroupField::usesBuiltInTypeImpl() const
 {
     return true;
+}
+
+bool GroupField::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
+{
+    return writeMembersDefaultOptions(out, indent, scope) &&
+           Base::writeDefaultOptionsImpl(out, indent, scope);
 }
 
 bool GroupField::prepareMembers()
@@ -253,7 +279,7 @@ void GroupField::writeBundle(std::ostream& out, unsigned indent)
     out << output::indent(indent) << "struct " << getName() << common::elementSuffixStr() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
            output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::memembersSuffixStr() << "::All";
+           output::indent(indent + 2) << "typename " << getName() << common::memembersSuffixStr() << "::All";
 
     out << '\n' <<
            output::indent(indent + 1) << ">\n" <<
@@ -280,6 +306,20 @@ void GroupField::writeBundle(std::ostream& out, unsigned indent)
 const std::string& GroupField::getDimensionType() const
 {
     return prop::dimensionType(getProps());
+}
+
+bool GroupField::writeMembersDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
+{
+    out << output::indent(indent) << "/// \\brief Scope for the options of \\ref " << scope << getName() << " field members.\n" <<
+           output::indent(indent) << "struct " << getName() << common::memembersSuffixStr() << '\n' <<
+           output::indent(indent) << "{\n";
+    auto newScope = scope + getName() + common::memembersSuffixStr() + "::";
+    bool result = true;
+    for (auto& m : m_members) {
+        result = m->writeDefaultOptions(out, indent + 1, newScope) && result;
+    }
+    out << output::indent(indent) << "};\n\n";
+    return result;
 }
 
 
