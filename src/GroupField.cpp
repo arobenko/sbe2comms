@@ -140,7 +140,48 @@ bool GroupField::prepareMembers()
     unsigned padCount = 0;
     bool rootBlock = true;
     bool dataMembers = false;
+    auto blockLength = getBlockLength();
     auto scope = getScope() + getName() + common::memembersSuffixStr() + "::";
+    auto addPaddingFunc =
+        [this, &padCount, &expOffset, &scope](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
+        {
+            ++padCount;
+            auto* padType = getDb().getPaddingType(padLen);
+            if (padType == nullptr) {
+                log::error() << "Failed to generate padding type for \"" << getName() << "\" message." << std::endl;
+                return false;
+            }
+
+            auto padNode = xmlCreatePaddingField(padCount, padType->getName());
+            assert(padNode);
+            auto padField = Field::create(getDb(), padNode.get(), scope);
+            assert(padField);
+            assert(padField->getKind() == Field::Kind::Basic);
+            auto* castedPadMem = static_cast<BasicField*>(padField.get());
+            castedPadMem->setGeneratedPadding();
+
+            auto* padNodeName = reinterpret_cast<const char*>(padNode->name);
+            if (!padField->parse()) {
+                log::error() << "Failed to parse \"" << padNodeName  << "\" field of \"" << getName() << "\" message." << std::endl;
+                return false;
+            }
+
+            assert(castedPadMem->getSerializationLength() == padLen);
+            expOffset += padLen;
+            m_members.push_back(std::move(padField));
+            if (before) {
+                assert(c != nullptr);
+                xmlAddPrevSibling(c, padNode.release());
+            }
+            else if (c != nullptr) {
+                xmlAddNextSibling(c, padNode.release());
+            }
+            else {
+                xmlAddChild(getNode(), padNode.release());
+            }
+            return true;
+        };
+
     for (auto* c : children) {
         auto mem = Field::create(getDb(), c, scope);
         if (!mem) {
@@ -159,17 +200,16 @@ bool GroupField::prepareMembers()
         }
 
         if ((!rootBlock) && (mem->getKind() == Kind::Basic)) {
-            log::error() << "Basic member \"" << cName << "\" of \"" << getName() << "\" group cannot follow other group or data" << std::endl;
+            log::error() << "Basic member \"" << mem->getName() << "\" of \"" << getName() << "\" group cannot follow other group or data" << std::endl;
             return false;
         }
 
         if ((dataMembers) && (mem->getKind() != Kind::Data)) {
-            log::error() << "member \"" << cName << "\" of \"" << getName() << "\" group cannot follow other group or data" << std::endl;
+            log::error() << "member \"" << mem->getName() << "\" of \"" << getName() << "\" group cannot follow other group or data" << std::endl;
             return false;
         }
 
         if (mem->getKind() == Kind::Data) {
-            rootBlock = false;
             dataMembers = true;
         }
 
@@ -181,7 +221,12 @@ bool GroupField::prepareMembers()
             auto offset = mem->getOffset();
             if (mem->getKind() != Kind::Basic) {
                 rootBlock = false;
-                offset = std::max(offset, getBlockLength());
+                offset = std::max(offset, blockLength);
+            }
+
+            if ((blockLength != 0) && (blockLength < offset)) {
+                log::error() << "Invalid offset of \"" << mem->getName() << "\" or blockLength is to small." << std::endl;
+                return false;
             }
 
             if ((offset == 0U) || (offset == expOffset)) {
@@ -194,32 +239,11 @@ bool GroupField::prepareMembers()
                 return false;
             }
 
+
             auto padLen = offset - expOffset;
-            ++padCount;
-            auto* padType = getDb().getPaddingType(padLen);
-            if (padType == nullptr) {
-                log::error() << "Failed to generate padding type for \"" << getName() << "\" group." << std::endl;
+            if (!addPaddingFunc(c, padLen)) {
                 return false;
             }
-
-            auto padNode = xmlCreatePaddingField(padCount, padType->getName());
-            assert(padNode);
-            auto padMem = Field::create(getDb(), padNode.get(), scope);
-            assert(padMem);
-            assert(padMem->getKind() == Field::Kind::Basic);
-            auto* castedPadMem = static_cast<BasicField*>(padMem.get());
-            castedPadMem->setGeneratedPadding();
-
-            auto* padNodeName = reinterpret_cast<const char*>(padNode->name);
-            if (!padMem->parse()) {
-                log::error() << "Failed to parse \"" << padNodeName  << "\" member of \"" << getName() << "\" group." << std::endl;
-                return false;
-            }
-
-            assert(castedPadMem->getSerializationLength() == padLen);
-            expOffset += padLen;
-            m_members.push_back(std::move(padMem));
-            xmlAddPrevSibling(c, padNode.release());
         } while (false);
 
         if (rootBlock) {
@@ -232,6 +256,14 @@ bool GroupField::prepareMembers()
     if (m_members.empty()) {
         log::error() << "The composite \"" << getName() << "\" doesn't define any member types." << std::endl;
         return false;
+    }
+
+    if (rootBlock && (blockLength != 0) && (expOffset < blockLength)) {
+        xmlNodePtr c = nullptr;
+        if (!m_fields.empty()) {
+            c = m_fields.back()->getNode();
+        }
+        return addPaddingFunc(c, blockLength - expOffset);
     }
 
     return true;

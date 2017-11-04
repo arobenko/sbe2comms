@@ -23,7 +23,7 @@
     </types>
     <message name="Msg1" id="1" description="TestMessage" blockLength="16">
         <field name="field1" id="10" type="float"/>
-        <group name="Field2" id="11">
+        <group name="Field2" id="11" blockLength="8">
             <field name="field3" id="12" type="type1"/>
             <data name="field4" id="13" type="varStringEncoding"/>
         </group>        

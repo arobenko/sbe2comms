@@ -75,7 +75,7 @@ private:
         msg.field_Field2().value()[1].field_field3().value()[1].value() = 0xbeef;
         msg.field_Field2().value()[1].field_field3().value()[1].value() = 0xbaab;
         msg.field_Field2().value()[1].field_field4().value() = "bla";
-        TS_ASSERT_EQUALS(msg.doLength(), 20U + (6U * 2) + (4U * 2) + 5 + 3);
+        TS_ASSERT_EQUALS(msg.doLength(), 20U + (8U * 2) + (4U * 2) + 5 + 3);
         return msg;
     }
 
@@ -84,6 +84,11 @@ private:
     {
         static_cast<void>(msg);
         test::common::fillPadding(msg.field_pad1_());
+        auto& field2Vector = msg.field_Field2().value();
+        for (auto& elem : field2Vector) {
+            test::common::fillPadding(elem.field_pad1_());
+        }
+
     }
 
     template <typename TMine, typename TOrig>

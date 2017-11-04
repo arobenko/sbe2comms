@@ -248,7 +248,6 @@ bool Message::createFields()
         }
 
         if (fieldPtr->getKind() == Field::Kind::Data) {
-            rootBlock = false;
             dataMembers = true;
         }
 
