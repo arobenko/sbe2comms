@@ -1,0 +1,180 @@
+//
+// Copyright 2017 (C). Alex Robenko. All rights reserved.
+//
+
+// This file is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include <vector>
+
+#include "mine/message/Msg1.h"
+#include "mine/TransportFrame.h"
+#include "mine/AllMessages.h"
+#include "mine/message/Msg1.h"
+#include "orig/Msg1.h"
+#include "common.h"
+
+class Test2Suite : public CxxTest::TestSuite
+{
+public:
+    void test1();
+    void test2();
+    void test3();
+
+private:
+    using DataBuf = std::vector<std::uint8_t>;
+
+    class Handler;
+
+    using MineMessage =
+        mine::Message<
+            comms::option::ReadIterator<const std::uint8_t*>,
+            comms::option::WriteIterator<std::uint8_t*>,
+            comms::option::IdInfoInterface,
+            comms::option::LengthInfoInterface,
+            comms::option::ValidCheckInterface,
+            comms::option::Handler<Handler>
+        >;
+
+    template <typename TMessage>
+    using MineMsg1 = mine::message::Msg1<TMessage>;
+
+    template <typename TMessage>
+    using AllMessages = mine::AllMessages<TMessage>;
+
+    template <typename TMessage>
+    using Frame = mine::OpenFramingHeaderFrame<TMessage, AllMessages<TMessage> >;
+
+    template <typename TMsg>
+    TMsg construct()
+    {
+        TMsg msg;
+        static_assert(msg.doMinLength() == 20U, "Invalid min length");
+        TS_ASSERT_EQUALS(msg.doLength(), 20U);
+        TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
+
+        msg.field_field1().value() = 1.1;
+        msg.field_Field2().value().resize(2);
+        msg.field_Field2().value()[0].field_field3().value().resize(3);
+        msg.field_Field2().value()[0].field_field3().value()[0].value() = 0xabcd;
+        msg.field_Field2().value()[0].field_field3().value()[1].value() = 0xdcba;
+        msg.field_Field2().value()[0].field_field3().value()[2].value() = 0xdabc;
+        msg.field_Field2().value()[0].field_field4().value() = "hello";
+        msg.field_Field2().value()[1].field_field3().value().resize(3);
+        msg.field_Field2().value()[1].field_field3().value()[0].value() = 0xdead;
+        msg.field_Field2().value()[1].field_field3().value()[1].value() = 0xbeef;
+        msg.field_Field2().value()[1].field_field3().value()[1].value() = 0xbaab;
+        msg.field_Field2().value()[1].field_field4().value() = "bla";
+        TS_ASSERT_EQUALS(msg.doLength(), 20U + (6U * 2) + (4U * 2) + 5 + 3);
+        return msg;
+    }
+
+    template <typename TMsg>
+    void fillPadding(TMsg& msg)
+    {
+        static_cast<void>(msg);
+        test::common::fillPadding(msg.field_pad1_());
+    }
+
+    template <typename TMine, typename TOrig>
+    void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
+    {
+        TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().value(), origMsg.field1());
+
+        auto& origField2 = origMsg.field2();
+        TS_ASSERT_EQUALS(mineMsg.field_Field2().value().size(), origField2.count());
+        unsigned idx = 0U;
+        while (origField2.hasNext()) {
+            TS_ASSERT_LESS_THAN(idx, mineMsg.field_Field2().value().size());
+            origField2.next();
+            auto& mineField3Vec = mineMsg.field_Field2().value()[idx].field_field3().value();
+            for (auto field3Idx = 0U; field3Idx < mineField3Vec.size(); ++field3Idx) {
+                TS_ASSERT_EQUALS(mineField3Vec[field3Idx].value(), origField2.field3(field3Idx));
+            }
+
+            auto& mineField4Str = mineMsg.field_Field2().value()[idx].field_field4().value();
+            TS_ASSERT_EQUALS(mineField4Str, origField2.getField4AsString());
+            ++idx;
+        }
+
+        TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength());
+    }
+};
+
+void Test2Suite::test1()
+{
+    using TestMessage = test::common::MineMessageFull;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
+
+//    TS_TRACE(buf);
+    TS_ASSERT(!buf.empty());
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    fillPadding(msg);
+    test::common::verifyMine(msg, *msg2);
+
+    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    verifyOrig(msg, origMsg);
+}
+
+void Test2Suite::test2()
+{
+    using TestMessage = test::common::MineMessageFullOutput;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgOutputIter<TestMessage>(msg, frame);
+    TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    fillPadding(msg);
+    test::common::verifyMine(msg, *msg2);
+
+    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    verifyOrig(msg, origMsg);
+}
+
+void Test2Suite::test3()
+{
+    using TestMessage = test::common::MineMessageEmpty;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgOutputIter(msg, frame);
+    TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
+
+
+    using OtherTestMessage = test::common::MineMessageFull;
+    using OtherTestMsg1 = MineMsg1<OtherTestMessage>;
+    using OtherTestFrame = Frame<OtherTestMessage>;
+
+    auto otherMsg = construct<OtherTestMsg1>();
+    OtherTestFrame otherFrame;
+    auto otherBuf = test::common::writeMsgIntoBuf(otherMsg, otherFrame);
+    TS_ASSERT_EQUALS(buf, otherBuf);
+}
+
+

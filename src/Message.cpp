@@ -179,66 +179,10 @@ bool Message::createFields()
     bool dataMembers = false;
     auto blockLength = prop::blockLength(m_props);
     auto scope = getName() + common::fieldsSuffixStr() + "::";
-    for (auto c : children) {
-        auto fieldPtr = Field::create(m_db, c, scope);
-        if (!fieldPtr) {
-            log::error() << "Unknown field kind \"" << c->name << "\"!" << std::endl;
-            return false;
-        }
 
-        std::string cName(reinterpret_cast<const char*>(c->name));
-        if (!fieldPtr->parse()) {
-            log::error() << "Failed to parse \"" << cName  << "\" field of \"" << getName() << "\" message." << std::endl;
-            return false;
-        }
-
-        if (!fieldPtr->doesExist()) {
-            continue;
-        }
-
-        if ((!rootBlock) && (fieldPtr->getKind() == Field::Kind::Basic)) {
-            log::error() << "Basic field \"" << cName << "\" of \"" << getName() << "\" message cannot follow group or data" << std::endl;
-            return false;
-        }
-
-        if ((dataMembers) && (fieldPtr->getKind() != Field::Kind::Data)) {
-            log::error() << "Field \"" << cName << "\" of \"" << getName() << "\" message cannot follow other group or data" << std::endl;
-            return false;
-        }
-
-        if (fieldPtr->getKind() == Field::Kind::Data) {
-            rootBlock = false;
-            dataMembers = true;
-        }
-
-        do {
-            if (!rootBlock) {
-                break;
-            }
-
-            auto offset = fieldPtr->getOffset();
-            if (fieldPtr->getKind() != Field::Kind::Basic) {
-                rootBlock = false;
-                offset = std::max(offset, blockLength);
-            }
-
-            if ((blockLength != 0) && (offset < blockLength)) {
-                log::error() << "Invalid offset of \"" << cName << "\" or blockLength is to small." << std::endl;
-                return false;
-            }
-
-
-            if ((offset == 0U) || (offset == expOffset)) {
-                break;
-            }
-
-            if (offset < expOffset) {
-                log::error() << "Invalid offset of \"" << cName <<
-                                "\" field of \"" << getName() << "\" message, causing overlap.\n" << std::endl;
-                return false;
-            }
-
-            auto padLen = offset - expOffset;
+    auto addPaddingFunc =
+        [this, &padCount, &expOffset, &scope](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
+        {
             ++padCount;
             auto* padType = m_db.getPaddingType(padLen);
             if (padType == nullptr) {
@@ -263,7 +207,83 @@ bool Message::createFields()
             assert(castedPadMem->getSerializationLength() == padLen);
             expOffset += padLen;
             m_fields.push_back(std::move(padField));
-            xmlAddPrevSibling(c, padNode.release());
+            if (before) {
+                assert(c != nullptr);
+                xmlAddPrevSibling(c, padNode.release());
+            }
+            else if (c != nullptr) {
+                xmlAddNextSibling(c, padNode.release());
+            }
+            else {
+                xmlAddChild(m_node, padNode.release());
+            }
+            return true;
+        };
+
+    for (auto c : children) {
+        auto fieldPtr = Field::create(m_db, c, scope);
+        if (!fieldPtr) {
+            log::error() << "Unknown field kind \"" << c->name << "\"!" << std::endl;
+            return false;
+        }
+
+        std::string cName(reinterpret_cast<const char*>(c->name));
+        if (!fieldPtr->parse()) {
+            log::error() << "Failed to parse \"" << cName  << "\" field of \"" << getName() << "\" message." << std::endl;
+            return false;
+        }
+
+        if (!fieldPtr->doesExist()) {
+            continue;
+        }
+
+        if ((!rootBlock) && (fieldPtr->getKind() == Field::Kind::Basic)) {
+            log::error() << "Basic field \"" << fieldPtr->getName() << "\" of \"" << getName() << "\" message cannot follow group or data" << std::endl;
+            return false;
+        }
+
+        if ((dataMembers) && (fieldPtr->getKind() != Field::Kind::Data)) {
+            log::error() << "Field \"" << fieldPtr->getName() << "\" of \"" << getName() << "\" message cannot follow other group or data" << std::endl;
+            return false;
+        }
+
+        if (fieldPtr->getKind() == Field::Kind::Data) {
+            rootBlock = false;
+            dataMembers = true;
+        }
+
+        do {
+            if (!rootBlock) {
+                break;
+            }
+
+            auto offset = fieldPtr->getOffset();
+            if (fieldPtr->getKind() != Field::Kind::Basic) {
+                rootBlock = false;
+                offset = std::max(offset, blockLength);
+            }
+
+            if ((blockLength != 0) && (blockLength < offset)) {
+                log::error() << "Invalid offset of \"" << fieldPtr->getName() << "\" or blockLength is to small." << std::endl;
+                return false;
+            }
+
+
+            if ((offset == 0U) || (offset == expOffset)) {
+                break;
+            }
+
+            if (offset < expOffset) {
+                log::error() << "Invalid offset of \"" << fieldPtr->getName() <<
+                                "\" field of \"" << getName() << "\" message, causing overlap.\n" << std::endl;
+                return false;
+            }
+
+            auto padLen = offset - expOffset;
+            if (!addPaddingFunc(c, padLen)) {
+                return false;
+            }
+
         } while (false);
 
         if (rootBlock) {
@@ -272,6 +292,14 @@ bool Message::createFields()
         }
 
         m_fields.push_back(std::move(fieldPtr));
+    }
+
+    if (rootBlock && (blockLength != 0) && (expOffset < blockLength)) {
+        xmlNodePtr c = nullptr;
+        if (!m_fields.empty()) {
+            c = m_fields.back()->getNode();
+        }
+        return addPaddingFunc(c, blockLength - expOffset);
     }
     return true;
 }

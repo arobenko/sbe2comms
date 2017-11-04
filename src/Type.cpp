@@ -348,10 +348,13 @@ std::size_t Type::primitiveLength(const std::string& type)
         std::make_pair("uint32", sizeof(std::uint32_t)),
         std::make_pair("int64", sizeof(std::int64_t)),
         std::make_pair("uint64", sizeof(std::uint64_t)),
+        std::make_pair("float", sizeof(float)),
+        std::make_pair("double", sizeof(double)),
     };
 
     auto iter = Map.find(type);
     if (iter == Map.end()) {
+        assert(!"Unexpected primitive");
         return 0U;
     }
     return iter->second;

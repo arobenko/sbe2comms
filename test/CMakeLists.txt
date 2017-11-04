@@ -133,6 +133,7 @@ include_directories ("${CXXTEST_INCLUDE_DIR}")
 INCLUDE_DIRECTORIES ("${CMAKE_CURRENT_SOURCE_DIR}")
 
 test_func (test1)
+test_func (test2)
 
 FILE(GLOB_RECURSE all_test_headers "*.h")
 add_custom_target(all_test_headers_tgt SOURCES ${all_test_headers})

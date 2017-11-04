@@ -96,6 +96,11 @@ public:
         return writeDefaultOptionsImpl(out, indent, scope);
     }
 
+    xmlNodePtr getNode() const
+    {
+        return m_node;
+    }
+
 protected:
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
@@ -108,11 +113,6 @@ protected:
     void recordExtraHeader(const std::string& header);
     std::string getFieldOptString() const;
     std::string getTypeOptString(const Type& type) const;
-
-    xmlNodePtr getNode() const
-    {
-        return m_node;
-    }
 
     const std::string& getScope() const
     {
