@@ -168,6 +168,12 @@ bool BasicType::hasFixedLengthImpl() const
     return (getLengthProp() != 0U);
 }
 
+bool BasicType::canBeExtendedAsOptionalImpl() const
+{
+    assert(isRequired());
+    return (getLengthProp() == 1U) && (!isConstString());
+}
+
 bool BasicType::writeSimpleType(std::ostream& out,
     unsigned indent,
     bool isElement)
@@ -616,8 +622,12 @@ bool BasicType::isRawData() const
     return isRawData(primType);
 }
 
-bool BasicType::isRawData(const std::string& primType)
+bool BasicType::isRawData(const std::string& primType) const
 {
+    if (isOptional()) {
+        return false;
+    }
+
     static const std::string RawDataTypes[] = {
         CharType,
         "int8",

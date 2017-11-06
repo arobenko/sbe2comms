@@ -209,6 +209,11 @@ bool BasicField::checkOptional() const
         return false;
     }
 
+    if (!m_type->canBeExtendedAsOptional()) {
+        log::error() << "Type \"" << m_type->getName() << "\" cannot be extended as optional, please put \"presence=optional\" in type definition." << std::endl;
+        return false;
+    }
+
     auto kind = m_type->getKind();
     if ((kind != Type::Kind::Basic) &&
         (kind != Type::Kind::Enum)) {
@@ -216,6 +221,8 @@ bool BasicField::checkOptional() const
                         "basic or enum type." << std::endl;
         return false;
     }
+
+
 
     return true;
 }

@@ -45,25 +45,28 @@ private:
     TMsg construct()
     {
         TMsg msg;
-        static_assert(msg.doMinLength() == 12U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 12U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 12U);
+        static_assert(msg.doMinLength() == 17U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 17U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 17U);
         TS_ASSERT(msg.doValid());
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
         TS_ASSERT_EQUALS(msg.field_field1().value(), 0);
         TS_ASSERT_EQUALS(msg.field_field2().value(), 0U);
-        TS_ASSERT_EQUALS(msg.field_field3().value(), 0);
-        TS_ASSERT_EQUALS(msg.field_field4().value(), 50U);
-        TS_ASSERT_EQUALS(msg.field_field5().value(), std::numeric_limits<std::uint8_t>::max());
+        TS_ASSERT_EQUALS(msg.field_field3().value(), 50);
+        TS_ASSERT_EQUALS(msg.field_field4().value(), -30U);
+        TS_ASSERT_EQUALS(msg.field_field5().value(), std::numeric_limits<std::int8_t>::min());
         TS_ASSERT_EQUALS(msg.field_field6().value(), std::numeric_limits<std::int8_t>::min());
-        TS_ASSERT_EQUALS(msg.field_field7().value(), std::numeric_limits<std::uint8_t>::max());
+        TS_ASSERT_EQUALS(msg.field_field7().value(), std::numeric_limits<std::int8_t>::min());
         TS_ASSERT_EQUALS(msg.field_field8().value(), std::numeric_limits<std::int8_t>::min());
         TS_ASSERT_EQUALS(msg.field_field9().value(), -100);
+        TS_ASSERT_EQUALS(msg.field_field12().value(), 100);
 
         TS_ASSERT(msg.field_field5().isNull());
         TS_ASSERT(msg.field_field6().isNull());
         TS_ASSERT(msg.field_field7().isNull());
         TS_ASSERT(msg.field_field8().isNull());
+        TS_ASSERT(msg.field_field12().isNull());
+
         msg.field_field1().value() = 10;
         msg.field_field2().value() = 11;
         msg.field_field3().value() = 12;
@@ -76,6 +79,23 @@ private:
         field10Vec[1] = 2;
         field10Vec[2] = 12;
         field10Vec[3] = 28;
+
+        test::common::resizeList(msg.field_field11());
+        for (auto& val : msg.field_field11().value()) {
+            TS_ASSERT(val.isNull());
+        }
+
+        auto field11Vec = msg.field_field11().value();
+        TS_ASSERT_EQUALS(field11Vec.size(), 4U);
+        field11Vec[0].value() = 200;
+        TS_ASSERT(!field11Vec[0].isNull());
+        field11Vec[2].value() = 250;
+        TS_ASSERT(!field11Vec[2].isNull());
+
+        msg.field_field12().value() = 30;
+        TS_ASSERT(!msg.field_field12().valid());
+        TS_ASSERT(!msg.doValid());
+
         return msg;
     }
 
@@ -104,6 +124,12 @@ private:
         auto origField10Iter = origMsg.field10();
         typename std::decay<decltype(field10Vec)>::type origField10Vec(origField10Iter, origField10Iter + origMsg.field10Length());
         TS_ASSERT_EQUALS(field10Vec, origField10Vec);
+
+        auto& field11Vec = mineMsg.field_field11().value();
+        TS_ASSERT_EQUALS(field11Vec.size(), origMsg.field11Length());
+        for (auto idx = 0U; idx < field11Vec.size(); ++idx) {
+            TS_ASSERT_EQUALS(field11Vec[idx].value(), origMsg.field11(idx));
+        }
     }
 };
 

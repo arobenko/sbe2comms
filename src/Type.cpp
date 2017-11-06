@@ -289,6 +289,11 @@ Type::ExtraOptInfosList Type::getExtraOptInfosImpl() const
     return list;
 }
 
+bool Type::canBeExtendedAsOptionalImpl() const
+{
+    return false;
+}
+
 void Type::writeBrief(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";

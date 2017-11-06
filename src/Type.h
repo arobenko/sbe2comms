@@ -120,6 +120,15 @@ public:
         return getExtraOptInfosImpl();
     }
 
+    bool canBeExtendedAsOptional() const
+    {
+        if (!isRequired()) {
+            return false;
+        }
+
+        return canBeExtendedAsOptionalImpl();
+    }
+
     template <typename T>
     void addExtraOption(T&& opt)
     {
@@ -155,6 +164,7 @@ protected:
     virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent);
     virtual bool hasFixedLengthImpl() const = 0;
     virtual ExtraOptInfosList getExtraOptInfosImpl() const;
+    virtual bool canBeExtendedAsOptionalImpl() const;
 
     void writeBrief(std::ostream& out, unsigned indent);
     void writeHeader(std::ostream& out, unsigned indent, bool extraOpts = true);

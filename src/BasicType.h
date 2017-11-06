@@ -39,6 +39,7 @@ protected:
     virtual bool writeImpl(std::ostream& out, unsigned indent) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
+    virtual bool canBeExtendedAsOptionalImpl() const override;
 
 private:
     bool writeSimpleType(
@@ -96,7 +97,7 @@ private:
 
     bool isRawData() const;
 
-    static bool isRawData(const std::string& primType);
+    bool isRawData(const std::string& primType) const;
 
     void writeStringValidFunc(std::ostream& out, unsigned indent);
 
