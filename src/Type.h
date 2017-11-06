@@ -166,8 +166,6 @@ protected:
     void addExtraInclude(const std::string& val);
     static std::size_t primitiveLength(const std::string& type);
     static std::pair<std::intmax_t, bool> stringToInt(const std::string& str);
-    static std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value);
-    static std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value);
     static std::intmax_t builtInIntNullValue(const std::string& type);
 
 

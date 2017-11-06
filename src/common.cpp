@@ -503,7 +503,7 @@ void writeIntIsNullFunc(std::ostream& out, unsigned indent, std::intmax_t val)
            output::indent(indent) << "bool isNull() const\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::value() == static_cast<Base::ValueType>(" << num(val) << ");\n" <<
+           output::indent(indent + 1) << "return Base::value() == static_cast<typename Base::ValueType>(" << num(val) << ");\n" <<
            output::indent(indent) << "}\n";
 
 }
@@ -542,7 +542,7 @@ void writeFpOptConstructor(
         out << "std::numeric_limits<typename Base::ValueType>::quiet_NaN()";
     }
     else {
-        out << "static_cast<Base::ValueType>(" << customDefault << ')';
+        out << "static_cast<typename Base::ValueType>(" << customDefault << ')';
     }
     out << ";\n" <<
            output::indent(indent) << "}\n";
@@ -633,6 +633,60 @@ bool createProtocolDefDir(
         return false;
     }
     return true;
+}
+
+std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value)
+{
+    if (value.empty()) {
+        static const std::map<std::string, std::intmax_t> Map = {
+            std::make_pair("char", 0x20),
+            std::make_pair("int8", std::numeric_limits<std::int8_t>::min() + 1),
+            std::make_pair("uint8", 0),
+            std::make_pair("int16", std::numeric_limits<std::int16_t>::min() + 1),
+            std::make_pair("uint16", 0),
+            std::make_pair("int32", std::numeric_limits<std::int32_t>::min() + 1),
+            std::make_pair("uint32", 0),
+            std::make_pair("int64", std::numeric_limits<std::int64_t>::min() + 1),
+            std::make_pair("uint64", 0)
+        };
+
+        auto iter = Map.find(type);
+        assert(iter != Map.end());
+        return std::make_pair(iter->second, true);
+    }
+
+    try {
+        return std::make_pair(std::stoll(value), true);
+    } catch(...) {
+        return std::make_pair(std::intmax_t(0), false);
+    }
+}
+
+std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value)
+{
+    if (value.empty()) {
+        static const std::map<std::string, std::intmax_t> Map = {
+            std::make_pair("char", 0x7e),
+            std::make_pair("int8", std::numeric_limits<std::int8_t>::max()),
+            std::make_pair("uint8", std::numeric_limits<std::uint8_t>::max() - 1),
+            std::make_pair("int16", std::numeric_limits<std::int16_t>::max()),
+            std::make_pair("uint16", std::numeric_limits<std::uint16_t>::max() - 1),
+            std::make_pair("int32", std::numeric_limits<std::int32_t>::max()),
+            std::make_pair("uint32", std::numeric_limits<std::uint32_t>::max() - 1),
+            std::make_pair("int64", std::numeric_limits<std::int64_t>::max()),
+            std::make_pair("uint64", std::numeric_limits<std::uint64_t>::max() - 1)
+        };
+
+        auto iter = Map.find(type);
+        assert(iter != Map.end());
+        return std::make_pair(iter->second, true);
+    }
+
+    try {
+        return std::make_pair(std::stoll(value), true);
+    } catch(...) {
+        return std::make_pair(std::intmax_t(0), false);
+    }
 }
 
 } // namespace common

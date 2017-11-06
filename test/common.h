@@ -160,7 +160,7 @@ void verifyMine(const TMsg& msg1, TMsgInterface& msg2)
 }
 
 template <typename TField>
-void fillPadding(TField& field)
+void resizeList(TField& field)
 {
     field.value().resize(TField::ParsedOptions::SequenceFixedSize);
 }

@@ -32,19 +32,6 @@ public:
     void test3();
 
 private:
-    using DataBuf = std::vector<std::uint8_t>;
-
-    class Handler;
-
-    using MineMessage =
-        mine::Message<
-            comms::option::ReadIterator<const std::uint8_t*>,
-            comms::option::WriteIterator<std::uint8_t*>,
-            comms::option::IdInfoInterface,
-            comms::option::LengthInfoInterface,
-            comms::option::ValidCheckInterface,
-            comms::option::Handler<Handler>
-        >;
 
     template <typename TMessage>
     using MineMsg1 = mine::message::Msg1<TMessage>;
@@ -83,10 +70,10 @@ private:
     void fillPadding(TMsg& msg)
     {
         static_cast<void>(msg);
-        test::common::fillPadding(msg.field_pad1_());
+        test::common::resizeList(msg.field_pad1_());
         auto& field2Vector = msg.field_Field2().value();
         for (auto& elem : field2Vector) {
-            test::common::fillPadding(elem.field_pad1_());
+            test::common::resizeList(elem.field_pad1_());
         }
 
     }

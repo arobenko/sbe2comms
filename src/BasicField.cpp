@@ -384,8 +384,6 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
         return;
     }
 
-    auto typeOpts = m_type->getExtraOptInfos();
-    assert(typeOpts.size() == 1U);
     out << output::indent(indent + 1) << getTypeOptString(*m_type) << ",\n" <<
            output::indent(indent + 1) << getFieldOptString() << '\n' <<
            output::indent(indent) << ">;\n\n";
@@ -403,10 +401,10 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "using " << name << " =\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << common::fieldNamespaceStr() << enumType << "::" << valueStr << ">,\n" <<
-           output::indent(indent + 2) << "comms::option::EmptySerialization,\n" <<
            output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
-           output::indent(indent + 2) << getFieldOptString() << '\n' <<
+           output::indent(indent + 2) << getFieldOptString() << ",\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << common::fieldNamespaceStr() << enumType << "::" << valueStr << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
            output::indent(indent + 1) << ">;\n\n";
 }
 
@@ -445,11 +443,18 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
     std::intmax_t nullValue = basicType->getDefultIntNullValue();
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << fieldRefName << "<\n" <<
+           output::indent(indent + 1) << fieldRefName << "<\n";
+    bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
+    if (builtIn) {
+        out << output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+    }
+    else {
+        out << output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n";
+    }
+
+    out << output::indent(indent + 2) << getFieldOptString() << ",\n" <<
            output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
-           output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">,\n" <<
-           output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
-           output::indent(indent + 2) << getFieldOptString() << '\n' <<
+           output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
     common::writeIntIsNullFunc(out, indent + 1, nullValue);
@@ -464,9 +469,16 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
     assert(basicType->isFpType());
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << fieldRefName << "<\n" <<
-           output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
-           output::indent(indent + 2) << getFieldOptString() << '\n' <<
+           output::indent(indent + 1) << fieldRefName << "<\n";
+    bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
+    if (builtIn) {
+        out << output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+    }
+    else {
+        out << output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n";
+    }
+
+    out << output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
     common::writeFpOptConstructor(out, indent + 1, name);
@@ -486,10 +498,10 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
-           output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">,\n" <<
            output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
-           output::indent(indent + 2) << getFieldOptString() << '\n' <<
+           output::indent(indent + 2) << getFieldOptString() << ",\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
     common::writeIntIsNullFunc(out, indent + 1, nullValue);

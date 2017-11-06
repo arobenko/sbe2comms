@@ -99,6 +99,8 @@ bool createProtocolDefDir(
     const std::string& ns,
     const std::string& extraDir = std::string());
 
+std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value = std::string());
+std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value = std::string());
 } // namespace common
 
 } // namespace sbe2comms

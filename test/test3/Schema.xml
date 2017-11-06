@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test3"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="bigEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <type name="Int8" primitiveType="int8" minValue="-10" maxValue="10" />
+        <type name="UInt8" primitiveType="uint8" minValue="50" maxValue="100" />
+        <type name="OptInt8" primitiveType="int8" presence="optional"/>
+        <type name="ConstInt8" primitiveType="int8" presence="constant">-100</type>
+        <type name="ListInt8" primitiveType="int8" length="4"/>
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="10" type="int8"/>
+        <field name="field2" id="11" type="Int8"/>
+        <field name="field3" id="12" type="uint8"/>
+        <field name="field4" id="13" type="UInt8"/>
+        <field name="field5" id="14" type="uint8" presence="optional"/>
+        <field name="field6" id="15" type="Int8" presence="optional"/>
+        <field name="field7" id="16" type="UInt8" presence="optional"/>
+        <field name="field8" id="17" type="OptInt8"/>
+        <field name="field9" id="18" type="ConstInt8"/>
+        <field name="field10" id="19" type="ListInt8"/>                
+    </message>
+</messageSchema>

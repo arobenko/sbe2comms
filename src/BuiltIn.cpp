@@ -39,6 +39,10 @@ namespace
 
 void writeBuiltInInt(std::ostream& out, const std::string& name)
 {
+    auto minVal = common::intMinValue(name);
+    auto maxVal = common::intMaxValue(name);
+    assert(minVal.second);
+    assert(maxVal.second);
     out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
@@ -47,7 +51,8 @@ void writeBuiltInInt(std::ostream& out, const std::string& name)
            "    comms::field::IntValue<\n"
            "        TFieldBase,\n"
            "        std::" << name << "_t,\n"
-           "        TOpt...\n"
+           "        TOpt...,\n"
+           "        comms::option::ValidNumValueRange<" << common::num(minVal.first) << ", " << common::num(maxVal.first) << ">\n" <<
            "    >;\n\n";
 }
 
@@ -280,8 +285,8 @@ void writePad(std::ostream& out)
            output::indent(1) << "comms::field::ArrayList<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << "std::uint8_t,\n" <<
-           output::indent(2) << "comms::option::SequenceFixedSize<TLen>,\n" <<
-           output::indent(2) << "TOpt...\n" <<
+           output::indent(2) << "TOpt...,\n" <<
+           output::indent(2) << "comms::option::SequenceFixedSize<TLen>\n" <<
            output::indent(1) << ">;\n\n";
 }
 

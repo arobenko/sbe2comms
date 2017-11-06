@@ -151,6 +151,7 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::BitmaskValue<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << "TOpt...,\n" <<
            output::indent(indent + 2) << "comms::option::FixedLength<" << len << ">";
 
     auto reservedMask = calcReservedMask(len);
@@ -161,8 +162,7 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
                output::indent(indent + 2) << "comms::option::BitmaskReservedBits<" << stream.str() << ">";
     }
 
-    out << ",\n" <<
-           output::indent(indent + 2) << "TOpt...\n" <<
+    out << '\n' <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
 
@@ -185,11 +185,13 @@ void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n";
+           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
+           output::indent(indent + 2) << "TOpt...";
     if (count != 0U) {
-        out << output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">,\n";
+        out << ",\n" <<
+               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">";
     }
-    out << output::indent(indent + 2) << "TOpt...\n" <<
+    out << '\n' <<
            output::indent(indent + 1) << ">;\n\n";
 }
 

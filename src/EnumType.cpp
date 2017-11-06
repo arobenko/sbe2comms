@@ -201,12 +201,13 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         [&out, &ranges](unsigned ind)
             {
             for (auto& r : ranges) {
-                out << output::indent(ind);
+                out << ",\n" <<
+                       output::indent(ind);
                 if (r.first == r.second) {
-                    out << "comms::option::ValidNumValue<" << common::num(r.first) << ">,\n";
+                    out << "comms::option::ValidNumValue<" << common::num(r.first) << ">";
                 }
                 else {
-                    out << "comms::option::ValidNumValueRange<" << common::num(r.first) << ", " << common::num(r.second) << ">,\n";
+                    out << "comms::option::ValidNumValueRange<" << common::num(r.first) << ", " << common::num(r.second) << ">";
                 }
             }
         };
@@ -215,9 +216,10 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         out << output::indent(indent) << "using " << name << " = \n" <<
                output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
                output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-               output::indent(indent + 2) << enumName << ",\n";
+               output::indent(indent + 2) << enumName << ",\n" <<
+               output::indent(indent + 2) << "TOpt...";
         writeRangesFunc(indent + 2);
-        out << output::indent(indent + 2) << "TOpt...\n" <<
+        out << '\n' <<
                output::indent(indent + 1) << ">;\n\n";
         return;
     }
@@ -225,11 +227,12 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << enumName << ",\n";
+           output::indent(indent + 2) << enumName << ",\n" <<
+           output::indent(indent + 2) << "TOpt...";
     if (!tooManyRanges) {
         writeRangesFunc(indent + 2);
     }
-    out << output::indent(indent + 2) << "TOpt...\n" <<
+    out << '\n' <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
     if (tooManyRanges) {
@@ -273,11 +276,13 @@ void EnumType::writeList(std::ostream& out, unsigned indent, unsigned count)
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n";
+           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
+           output::indent(indent + 2) << "TOpt...";
     if (count != 0U) {
-        out << output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">,\n";
+        out << ",\n" <<
+               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">";
     }
-    out << output::indent(indent + 2) << "TOpt...\n" <<
+    out << '\n' <<
            output::indent(indent + 1) << ">;\n\n";
 }
 

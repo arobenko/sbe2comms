@@ -317,7 +317,8 @@ void Type::writeElementHeader(std::ostream& out, unsigned indent)
 void Type::writeExtraOptions(std::ostream& out, unsigned indent)
 {
     for (auto& o : m_extraOptions) {
-        out << output::indent(indent) << o << ",\n";
+        out << ",\n" <<
+               output::indent(indent) << o;
     }
 }
 
@@ -370,72 +371,18 @@ std::pair<std::intmax_t, bool> Type::stringToInt(const std::string& str)
     }
 }
 
-std::pair<std::intmax_t, bool> Type::intMinValue(const std::string& type, const std::string& value)
-{
-    if (value.empty()) {
-        static const std::map<std::string, std::intmax_t> Map = {
-            std::make_pair("char", 0x20),
-            std::make_pair("int8", std::numeric_limits<std::int8_t>::min() + 1),
-            std::make_pair("uint8", 0),
-            std::make_pair("int16", std::numeric_limits<std::int16_t>::min() + 1),
-            std::make_pair("uint16", 0),
-            std::make_pair("int32", std::numeric_limits<std::int32_t>::min() + 1),
-            std::make_pair("uint32", 0),
-            std::make_pair("int64", std::numeric_limits<std::int64_t>::min() + 1),
-            std::make_pair("uint64", 0)
-        };
-
-        auto iter = Map.find(type);
-        assert(iter != Map.end());
-        return std::make_pair(iter->second, true);
-    }
-
-    try {
-        return std::make_pair(std::stoll(value), true);
-    } catch(...) {
-        return std::make_pair(std::intmax_t(0), false);
-    }
-}
-
-std::pair<std::intmax_t, bool> Type::intMaxValue(const std::string& type, const std::string& value)
-{
-    if (value.empty()) {
-        static const std::map<std::string, std::intmax_t> Map = {
-            std::make_pair("char", 0x7e),
-            std::make_pair("int8", std::numeric_limits<std::int8_t>::max()),
-            std::make_pair("uint8", std::numeric_limits<std::uint8_t>::max() - 1),
-            std::make_pair("int16", std::numeric_limits<std::int16_t>::max()),
-            std::make_pair("uint16", std::numeric_limits<std::uint16_t>::max() - 1),
-            std::make_pair("int32", std::numeric_limits<std::int32_t>::max()),
-            std::make_pair("uint32", std::numeric_limits<std::uint32_t>::max() - 1),
-            std::make_pair("int64", std::numeric_limits<std::int64_t>::max()),
-            std::make_pair("uint64", std::numeric_limits<std::uint64_t>::max() - 1)
-        };
-
-        auto iter = Map.find(type);
-        assert(iter != Map.end());
-        return std::make_pair(iter->second, true);
-    }
-
-    try {
-        return std::make_pair(std::stoll(value), true);
-    } catch(...) {
-        return std::make_pair(std::intmax_t(0), false);
-    }
-}
-
 std::intmax_t Type::builtInIntNullValue(const std::string& type)
 {
     static const std::map<std::string, std::intmax_t> Map = {
         std::make_pair("char", 0),
-        std::make_pair("std::int8_t", intMinValue("int8", std::string()).first - 1),
-        std::make_pair("std::uint8_t", intMaxValue("uint8", std::string()).first + 1),
-        std::make_pair("std::int16_t", intMinValue("int16", std::string()).first - 1),
-        std::make_pair("std::uint16_t", intMaxValue("uint16", std::string()).first + 1),
-        std::make_pair("std::int32_t", intMinValue("int32", std::string()).first - 1),
-        std::make_pair("std::uint32_t", intMaxValue("uint32", std::string()).first + 1),
-        std::make_pair("std::int64_t", intMinValue("int64", std::string()).first - 1),
-        std::make_pair("std::uint64_t", intMaxValue("uint64", std::string()).first + 1),
+        std::make_pair("std::int8_t", common::intMinValue("int8", std::string()).first - 1),
+        std::make_pair("std::uint8_t", common::intMaxValue("uint8", std::string()).first + 1),
+        std::make_pair("std::int16_t", common::intMinValue("int16", std::string()).first - 1),
+        std::make_pair("std::uint16_t", common::intMaxValue("uint16", std::string()).first + 1),
+        std::make_pair("std::int32_t", common::intMinValue("int32", std::string()).first - 1),
+        std::make_pair("std::uint32_t", common::intMaxValue("uint32", std::string()).first + 1),
+        std::make_pair("std::int64_t", common::intMinValue("int64", std::string()).first - 1),
+        std::make_pair("std::uint64_t", common::intMaxValue("uint64", std::string()).first + 1),
     };
 
     auto iter = Map.find(type);
