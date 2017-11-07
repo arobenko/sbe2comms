@@ -20,6 +20,7 @@
 #include <map>
 #include <iostream>
 #include <limits>
+#include <sstream>
 
 #include <boost/filesystem.hpp>
 
@@ -429,8 +430,26 @@ const std::string& padStr()
 
 std::string num(std::intmax_t val)
 {
+    if (std::numeric_limits<std::int32_t>::max() < val) {
+        std::stringstream stream;
+        stream << "0x" << std::hex << val << std::dec << "LL";
+        return stream.str();
+    }
+
+    static const auto MinSupported = std::numeric_limits<std::int64_t>::min();
+    static const std::string NumLimitsStr("std::numeric_limits<std::int64_t>::min()");
+    if (val == MinSupported) {
+        return NumLimitsStr;
+    }
+
+    static const auto MinThreshold = MinSupported + 0xfff;
+    if (val < MinThreshold) {
+        auto diff = val - MinSupported;
+        return NumLimitsStr + " + " + std::to_string(diff);
+    }
+
     auto str = std::to_string(val);
-    if ((std::numeric_limits<std::int32_t>::max() < val) || (val < std::numeric_limits<std::int32_t>::min())) {
+    if (val < std::numeric_limits<std::int32_t>::min()) {
         str += "LL";
         return str;
     }

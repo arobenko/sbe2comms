@@ -64,7 +64,7 @@ void writeBuiltInInt(std::ostream& out, const std::string& name)
         out << output::indent(2) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">,\n";
     }
     out << output::indent(2) << "comms::option::ValidNumValueRange<" << common::num(minVal.first) << ", " << common::num(maxVal.first) << ">\n" <<
-           output::indent(2) << ">;\n\n";
+           output::indent(1) << ">;\n\n";
 }
 
 void writeBuiltInFloat(std::ostream& out, const std::string& name)
