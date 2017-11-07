@@ -311,17 +311,25 @@ bool BasicType::writeSimpleInt(std::ostream& out,
         if (isOptional()) {
             auto& nullValStr = getNullValue();
             std::intmax_t nullValue = 0;
-            if (nullValStr.empty()) {
-                nullValue = builtInIntNullValue(intType);
-            }
-            else {
+            do {
+                if (nullValStr.empty()) {
+                    nullValue = builtInIntNullValue(intType);
+                    break;
+                }
+
+                if ((intType == common::charType()) && (nullValStr.size() == 1U)) {
+                    nullValue = static_cast<std::intmax_t>(nullValStr[0]);
+                    break;
+                }
+
                 auto convertResult = stringToInt(nullValStr);
                 if (!convertResult.second) {
                     log::error() << "ERROR: Bad nullValue for type \"" << getName() << "\": " << nullValStr << std::endl;
-                    break;
+                    return false;
                 }
+
                 nullValue = convertResult.first;
-            }
+            } while (false);
             defValue = nullValue;
 
             extraValidNumber = nullValue;
@@ -518,7 +526,7 @@ bool BasicType::writeFixedLengthString(
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
-    out << '\n' <<
+    out << ",\n" <<
            output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n" <<
@@ -537,7 +545,7 @@ bool BasicType::writeFixedLengthString(
         out << '\'' << ch << '\'';
     }
     out << '\n' <<
-           output::indent(indent + 2) << "}\n\n" <<
+           output::indent(indent + 2) << "};\n\n" <<
            output::indent(indent + 2) << "Base::value() = Chars;\n" <<
            output::indent(indent + 1) << "}\n" <<
            output::indent(indent) << "}";

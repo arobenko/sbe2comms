@@ -34,6 +34,13 @@ namespace sbe2comms
 namespace common
 {
 
+const std::string& charType()
+{
+    static const std::string Str("char");
+    return Str;
+}
+
+
 const std::string& messageDirName()
 {
     static const std::string Name("message");
@@ -656,7 +663,7 @@ std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::s
 {
     if (value.empty()) {
         static const std::map<std::string, std::intmax_t> Map = {
-            std::make_pair("char", 0x20),
+            std::make_pair(charType(), 0x20),
             std::make_pair("int8", std::numeric_limits<std::int8_t>::min() + 1),
             std::make_pair("uint8", 0),
             std::make_pair("int16", std::numeric_limits<std::int16_t>::min() + 1),
@@ -672,6 +679,10 @@ std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::s
         return std::make_pair(iter->second, true);
     }
 
+    if ((type == charType()) && (value.size() == 1U)){
+        return std::make_pair(static_cast<std::intmax_t>(value[0]), true);
+    }
+
     try {
         return std::make_pair(std::stoll(value), true);
     } catch(...) {
@@ -683,7 +694,7 @@ std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::s
 {
     if (value.empty()) {
         static const std::map<std::string, std::intmax_t> Map = {
-            std::make_pair("char", 0x7e),
+            std::make_pair(charType(), 0x7e),
             std::make_pair("int8", std::numeric_limits<std::int8_t>::max()),
             std::make_pair("uint8", std::numeric_limits<std::uint8_t>::max() - 1),
             std::make_pair("int16", std::numeric_limits<std::int16_t>::max()),
@@ -697,6 +708,10 @@ std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::s
         auto iter = Map.find(type);
         assert(iter != Map.end());
         return std::make_pair(iter->second, true);
+    }
+
+    if ((type == charType()) && (value.size() == 1U)){
+        return std::make_pair(static_cast<std::intmax_t>(value[0]), true);
     }
 
     try {

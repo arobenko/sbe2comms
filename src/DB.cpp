@@ -198,6 +198,7 @@ const Type* DB::getBuiltInType(const std::string& name)
     }
 
     static const std::set<std::string> BuiltIns = {
+        "char",
         "int8",
         "uint8",
         "int16",

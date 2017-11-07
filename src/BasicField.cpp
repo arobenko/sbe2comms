@@ -99,10 +99,6 @@ bool BasicField::parseImpl()
         }
 
         m_type = getDb().getBuiltInType(typeName);
-        if (m_type != nullptr) {
-            break;
-        }
-
     } while (false);
 
     if (m_type == nullptr) {

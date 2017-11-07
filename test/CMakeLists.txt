@@ -31,14 +31,11 @@ endfunction ()
 function (test_func name)
     set (schema_file "${CMAKE_CURRENT_SOURCE_DIR}/${name}/Schema.xml")
     set (mine_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${name}/mine)
-    set (mine_output_tgt ${name}_mine_tgt)
     add_custom_command(
         OUTPUT ${mine_output_dir}.tmp
         DEPENDS ${schema_file} ${PROJECT_NAME}
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${mine_output_dir}.tmp
         COMMAND $<TARGET_FILE:${PROJECT_NAME}> -o ${mine_output_dir}.tmp -n "mine" ${schema_file}
     )
-    add_custom_target(${mine_output_tgt} DEPENDS ${mine_output_dir}.tmp)
 
     set (orig_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${name}/orig)
     set (orig_output_tgt ${name}_orig_tgt)
@@ -51,12 +48,14 @@ function (test_func name)
             -Dsbe.target.namespace=orig -jar ${SBE_JAR}
         ${schema_file}
     )
-    add_custom_target(${orig_output_tgt}
+
+    set (output_tgt ${name}_output_tgt)
+    add_custom_target(${output_tgt}
         COMMAND ${CMAKE_COMMAND}
             -DGENERATED_MINE="${mine_output_dir}.tmp" -DOUTPUT_MINE="${mine_output_dir}"
             -DGENERATED_ORIG="${orig_output_dir}.tmp" -DOUTPUT_ORIG="${orig_output_dir}"
             -P "${CMAKE_CURRENT_LIST_DIR}/CopyGenerated.cmake"
-        DEPENDS ${orig_output_dir}.tmp)
+        DEPENDS ${mine_output_dir}.tmp ${orig_output_dir}.tmp "${CMAKE_CURRENT_LIST_DIR}/CopyGenerated.cmake")
 
     set (tests "${CMAKE_CURRENT_SOURCE_DIR}/${name}/${name}Test.th")
 
@@ -65,7 +64,7 @@ function (test_func name)
     set (runner "${name}TestRunner.cpp")
 
     CXXTEST_ADD_TEST (${testName} ${runner} ${tests})
-    add_dependencies(${testName} ${mine_output_tgt} ${orig_output_tgt})
+    add_dependencies(${testName} ${output_tgt})
     target_include_directories (${testName} PRIVATE "${mine_output_dir}/include" "${orig_output_dir}")
 
 endfunction ()
@@ -138,6 +137,7 @@ test_func (test1)
 test_func (test2)
 test_func (test3)
 test_func (test4)
+test_func (test5)
 
 FILE(GLOB_RECURSE all_test_headers "*.h")
 add_custom_target(all_test_headers_tgt SOURCES ${all_test_headers})

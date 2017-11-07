@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test4"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="bigEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <type name="Char_1" primitiveType="char" />
+        <type name="Char_2" primitiveType="char" minValue="a" maxValue="z" />
+        <type name="OptChar_1" primitiveType="char" presence="optional"/>
+        <type name="OptChar_2" primitiveType="char" presence="optional" nullValue="0" minValue="1" maxValue="9"/>
+        <type name="ConstChar" primitiveType="char" presence="constant">abc</type>
+        <type name="Str_1" primitiveType="char" length="4"/>
+        <type name="Str_2" primitiveType="uint8" length="4" characterEncoding="ASCII"/>
+        <type name="OptListChar" primitiveType="char" length="4" presence="optional"/>
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="10" type="char"/>
+        <field name="field2" id="11" type="Char_1"/>
+        <field name="field3" id="12" type="Char_2"/>
+        <field name="field4" id="13" type="OptChar_1"/>
+        <field name="field5" id="14" type="OptChar_2"/>
+        <field name="field6" id="15" type="char" presence="optional"/>
+        <field name="field7" id="16" type="Char_1" presence="optional"/>
+        <field name="field8" id="17" type="Char_2" presence="optional"/>
+        <field name="field9" id="18" type="ConstChar"/>
+        <field name="field10" id="19" type="Str_1"/>                
+        <field name="field11" id="20" type="Str_2"/>
+        <field name="field12" id="20" type="OptListChar"/>
+    </message>
+</messageSchema>

@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -43,17 +44,27 @@ void writeBuiltInInt(std::ostream& out, const std::string& name)
     auto maxVal = common::intMaxValue(name);
     assert(minVal.second);
     assert(maxVal.second);
+    auto type = name;
+    if (name != common::charType()) {
+        type = "std::" + name + "_t";
+    }
+
     out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << name << " = \n"
-           "    comms::field::IntValue<\n"
-           "        TFieldBase,\n"
-           "        std::" << name << "_t,\n"
-           "        TOpt...,\n"
-           "        comms::option::ValidNumValueRange<" << common::num(minVal.first) << ", " << common::num(maxVal.first) << ">\n" <<
-           "    >;\n\n";
+           "using " << common::renameKeyword(name) << " = \n" <<
+           output::indent(1) << "comms::field::IntValue<\n" <<
+           output::indent(2) << "TFieldBase,\n" <<
+           output::indent(2) << type << ",\n" 
+           "        TOpt...,\n";
+    if ((0 < minVal.first) || 
+        (maxVal.first < 0)) {
+        auto defValue = std::min(std::max(std::intmax_t(0), minVal.first), maxVal.first);
+        out << output::indent(2) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">,\n";
+    }
+    out << output::indent(2) << "comms::option::ValidNumValueRange<" << common::num(minVal.first) << ", " << common::num(maxVal.first) << ">\n" <<
+           output::indent(2) << ">;\n\n";
 }
 
 void writeBuiltInFloat(std::ostream& out, const std::string& name)
@@ -62,12 +73,12 @@ void writeBuiltInFloat(std::ostream& out, const std::string& name)
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << common::renameKeyword(name) << " = \n"
-           "    comms::field::FloatValue<\n"
-           "        TFieldBase,\n"
-           "        " << name << ",\n"
-           "        TOpt...\n"
-           "    >;\n\n";
+           "using " << common::renameKeyword(name) << " = \n" <<
+           output::indent(1) << "comms::field::FloatValue<\n" <<
+           output::indent(2) << "TFieldBase,\n" <<
+           output::indent(2) << name << ",\n" <<
+           output::indent(2) << "TOpt...\n" <<
+           output::indent(1) << ">;\n\n";
 }
 
 void writeBuiltIn(std::ostream& out, const std::string& name)

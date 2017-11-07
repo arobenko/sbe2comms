@@ -379,7 +379,7 @@ std::pair<std::intmax_t, bool> Type::stringToInt(const std::string& str)
 std::intmax_t Type::builtInIntNullValue(const std::string& type)
 {
     static const std::map<std::string, std::intmax_t> Map = {
-        std::make_pair("char", 0),
+        std::make_pair(common::charType(), 0),
         std::make_pair("std::int8_t", common::intMinValue("int8", std::string()).first - 1),
         std::make_pair("std::uint8_t", common::intMaxValue("uint8", std::string()).first + 1),
         std::make_pair("std::int16_t", common::intMinValue("int16", std::string()).first - 1),

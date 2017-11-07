@@ -12,6 +12,7 @@ function (copyIfDifferent generated output)
     foreach( f ${genFiles} )
       set(dest "${output}/${f}")
       set(src "${generated}/${f}")
+      #message (STATUS "Copying ${src} -> ${dest}")
       execute_process(
         COMMAND ${CMAKE_COMMAND}
             -E copy_if_different ${src} ${dest})

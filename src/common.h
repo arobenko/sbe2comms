@@ -28,6 +28,7 @@ namespace sbe2comms
 namespace common
 {
 
+const std::string& charType();
 const std::string& messageDirName();
 const std::string& includeDirName();
 const std::string& fieldsDefFileName();
