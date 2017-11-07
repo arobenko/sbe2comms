@@ -35,6 +35,7 @@ function (test_func name)
     add_custom_command(
         OUTPUT ${mine_output_dir}.tmp
         DEPENDS ${schema_file} ${PROJECT_NAME}
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${mine_output_dir}.tmp
         COMMAND $<TARGET_FILE:${PROJECT_NAME}> -o ${mine_output_dir}.tmp -n "mine" ${schema_file}
     )
     add_custom_target(${mine_output_tgt} DEPENDS ${mine_output_dir}.tmp)
@@ -44,6 +45,7 @@ function (test_func name)
     add_custom_command(
         OUTPUT ${orig_output_dir}.tmp
         DEPENDS ${schema_file} ${SBE_JAR}
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${mine_output_dir}.tmp
         COMMAND ${Java_JAVA_EXECUTABLE}
             -Dsbe.output.dir=${orig_output_dir}.tmp -Dsbe.target.language="cpp"
             -Dsbe.target.namespace=orig -jar ${SBE_JAR}

@@ -497,26 +497,37 @@ void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent)
     out << output::indent(indent) << extraOptionsTemplParamStr();
 }
 
-void writeIntIsNullFunc(std::ostream& out, unsigned indent, std::intmax_t val)
+void writeIntNullCheckUpdateFuncs(std::ostream& out, unsigned indent, std::intmax_t val)
 {
+    std::string nullValStr("static_cast<typename Base::ValueType>(" + num(val) + ")");
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::value() == static_cast<typename Base::ValueType>(" << num(val) << ");\n" <<
+           output::indent(indent + 1) << "return Base::value() == " << nullValStr << ";\n" <<
+           output::indent(indent) << "}\n\n" <<
+           output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
+           output::indent(indent) << "void setNull()\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << fieldBaseDefStr() <<
+           output::indent(indent + 1) << "Base::value() = " << nullValStr << ";\n" <<
            output::indent(indent) << "}\n";
-
 }
 
-void writeFpIsNullFunc(std::ostream& out, unsigned indent)
+void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << fieldBaseDefStr() <<
            output::indent(indent + 1) << "return std::isnan(Base::value());\n" <<
+           output::indent(indent) << "}\n\n" <<
+           output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
+           output::indent(indent) << "void setNull()\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << fieldBaseDefStr() <<
+           output::indent(indent + 1) << "Base::value() = std::numeric_limits<typename Base::ValueType>::quiet_NaN();\n" <<
            output::indent(indent) << "}\n";
-
 }
 
 void writeFpOptConstructor(
@@ -563,13 +574,19 @@ void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid)
 }
 
 
-void writeEnumIsNullFunc(std::ostream& out, unsigned indent)
+void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << fieldBaseDefStr() <<
            output::indent(indent + 1) << "return Base::value() == Base::ValueType::" << enumNullValueStr() << ";\n" <<
+           output::indent(indent) << "}\n\n" <<
+           output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
+           output::indent(indent) << "void setNull()\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << fieldBaseDefStr() <<
+           output::indent(indent + 1) << "Base::value() = Base::ValueType::" << enumNullValueStr() << ";\n" <<
            output::indent(indent) << "}\n";
 }
 

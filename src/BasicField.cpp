@@ -464,7 +464,7 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
            output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
-    common::writeIntIsNullFunc(out, indent + 1, nullValue);
+    common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValue);
     out << output::indent(indent) << "};\n\n";
 }
 
@@ -490,7 +490,7 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
            output::indent(indent) << "{\n";
     common::writeFpOptConstructor(out, indent + 1, name);
     out << '\n';
-    common::writeFpIsNullFunc(out, indent + 1);
+    common::writeFpNullCheckUpdateFuncs(out, indent + 1);
     out << '\n';
     common::writeFpValidCheckFunc(out, indent + 1, true);
     out << output::indent(indent) << "};\n\n";
@@ -511,7 +511,7 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
            output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
-    common::writeIntIsNullFunc(out, indent + 1, nullValue);
+    common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValue);
     out << output::indent(indent) << "};\n\n";
 }
 

@@ -329,7 +329,7 @@ bool BasicType::writeSimpleInt(std::ostream& out,
             writeFunc(indent + 1);
             out << output::indent(indent) << "\n" <<
                    output::indent(indent) << "{\n";
-            common::writeIntIsNullFunc(out, indent + 1, nullValue);
+            common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValue);
             out << output::indent(indent) << "}";
             result = true;
             break;
@@ -386,7 +386,7 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
         if (isOptional()) {
             common::writeFpOptConstructor(out, indent + 1, name);
             out << '\n';
-            common::writeFpIsNullFunc(out, indent + 1);
+            common::writeFpNullCheckUpdateFuncs(out, indent + 1);
             result = true;
             break;
         }

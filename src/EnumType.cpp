@@ -268,7 +268,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     }
 
     if (isOptional()) {
-        common::writeEnumIsNullFunc(out, indent + 1);
+        common::writeEnumNullCheckUpdateFuncs(out, indent + 1);
     }
 
     out << output::indent(indent) << "};\n\n";

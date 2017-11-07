@@ -425,6 +425,11 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
                output::indent(indent + 1) << "bool isNull() const\n" <<
                output::indent(indent + 1) << "{\n" <<
                output::indent(indent + 2) << "return field_" << m_members[0]->getName() << "().isNull();\n" <<
+               output::indent(indent + 1) << "}\n\n" <<
+               output::indent(indent + 1) << "/// \\brief Update the value of the first member to be \\b nullValue.\n" <<
+               output::indent(indent + 1) << "void setNull()\n" <<
+               output::indent(indent + 1) << "{\n" <<
+               output::indent(indent + 2) << "field_" << m_members[0]->getName() << "().setNull();\n" <<
                output::indent(indent + 1) << "}\n";
     }
     out << output::indent(indent) << "};\n\n";

@@ -94,8 +94,10 @@ private:
 
         msg.field_field12().value() = 30;
         TS_ASSERT(!msg.field_field12().valid());
-        TS_ASSERT(!msg.doValid());
 
+        msg.field_field12().setNull();
+        TS_ASSERT(msg.field_field12().valid());
+        msg.field_field12().value() = 15;
         return msg;
     }
 
@@ -130,6 +132,8 @@ private:
         for (auto idx = 0U; idx < field11Vec.size(); ++idx) {
             TS_ASSERT_EQUALS(field11Vec[idx].value(), origMsg.field11(idx));
         }
+
+        TS_ASSERT_EQUALS(mineMsg.field_field12().value(), origMsg.field12());
     }
 };
 

@@ -81,15 +81,15 @@ const std::string& primitiveTypeToStdInt(const std::string& type);
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
 void writeExtraOptionsDoc(std::ostream& out, unsigned indent);
 void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent);
-void writeIntIsNullFunc(std::ostream& out, unsigned indent, intmax_t val);
-void writeFpIsNullFunc(std::ostream& out, unsigned indent);
+void writeIntNullCheckUpdateFuncs(std::ostream& out, unsigned indent, intmax_t val);
+void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
 void writeFpOptConstructor(
     std::ostream& out,
     unsigned indent,
     const std::string& name,
     const std::string& customDefault = std::string());
 void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
-void writeEnumIsNullFunc(std::ostream& out, unsigned indent);
+void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders);
