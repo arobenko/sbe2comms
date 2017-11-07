@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test7"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="bigEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <type name="UInt16_1" primitiveType="uint16" />
+        <type name="UInt16_2" primitiveType="uint16" minValue="50" maxValue="200" />
+        <type name="OptUInt16" primitiveType="uint16" presence="optional"/>
+        <type name="OptUInt16_2" primitiveType="uint16" presence="optional" nullValue="100" minValue="10" maxValue="20"/>
+        <type name="ConstUInt16" primitiveType="uint16" presence="constant">100</type>
+        <type name="ListUInt16" primitiveType="uint16" length="4"/>
+        <type name="OptListUInt16" primitiveType="uint16" length="4" presence="optional"/>
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="10" type="uint16"/>
+        <field name="field2" id="11" type="UInt16_1"/>
+        <field name="field3" id="12" type="UInt16_2"/>
+        <field name="field4" id="13" type="OptUInt16_2"/>
+        <field name="field5" id="14" type="uint16" presence="optional"/>
+        <field name="field6" id="15" type="UInt16_1" presence="optional"/>
+        <field name="field7" id="16" type="UInt16_2" presence="optional"/>
+        <field name="field8" id="17" type="OptUInt16"/>
+        <field name="field9" id="18" type="ConstUInt16"/>
+        <field name="field10" id="19" type="ListUInt16"/>                
+        <field name="field11" id="20" type="OptListUInt16"/>
+    </message>
+</messageSchema>
