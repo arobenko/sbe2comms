@@ -139,6 +139,7 @@ test_func (test2)
 test_func (test3)
 test_func (test4)
 test_func (test5)
+test_func (test6)
 
 FILE(GLOB_RECURSE all_test_headers "*.h")
 add_custom_target(all_test_headers_tgt SOURCES ${all_test_headers})
