@@ -29,6 +29,7 @@ namespace common
 {
 
 const std::string& charType();
+const std::string& uint64Type();
 const std::string& messageDirName();
 const std::string& includeDirName();
 const std::string& fieldsDefFileName();
@@ -75,6 +76,7 @@ const std::string& openFramingHeaderLayerStr();
 const std::string& openFramingHeaderFrameStr();
 const std::string& padStr();
 std::string num(std::intmax_t val);
+std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
 std::string pathTo(const std::string& ns, const std::string path);
 const std::string& primitiveTypeToStdInt(const std::string& type);
@@ -82,7 +84,7 @@ const std::string& primitiveTypeToStdInt(const std::string& type);
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
 void writeExtraOptionsDoc(std::ostream& out, unsigned indent);
 void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent);
-void writeIntNullCheckUpdateFuncs(std::ostream& out, unsigned indent, intmax_t val);
+void writeIntNullCheckUpdateFuncs(std::ostream& out, unsigned indent, const std::string& valStr);
 void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
 void writeFpOptConstructor(
     std::ostream& out,
@@ -102,6 +104,8 @@ bool createProtocolDefDir(
 
 std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value = std::string());
 std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value = std::string());
+std::pair<std::uintmax_t, bool> intBigUnsignedMaxValue(const std::string& value = std::string());
+std::uintmax_t defaultBigUnsignedNullValue();
 } // namespace common
 
 } // namespace sbe2comms

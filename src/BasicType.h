@@ -47,6 +47,13 @@ private:
         unsigned indent,
         bool isElement = false);
 
+    bool writeSimpleBigUnsignedInt(
+        std::ostream& out,
+        unsigned indent,
+        bool isElement,
+        std::uintmax_t minVal,
+        std::uintmax_t maxVal);
+
     bool writeSimpleInt(
         std::ostream& out,
         unsigned indent,

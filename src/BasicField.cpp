@@ -437,13 +437,14 @@ void BasicField::writeOptionalBasic(std::ostream& out, unsigned indent, const st
     writeOptionalBasicFp(out, indent, name);
 }
 
-void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name)
+void BasicField::writeOptionalBasicBigUnsignedInt(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
     assert(m_type->getKind() == Type::Kind::Basic);
     auto* basicType = static_cast<const BasicType*>(m_type);
     assert(basicType->isIntType());
-    std::intmax_t nullValue = basicType->getDefultIntNullValue();
+    std::uintmax_t nullValue = common::defaultBigUnsignedNullValue();
+    auto nullValueStr = common::num(nullValue);
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n";
@@ -456,11 +457,42 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
     }
 
     out << output::indent(indent + 2) << getFieldOptString() << ",\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
-           output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultBigUnsignedNumValue<" << nullValueStr << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::ValidBigUnsignedNumValue<" << nullValueStr << ">\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
-    common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValue);
+    common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValueStr);
+    out << output::indent(indent) << "};\n\n";
+}
+
+void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name)
+{
+    assert(m_type != nullptr);
+    assert(m_type->getKind() == Type::Kind::Basic);
+    auto* basicType = static_cast<const BasicType*>(m_type);
+    assert(basicType->isIntType());
+    if (basicType->getPrimitiveType() == common::uint64Type()) {
+        writeOptionalBasicBigUnsignedInt(out, indent, name);
+        return;
+    }
+    auto nullValueStr = common::num(basicType->getDefultIntNullValue());
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
+           output::indent(indent + 1) << fieldRefName << "<\n";
+    bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
+    if (builtIn) {
+        out << output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+    }
+    else {
+        out << output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n";
+    }
+
+    out << output::indent(indent + 2) << getFieldOptString() << ",\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << nullValueStr << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::ValidNumValue<" << nullValueStr << ">\n" <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValueStr);
     out << output::indent(indent) << "};\n\n";
 }
 
@@ -498,16 +530,17 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
     assert(m_type->getKind() == Type::Kind::Enum);
     auto* enumType = static_cast<const EnumType*>(m_type);
     std::intmax_t nullValue = enumType->getDefultNullValue();
+    auto nullValueStr = common::num(nullValue);
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
            output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
            output::indent(indent + 2) << getFieldOptString() << ",\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << common::num(nullValue) << ">,\n" <<
-           output::indent(indent + 2) << "comms::option::ValidNumValue<" << common::num(nullValue) << ">\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultNumValue<" << nullValueStr << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::ValidNumValue<" << nullValueStr << ">\n" <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
-    common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValue);
+    common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValueStr);
     out << output::indent(indent) << "};\n\n";
 }
 

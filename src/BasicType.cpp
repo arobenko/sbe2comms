@@ -194,163 +194,313 @@ bool BasicType::writeSimpleType(std::ostream& out,
     return false;
 }
 
+bool BasicType::writeSimpleBigUnsignedInt(
+    std::ostream& out,
+    unsigned indent,
+    bool isElement,
+    std::uintmax_t minVal,
+    std::uintmax_t maxVal)
+{
+    if (maxVal < minVal) {
+        log::error() << "min/max values range error for type \"" << getName() << "\"." << std::endl;
+        return false;
+    }
+
+    std::uintmax_t defValue = 0;
+    defValue = std::min(std::max(defValue, minVal), maxVal);
+    bool constant = false;
+    boost::optional<std::uintmax_t> extraValidNumber;
+
+    auto writeFunc =
+        [this, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::IntValue<\n" <<
+                   output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << "std::uint64_t,\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+
+            writeExtraOptions(out, ind + 1);
+
+            if (minVal != maxVal) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::ValidBigUnsignedNumValueRange<0x" <<
+                            std::hex << minVal << "LL, 0x" << maxVal << std::dec << "LL>";
+            }
+            else {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::ValidBigUnsignedNumValue<0x" <<
+                            std::hex << minVal << std::dec << "LL>";
+            }
+
+            if (extraValidNumber) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::ValidBigUnsignedNumValue<0x" <<
+                            std::hex << *extraValidNumber << std::dec << "LL>";
+            }
+
+            if ((defValue != 0) && (!hasDefaultValueInExtraOptions())) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::DefaultNumValue<0x" <<
+                            std::hex << defValue << std::dec << "LL>";
+            }
+
+            if (constant) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::EmptySerialization";
+            }
+
+            out << '\n' <<
+                   output::indent(ind) << ">";
+        };
+
+    std::string name;
+    if (isElement) {
+        name = getName() + common::elementSuffixStr();
+    }
+    else {
+        name = getReferenceName();
+    }
+
+    if (isRequired()) {
+        out << output::indent(indent) << "using " << name << " = \n";
+        writeFunc(indent + 1);
+        return true;
+    }
+
+    if (isConstant()) {
+        assert(!isElement);
+        constant = true;
+        auto text = nodeText();
+        if (text.empty()) {
+            log::error() << "Empty constant value for type \"" << getName() << "\"." << std::endl;
+            return false;
+        }
+
+        try {
+            defValue = std::stoull(text);
+            minVal = defValue;
+            maxVal = defValue;
+        } catch (...) {
+            log::error() << "Invalid constant value \"" << text << "\" for type \"" << getName() << "\"." << std::endl;
+            return false;
+        }
+
+        out << output::indent(indent) << "using " << name << " = \n";
+        writeFunc(indent + 1);
+        return true;
+    }
+
+    if (isOptional()) {
+        auto& nullValStr = getNullValue();
+        std::uintmax_t nullValue = 0;
+        do {
+            if (nullValStr.empty()) {
+                nullValue = common::defaultBigUnsignedNullValue();
+                break;
+            }
+
+            auto val = common::intBigUnsignedMaxValue(nullValStr);
+            if (!val.second) {
+                log::error() << "ERROR: Bad nullValue for type \"" << getName() << "\": " << nullValStr << std::endl;
+                return false;
+            }
+
+            nullValue = val.first;
+        } while (false);
+        defValue = nullValue;
+
+        extraValidNumber = nullValue;
+        out << output::indent(indent) << "struct " << name << " : public\n";
+        writeFunc(indent + 1);
+        out << output::indent(indent) << "\n" <<
+               output::indent(indent) << "{\n";
+        common::writeIntNullCheckUpdateFuncs(out, indent + 1, common::num(nullValue));
+        out << output::indent(indent) << "}";
+        return true;
+    }
+
+    log::error() << "Unkown \"presence\" token value \"" << getPresence() << "\"." << std::endl;
+    return false;
+}
+
 bool BasicType::writeSimpleInt(std::ostream& out,
     unsigned indent,
     const std::string& intType,
     bool isElement)
 {
-    bool result = false;
-    do {
-        auto& primType = getPrimitiveType();
-        auto& minValStr = getMinValue();
-        auto minVal = common::intMinValue(primType, minValStr);
-        if (!minVal.second) {
+    auto& primType = getPrimitiveType();
+    auto& minValStr = getMinValue();
+    auto minVal = common::intMinValue(primType, minValStr);
+    auto& maxValStr = getMaxValue();
+    auto maxVal = common::intMaxValue(primType, maxValStr);
+
+    auto checkMinMaxValErrorFunc =
+        [this, &minValStr, &maxValStr](bool minValid, bool maxValid) -> bool
+    {
+        if (!minValid) {
             log::error() << "Invalid minValue attribute \"" << minValStr << "\" for type \"" <<
                          getName() << "\"." << std::endl;
-            break;
+            return false;
         }
 
-        auto& maxValStr = getMaxValue();
-        auto maxVal = common::intMaxValue(primType, maxValStr);
-        if (!maxVal.second) {
+        if (!maxValid) {
             log::error() << "Invalid maxValue attribute \"" << maxValStr << "\" for type \"" <<
                          getName() << "\"." << std::endl;
-            break;
+            return false;
         }
 
-        if (maxVal.first < minVal.first) {
-            log::error() << "min/max values range error for type \"" << getName() << "\"." << std::endl;
-            break;
+        return true;
+    };
+
+    if ((primType == common::uint64Type()) &&
+        ((!minVal.second) || (!maxVal.second))) {
+
+        auto bigMinVal = std::make_pair(static_cast<std::uintmax_t>(minVal.first), minVal.second);
+        if (!bigMinVal.second) {
+            bigMinVal = common::intBigUnsignedMaxValue(minValStr);
         }
 
-        std::intmax_t defValue = 0;
-        defValue = std::min(std::max(defValue, minVal.first), maxVal.first);
-        bool constant = false;
-        boost::optional<std::intmax_t> extraValidNumber;
-
-        auto writeFunc =
-            [this, intType, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
-            {
-                out << output::indent(ind) << "comms::field::IntValue<\n" <<
-                       output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
-                       output::indent(ind + 1) << intType << ",\n" <<
-                       output::indent(ind + 1) << "TOpt...";
-
-                writeExtraOptions(out, ind + 1);
-
-                if (minVal.first != maxVal.first) {
-                    out << ",\n" <<
-                           output::indent(ind + 1) << "comms::option::ValidNumValueRange<" <<
-                                common::num(minVal.first) << ", " << common::num(maxVal.first) << ">";
-                }
-                else {
-                    out << ",\n" <<
-                           output::indent(ind + 1) << "comms::option::ValidNumValue<" <<
-                                common::num(minVal.first) << ">";
-                }
-
-                if (extraValidNumber) {
-                    out << ",\n" <<
-                           output::indent(ind + 1) << "comms::option::ValidNumValue<" <<
-                                common::num(*extraValidNumber) << ">";
-                }
-
-                if ((defValue != 0) && (!hasDefaultValueInExtraOptions())) {
-                    out << ",\n" <<
-                           output::indent(ind + 1) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">";
-                }
-
-                if (constant) {
-                    out << ",\n" <<
-                           output::indent(ind + 1) << "comms::option::EmptySerialization";
-                }
-
-                out << '\n' <<
-                       output::indent(ind) << ">";
-            };
-
-        std::string name;
-        if (isElement) {
-            name = getName() + common::elementSuffixStr();
-        }
-        else {
-            name = getReferenceName();
+        auto bigMaxVal = std::make_pair(static_cast<std::uintmax_t>(maxVal.first), maxVal.second);
+        if (!bigMaxVal.second) {
+            bigMaxVal = common::intBigUnsignedMaxValue(maxValStr);
         }
 
-        if (isRequired()) {
-            out << output::indent(indent) << "using " << name << " = \n";
-            writeFunc(indent + 1);
-            result = true;
-            break;
+        if (!checkMinMaxValErrorFunc(bigMinVal.second, bigMaxVal.second)) {
+            return false;
         }
 
-        if (isConstant()) {
-            assert(!isElement);
-            constant = true;
-            auto text = nodeText();
-            if (text.empty()) {
-                log::error() << "Empty constant value for type \"" << getName() << "\"." << std::endl;
-                break;
-            }
-
-            try {
-                defValue = std::stoll(text);
-                minVal.first = defValue;
-                maxVal.first = defValue;
-            } catch (...) {
-                log::error() << "Invalid constant value \"" << text << "\" for type \"" << getName() << "\"." << std::endl;
-                break;
-            }
-
-            out << output::indent(indent) << "using " << name << " = \n";
-            writeFunc(indent + 1);
-            result = true;
-            break;
-        }
-
-        if (isOptional()) {
-            auto& nullValStr = getNullValue();
-            std::intmax_t nullValue = 0;
-            do {
-                if (nullValStr.empty()) {
-                    nullValue = builtInIntNullValue(intType);
-                    break;
-                }
-
-                if ((intType == common::charType()) && (nullValStr.size() == 1U)) {
-                    nullValue = static_cast<std::intmax_t>(nullValStr[0]);
-                    break;
-                }
-
-                auto convertResult = stringToInt(nullValStr);
-                if (!convertResult.second) {
-                    log::error() << "ERROR: Bad nullValue for type \"" << getName() << "\": " << nullValStr << std::endl;
-                    return false;
-                }
-
-                nullValue = convertResult.first;
-            } while (false);
-            defValue = nullValue;
-
-            extraValidNumber = nullValue;
-            out << output::indent(indent) << "struct " << name << " : public\n";
-            writeFunc(indent + 1);
-            out << output::indent(indent) << "\n" <<
-                   output::indent(indent) << "{\n";
-            common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValue);
-            out << output::indent(indent) << "}";
-            result = true;
-            break;
-        }
-
-        log::error() << "Unkown \"presence\" token value \"" << getPresence() << "\"." << std::endl;
-    } while (false);
-
-    if (!result) {
-        out << "???";
+        log::info() << "Type=" << getName() << " min=" << bigMinVal.first << "; max=" << bigMaxVal.first << std::endl;
+        return writeSimpleBigUnsignedInt(out, indent, isElement, bigMinVal.first, bigMaxVal.first);
     }
 
-    return result;
+    if (!checkMinMaxValErrorFunc(minVal.second, maxVal.second)) {
+        return false;
+    }
+
+    if (maxVal.first < minVal.first) {
+        log::error() << "min/max values range error for type \"" << getName() << "\"." << std::endl;
+        return false;
+    }
+
+    std::intmax_t defValue = 0;
+    defValue = std::min(std::max(defValue, minVal.first), maxVal.first);
+    bool constant = false;
+    boost::optional<std::intmax_t> extraValidNumber;
+
+    auto writeFunc =
+        [this, intType, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::IntValue<\n" <<
+                   output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << intType << ",\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+
+            writeExtraOptions(out, ind + 1);
+
+            if (minVal.first != maxVal.first) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::ValidNumValueRange<" <<
+                            common::num(minVal.first) << ", " << common::num(maxVal.first) << ">";
+            }
+            else {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::ValidNumValue<" <<
+                            common::num(minVal.first) << ">";
+            }
+
+            if (extraValidNumber) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::ValidNumValue<" <<
+                            common::num(*extraValidNumber) << ">";
+            }
+
+            if ((defValue != 0) && (!hasDefaultValueInExtraOptions())) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">";
+            }
+
+            if (constant) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::EmptySerialization";
+            }
+
+            out << '\n' <<
+                   output::indent(ind) << ">";
+        };
+
+    std::string name;
+    if (isElement) {
+        name = getName() + common::elementSuffixStr();
+    }
+    else {
+        name = getReferenceName();
+    }
+
+    if (isRequired()) {
+        out << output::indent(indent) << "using " << name << " = \n";
+        writeFunc(indent + 1);
+        return true;
+    }
+
+    if (isConstant()) {
+        assert(!isElement);
+        constant = true;
+        auto text = nodeText();
+        if (text.empty()) {
+            log::error() << "Empty constant value for type \"" << getName() << "\"." << std::endl;
+            return false;
+        }
+
+        try {
+            defValue = std::stoll(text);
+            minVal.first = defValue;
+            maxVal.first = defValue;
+        } catch (...) {
+            log::error() << "Invalid constant value \"" << text << "\" for type \"" << getName() << "\"." << std::endl;
+            return false;
+        }
+
+        out << output::indent(indent) << "using " << name << " = \n";
+        writeFunc(indent + 1);
+        return true;
+    }
+
+    if (isOptional()) {
+        auto& nullValStr = getNullValue();
+        std::intmax_t nullValue = 0;
+        do {
+            if (nullValStr.empty()) {
+                nullValue = builtInIntNullValue(intType);
+                break;
+            }
+
+            if ((intType == common::charType()) && (nullValStr.size() == 1U)) {
+                nullValue = static_cast<std::intmax_t>(nullValStr[0]);
+                break;
+            }
+
+            auto convertResult = stringToInt(nullValStr);
+            if (!convertResult.second) {
+                log::error() << "ERROR: Bad nullValue for type \"" << getName() << "\": " << nullValStr << std::endl;
+                return false;
+            }
+
+            nullValue = convertResult.first;
+        } while (false);
+        defValue = nullValue;
+
+        extraValidNumber = nullValue;
+        out << output::indent(indent) << "struct " << name << " : public\n";
+        writeFunc(indent + 1);
+        out << output::indent(indent) << "\n" <<
+               output::indent(indent) << "{\n";
+        common::writeIntNullCheckUpdateFuncs(out, indent + 1, common::num(nullValue));
+        out << output::indent(indent) << "}";
+        return true;
+    }
+
+    log::error() << "Unkown \"presence\" token value \"" << getPresence() << "\"." << std::endl;
+    return false;
 }
 
 bool BasicType::writeSimpleFloat(std::ostream& out,

@@ -387,7 +387,6 @@ std::intmax_t Type::builtInIntNullValue(const std::string& type)
         std::make_pair("std::int32_t", common::intMinValue("int32", std::string()).first - 1),
         std::make_pair("std::uint32_t", common::intMaxValue("uint32", std::string()).first + 1),
         std::make_pair("std::int64_t", common::intMinValue("int64", std::string()).first - 1),
-        std::make_pair("std::uint64_t", common::intMaxValue("uint64", std::string()).first + 1),
     };
 
     auto iter = Map.find(type);

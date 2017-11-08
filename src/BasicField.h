@@ -54,6 +54,7 @@ private:
     void writeConstant(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptional(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalBasic(std::ostream& out, unsigned indent, const std::string& name);
+    void writeOptionalBasicBigUnsignedInt(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name);

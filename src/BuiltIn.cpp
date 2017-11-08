@@ -38,8 +38,33 @@ namespace sbe2comms
 namespace
 {
 
+
+void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& name)
+{
+    auto type = "std::" + name + "_t";
+    auto maxVal = common::intBigUnsignedMaxValue();
+    assert(maxVal.second);
+
+    out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
+           "/// \\tparam TFieldBase Base class of the field type.\n"
+           "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
+           "template <typename TFieldBase, typename... TOpt>\n"
+           "using " << common::renameKeyword(name) << " = \n" <<
+           output::indent(1) << "comms::field::IntValue<\n" <<
+           output::indent(2) << "TFieldBase,\n" <<
+           output::indent(2) << type << ",\n" <<
+           output::indent(2) << "TOpt...,\n" <<
+           output::indent(2) << "comms::option::ValidBigUnsignedNumValueRange<0, " << common::num(maxVal.first) << ">\n" <<
+           output::indent(1) << ">;\n\n";
+}
+
 void writeBuiltInInt(std::ostream& out, const std::string& name)
 {
+    if (name == common::uint64Type()) {
+        writeBuiltInBigUnsignedInt(out, name);
+        return;
+    }
+
     auto minVal = common::intMinValue(name);
     auto maxVal = common::intMaxValue(name);
     assert(minVal.second);
@@ -56,8 +81,8 @@ void writeBuiltInInt(std::ostream& out, const std::string& name)
            "using " << common::renameKeyword(name) << " = \n" <<
            output::indent(1) << "comms::field::IntValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
-           output::indent(2) << type << ",\n" 
-           "        TOpt...,\n";
+           output::indent(2) << type << ",\n" <<
+           output::indent(2) << "TOpt...,\n";
     if ((0 < minVal.first) || 
         (maxVal.first < 0)) {
         auto defValue = std::min(std::max(std::intmax_t(0), minVal.first), maxVal.first);

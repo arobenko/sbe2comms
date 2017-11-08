@@ -71,7 +71,7 @@ bool MsgId::writeProtocolDef()
     auto& msgs = m_db.getMessagesById();
     for (auto& m : msgs) {
         auto& msgName = m.second->first;
-        auto id = m.first;
+        auto id = static_cast<std::intmax_t>(m.first);
         out << output::indent(1) << prefix << msgName << " = " << common::num(id) << ", ///< ID of message \\ref " <<
                common::messageNamespaceStr() << msgName << '\n';
     }

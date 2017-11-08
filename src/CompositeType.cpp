@@ -612,7 +612,7 @@ bool CompositeType::checkMessageHeader()
     assert(schemaIdIter != m_members.end());
     auto& schemaIdTypePtr = *schemaIdIter;
     assert(schemaIdTypePtr);
-    auto schemaIdValue = getDb().getSchemaId();
+    auto schemaIdValue = static_cast<std::intmax_t>(getDb().getSchemaId());
     schemaIdTypePtr->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaIdValue) + '>');
     schemaIdTypePtr->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
 
@@ -620,7 +620,7 @@ bool CompositeType::checkMessageHeader()
     assert(versionIter != m_members.end());
     auto& versionTypePtr = *versionIter;
     assert(versionTypePtr);
-    auto schemaVersionValue = getDb().getSchemaVersion();
+    auto schemaVersionValue = static_cast<std::intmax_t>(getDb().getSchemaVersion());
     versionTypePtr->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaVersionValue) + '>');
 
     auto templateIdIter = findMemberFunc(common::templateIdStr());
