@@ -62,6 +62,6 @@
         <field name="field9" id="18" type="Enum5" presence="optional"/>
         <field name="field10" id="19" type="Enum6" presence="optional"/>
         <field name="field11" id="20" type="Enum4" presence="constant" valueRef="Enum4.Val11"/>
-        <field name="field12" id="21" type="uint8" presence="constant" valueRef="Enum1.Val1"/>
+        <field name="field12" id="21" type="uint8" presence="constant" valueRef="Enum1.Val2"/>
     </message>
 </messageSchema>

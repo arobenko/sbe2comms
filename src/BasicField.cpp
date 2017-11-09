@@ -99,6 +99,7 @@ bool BasicField::parseImpl()
         }
 
         m_type = getDb().getBuiltInType(typeName);
+        assert((m_type == nullptr) || getDb().isRecordedBuiltInType(typeName));
     } while (false);
 
     if (m_type == nullptr) {
@@ -400,10 +401,18 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
     enumType += common::enumValSuffixStr();
     std::string valueStr(sep.end(), valueRef.end());
     auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    bool builtIn =
+            (!getDb().isIntroducedType(m_type->getName())) &&
+            (getDb().isRecordedBuiltInType(m_type->getName()));
     out << output::indent(indent) << "using " << name << " =\n" <<
-           output::indent(indent + 1) << fieldRefName << "<\n" <<
-           output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
-           output::indent(indent + 2) << getFieldOptString() << ",\n" <<
+           output::indent(indent + 1) << fieldRefName << "<\n";
+    if (builtIn) {
+        out << output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+    }
+    else {
+        out << output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n";
+    }
+    out << output::indent(indent + 2) << getFieldOptString() << ",\n" <<
            output::indent(indent + 2) << "comms::option::DefaultNumValue<(std::intmax_t)" << common::fieldNamespaceStr() << enumType << "::" << valueStr << ">,\n" <<
            output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
            output::indent(indent + 1) << ">;\n\n";

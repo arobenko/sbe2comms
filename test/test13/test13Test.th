@@ -45,39 +45,13 @@ private:
     TMsg construct()
     {
         TMsg msg;
-        static_assert(msg.doMinLength() == 19U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 19U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 19U);
+        static_assert(msg.doMinLength() == 1U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 1U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 1U);
         TS_ASSERT(msg.doValid());
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
-        TS_ASSERT_EQUALS(msg.field_field1().value(), mine::field::Enum1Val::Val1);
-        TS_ASSERT_EQUALS(msg.field_field2().value(), mine::field::Enum2Val::Val1);
-        TS_ASSERT_EQUALS(msg.field_field3().value(), mine::field::Enum3Val::Val1);
-        TS_ASSERT_EQUALS((char)msg.field_field3().value(), 'A');
-        TS_ASSERT_EQUALS(msg.field_field4().value(), mine::field::Enum4Val::Val1);
-        TS_ASSERT_EQUALS(msg.field_field5().value(), mine::field::Enum5Val::NullValue);
-        TS_ASSERT_EQUALS(msg.field_field6().value(), mine::field::Enum6Val::Val1);
-        TS_ASSERT_EQUALS((char)msg.field_field8().value(), 0);
-        TS_ASSERT_EQUALS(msg.field_field11().value(), mine::field::Enum4Val::Val11);
-        TS_ASSERT_EQUALS(msg.field_field12().value(), (unsigned)mine::field::Enum1Val::Val2);
-
-        TS_ASSERT(msg.field_field5().isNull());
-        TS_ASSERT(msg.field_field7().isNull());
-        TS_ASSERT(msg.field_field8().isNull());
-        TS_ASSERT(msg.field_field9().isNull());
-        TS_ASSERT(msg.field_field10().isNull());
-
-        msg.field_field1().value() = mine::field::Enum1Val::Val2;
-        msg.field_field2().value() = (mine::field::Enum2Val)4;
-        TS_ASSERT(!msg.doValid());
-        msg.field_field2().value() = mine::field::Enum2Val::Val3;
+        msg.field_field1().value() = 0x81;
         TS_ASSERT(msg.doValid());
-        msg.field_field3().value() = (mine::field::Enum3Val)'B';
-        TS_ASSERT_EQUALS(msg.field_field3().value(), mine::field::Enum3Val::Val2);
-        msg.field_field4().value() = mine::field::Enum4Val::Val10;
-        msg.field_field5().value() = mine::field::Enum5Val::Val2;
-        msg.field_field8().value() = mine::field::Enum3Val::Val3;
-        msg.field_field9().value() = mine::field::Enum5Val::Val2;
         return msg;
     }
 
@@ -90,20 +64,12 @@ private:
     template <typename TMine, typename TOrig>
     void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
     {
-//        TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
+        TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
         TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength())
-        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field1().value(), (unsigned)origMsg.field1());
-        TS_ASSERT_EQUALS((int)mineMsg.field_field2().value(), (int)origMsg.field2());
-        TS_ASSERT_EQUALS((char)mineMsg.field_field3().value(), (char)origMsg.field3());
-        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field4().value(), (unsigned)origMsg.field4());
-        TS_ASSERT_EQUALS((int)mineMsg.field_field5().value(), (int)origMsg.field5());
-        TS_ASSERT_EQUALS((int)mineMsg.field_field6().value(), (int)origMsg.field6());
-        TS_ASSERT_EQUALS((int)mineMsg.field_field7().value(), (int)origMsg.field7());
-        TS_ASSERT_EQUALS((char)mineMsg.field_field8().value(), (char)origMsg.field8());
-        TS_ASSERT_EQUALS((int)mineMsg.field_field9().value(), (int)origMsg.field9());
-        TS_ASSERT_EQUALS((int)mineMsg.field_field10().value(), (int)origMsg.field10());
-        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field11().value(), (unsigned)origMsg.field11());
-//        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field12().value(), (unsigned)origMsg.field12());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().getBitValue_bit0(), origMsg.field1().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().getBitValue_bit1(), origMsg.field1().bit1());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().getBitValue_bit5(), origMsg.field1().bit5());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().getBitValue_bit7(), origMsg.field1().bit7());
     }
 };
 
