@@ -20,6 +20,9 @@
 #include <iostream>
 #include <set>
 #include <cassert>
+#include <cmath>
+
+#include <boost/optional.hpp>
 
 #include "common.h"
 #include "output.h"
@@ -151,7 +154,7 @@ bool EnumType::hasFixedLengthImpl() const
 
 bool EnumType::canBeExtendedAsOptionalImpl() const
 {
-    assert(isRequired());
+    assert(!isConstant());
     return getAdjustedLengthProp() == 1U;
 }
 
@@ -202,6 +205,24 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     auto ranges = getValidRanges();
     bool tooManyRanges = MaxRangesCount < ranges.size();
     bool asType = (!isOptional()) && (!tooManyRanges);
+    assert(!ranges.empty());
+    std::intmax_t defValue = 0;
+    if (isOptional()) {
+        auto defValIter = findValue(common::enumNullValueStr());
+        assert(defValIter != m_values.cend());
+        defValue = defValIter->first;
+    }
+    else {
+        auto defValIter =
+            std::min_element(
+                m_values.begin(), m_values.end(),
+                [](Values::const_reference v1, Values::const_reference v2) -> bool
+                {
+                    return std::abs(v1.first) < std::abs(v2.first);
+                });
+        assert(defValIter != m_values.end());
+        defValue = defValIter->first;
+    }
 
     auto writeRangesFunc =
         [&out, &ranges](unsigned ind)
@@ -218,12 +239,24 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
             }
         };
 
+    auto writeDefaultValueFunc =
+        [&out, defValue](unsigned ind)
+        {
+            if (defValue == 0) {
+                return;
+            }
+
+            out << ",\n" <<
+                   output::indent(ind) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">";
+        };
+
     if (asType) {
         out << output::indent(indent) << "using " << name << " = \n" <<
                output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
                output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
                output::indent(indent + 2) << enumName << ",\n" <<
                output::indent(indent + 2) << "TOpt...";
+        writeDefaultValueFunc(indent + 2);
         writeRangesFunc(indent + 2);
         out << '\n' <<
                output::indent(indent + 1) << ">;\n\n";
@@ -235,6 +268,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << enumName << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
+    writeDefaultValueFunc(indent + 2);
     if (!tooManyRanges) {
         writeRangesFunc(indent + 2);
     }
@@ -303,6 +337,11 @@ const std::string& EnumType::getUnderlyingType() const
     auto& types = getDb().getTypes();
     auto typeIter = types.find(encType);
     if (typeIter == types.end()) {
+        if (encType == common::uint64Type()) {
+            log::error() << "Support for uint64 as underlying enum type is currently not implemented." << std::endl;
+            return common::emptyString();
+        }
+
         return common::primitiveTypeToStdInt(encType);
     }
 
@@ -318,6 +357,11 @@ const std::string& EnumType::getUnderlyingType() const
     if (primType.empty()) {
         log::error() << "Type \"" << encType << "\" used as encoding type for enum \"" << getName() <<
                      "\" doesn't specify primitiveType." << std::endl;
+        return common::emptyString();
+    }
+
+    if (primType == common::uint64Type()) {
+        log::error() << "Support for uint64 as underlying enum type is currently not implemented." << std::endl;
         return common::emptyString();
     }
 

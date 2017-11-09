@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test12"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <enum name="Enum1" encodingType="uint8">
+            <validValue name="Val1">0</validValue>
+            <validValue name="Val2">1</validValue>
+        </enum>
+        <enum name="Enum2" encodingType="Int8">
+            <validValue name="Val1">0</validValue>
+            <validValue name="Val2">1</validValue>
+            <validValue name="Val3">5</validValue>
+        </enum>            
+        <enum name="Enum3" encodingType="char">
+            <validValue name="Val1">A</validValue>
+            <validValue name="Val2">B</validValue>
+            <validValue name="Val3">C</validValue>
+        </enum>
+        <enum name="Enum4" encodingType="UInt16">
+            <validValue name="Val1">0</validValue>
+            <validValue name="Val2">28</validValue>
+            <validValue name="Val3">1000</validValue>
+            <validValue name="Val4">7</validValue>
+            <validValue name="Val5">90</validValue>
+            <validValue name="Val6">12</validValue>
+            <validValue name="Val7">15</validValue>
+            <validValue name="Val8">25</validValue>
+            <validValue name="Val9">20</validValue>
+            <validValue name="Val10">350</validValue>
+            <validValue name="Val11">4</validValue>
+        </enum> 
+        <enum name="Enum5" encodingType="int16" presence="optional" nullValue="10000">
+            <validValue name="Val1">-1000</validValue>
+            <validValue name="Val2">2005</validValue>
+            <validValue name="Val3">3000</validValue>
+        </enum>               
+        <enum name="Enum6" encodingType="int32">
+            <validValue name="Val1">78900</validValue>
+            <validValue name="Val2">900000</validValue>
+        </enum>               
+        <type name="Int8" primitiveType="int8" />
+        <type name="UInt16" primitiveType="uint16" />        
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="10" type="Enum1"/>
+        <field name="field2" id="11" type="Enum2"/>
+        <field name="field3" id="12" type="Enum3"/>
+        <field name="field4" id="13" type="Enum4"/>
+        <field name="field5" id="14" type="Enum5"/>
+        <field name="field6" id="15" type="Enum6"/>
+        <field name="field7" id="16" type="Enum1" presence="optional"/>
+        <field name="field8" id="17" type="Enum3" presence="optional"/>
+        <field name="field9" id="18" type="Enum5" presence="optional"/>
+        <field name="field10" id="19" type="Enum6" presence="optional"/>
+        <field name="field11" id="20" type="Enum4" presence="constant" valueRef="Enum4.Val11"/>
+        <field name="field12" id="21" type="uint8" presence="constant" valueRef="Enum1.Val1"/>
+    </message>
+</messageSchema>

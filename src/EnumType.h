@@ -73,4 +73,11 @@ EnumType& asEnumType(Type& type)
     return static_cast<EnumType&>(type);
 }
 
+inline
+const EnumType* asEnumType(const Type* type)
+{
+    return static_cast<const EnumType*>(type);
+}
+
+
 } // namespace sbe2comms

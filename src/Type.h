@@ -122,7 +122,7 @@ public:
 
     bool canBeExtendedAsOptional() const
     {
-        if (!isRequired()) {
+        if (isConstant()) {
             return false;
         }
 

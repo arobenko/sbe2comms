@@ -28,6 +28,10 @@
 #include "prop.h"
 #include "common.h"
 #include "output.h"
+#include "DB.h"
+#include "EnumType.h"
+
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -170,7 +174,7 @@ bool BasicType::hasFixedLengthImpl() const
 
 bool BasicType::canBeExtendedAsOptionalImpl() const
 {
-    assert(isRequired());
+    assert(!isConstant());
     return (getLengthProp() == 1U) && (!isConstString());
 }
 

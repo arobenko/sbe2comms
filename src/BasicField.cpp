@@ -218,8 +218,6 @@ bool BasicField::checkOptional() const
         return false;
     }
 
-
-
     return true;
 }
 
