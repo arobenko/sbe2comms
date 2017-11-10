@@ -45,12 +45,31 @@ private:
     TMsg construct()
     {
         TMsg msg;
-        static_assert(msg.doMinLength() == 1U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 1U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 1U);
+        static_assert(msg.doMinLength() == 15U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 15U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 15U);
         TS_ASSERT(msg.doValid());
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
         msg.field_field1().value() = 0x81;
+        msg.field_field2().value() = 0x8002;
+        msg.field_field3().value() = 0x40000001;
+        msg.field_field4().value() = 0x8000000080000020L;
+
+        TS_ASSERT_EQUALS(msg.field_field1().getBitValue_bit0(), true);
+        TS_ASSERT_EQUALS(msg.field_field1().getBitValue_bit1(), false);
+        TS_ASSERT_EQUALS(msg.field_field1().getBitValue_bit5(), false);
+        TS_ASSERT_EQUALS(msg.field_field1().getBitValue_bit7(), true);
+        TS_ASSERT_EQUALS(msg.field_field2().getBitValue_bit0(), false);
+        TS_ASSERT_EQUALS(msg.field_field2().getBitValue_bit1(), true);
+        TS_ASSERT_EQUALS(msg.field_field2().getBitValue_bit15(), true);
+        TS_ASSERT_EQUALS(msg.field_field3().getBitValue_bit0(), true);
+        TS_ASSERT_EQUALS(msg.field_field3().getBitValue_bit5(), false);
+        TS_ASSERT_EQUALS(msg.field_field3().getBitValue_bit30(), true);
+        TS_ASSERT_EQUALS(msg.field_field4().getBitValue_bit0(), false);
+        TS_ASSERT_EQUALS(msg.field_field4().getBitValue_bit5(), true);
+        TS_ASSERT_EQUALS(msg.field_field4().getBitValue_bit31(), true);
+        TS_ASSERT_EQUALS(msg.field_field4().getBitValue_bit63(), true);
+
         TS_ASSERT(msg.doValid());
         return msg;
     }
@@ -70,6 +89,16 @@ private:
         TS_ASSERT_EQUALS(mineMsg.field_field1().getBitValue_bit1(), origMsg.field1().bit1());
         TS_ASSERT_EQUALS(mineMsg.field_field1().getBitValue_bit5(), origMsg.field1().bit5());
         TS_ASSERT_EQUALS(mineMsg.field_field1().getBitValue_bit7(), origMsg.field1().bit7());
+        TS_ASSERT_EQUALS(mineMsg.field_field2().getBitValue_bit0(), origMsg.field2().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field2().getBitValue_bit1(), origMsg.field2().bit1());
+        TS_ASSERT_EQUALS(mineMsg.field_field2().getBitValue_bit15(), origMsg.field2().bit15());
+        TS_ASSERT_EQUALS(mineMsg.field_field3().getBitValue_bit0(), origMsg.field3().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field3().getBitValue_bit5(), origMsg.field3().bit5());
+        TS_ASSERT_EQUALS(mineMsg.field_field3().getBitValue_bit30(), origMsg.field3().bit30());
+        TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit0(), origMsg.field4().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit5(), origMsg.field4().bit5());
+        TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit31(), origMsg.field4().bit31());
+        TS_ASSERT_EQUALS(mineMsg.field_field4().getBitValue_bit63(), origMsg.field4().bit63());
     }
 };
 
