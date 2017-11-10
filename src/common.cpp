@@ -587,7 +587,7 @@ void writeFpOptConstructor(
         out << customDefault;
     }
     out << '\n' <<
-           output::indent(indent) << name << "::" << name << "()\n" <<
+           output::indent(indent) << name << "()\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << fieldBaseDefStr() <<
            output::indent(indent + 1) << "Base::value() = ";
