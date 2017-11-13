@@ -23,7 +23,7 @@
 #include "orig/Msg1.h"
 #include "common.h"
 
-class Test16Suite : public CxxTest::TestSuite
+class Test17Suite : public CxxTest::TestSuite
 {
 public:
     void test1();
@@ -45,16 +45,14 @@ private:
     TMsg construct()
     {
         TMsg msg;
-        static_assert(msg.doMinLength() == 12U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 12U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 12U);
+        static_assert(msg.doMinLength() == 40U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 40U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 40U);
+        TS_ASSERT_EQUALS(msg.getBlockLength(), 40U);
         TS_ASSERT(msg.doValid());
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 
-//        test::common::resizeList(msg.field_field11());
-
         TS_ASSERT(msg.field_field1().field_mem1().isNull());
-        TS_ASSERT(msg.field_field1().isNull());
         TS_ASSERT_EQUALS(msg.field_field1().field_mem3().value(), mine::field::Composite1Members::mem3Val::Val1);
         TS_ASSERT_EQUALS(msg.field_field1().field_mem4().value(), mine::field::Enum1Val::Val2);
 
@@ -83,7 +81,14 @@ private:
     template <typename TMsg>
     void fillPadding(TMsg& msg)
     {
-        static_cast<void>(msg);
+        test::common::resizeList(msg.field_field1().field_pad1_());
+        test::common::resizeList(msg.field_field1().field_pad2_());
+        test::common::resizeList(msg.field_field1().field_pad3_());
+        test::common::resizeList(msg.field_field1().field_pad4_());
+        test::common::resizeList(msg.field_field1().field_pad5_());
+        test::common::resizeList(msg.field_field1().field_mem7().field_pad1_());
+        test::common::resizeList(msg.field_field1().field_pad6_());
+        test::common::resizeList(msg.field_pad1_());
     }
 
 
@@ -112,7 +117,7 @@ private:
     }
 };
 
-void Test16Suite::test1()
+void Test17Suite::test1()
 {
     using TestMessage = test::common::MineMessageFull;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -134,7 +139,7 @@ void Test16Suite::test1()
     verifyOrig(msg, origMsg);
 }
 
-void Test16Suite::test2()
+void Test17Suite::test2()
 {
     using TestMessage = test::common::MineMessageFullOutput;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -154,7 +159,7 @@ void Test16Suite::test2()
     verifyOrig(msg, origMsg);
 }
 
-void Test16Suite::test3()
+void Test17Suite::test3()
 {
     using TestMessage = test::common::MineMessageEmpty;
     using TestMsg1 = MineMsg1<TestMessage>;
