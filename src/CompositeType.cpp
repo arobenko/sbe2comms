@@ -29,6 +29,7 @@
 #include "common.h"
 #include "BasicType.h"
 #include "EnumType.h"
+#include "RefType.h"
 
 namespace ba = boost::algorithm;
 
@@ -56,11 +57,15 @@ bool CompositeType::isBundleOptional() const
     }
 
     auto& mem = m_members[0];
-    if (mem->getKind() != Kind::Composite) {
-        return mem->isOptional();
+    if (mem->getKind() == Kind::Composite) {
+        return asCompositeType(*mem).isBundleOptional();
     }
 
-    return static_cast<const CompositeType&>(*mem).isBundleOptional();
+    if (mem->getKind() == Kind::Ref) {
+        return asRefType(*mem).isReferredOptional();
+    }
+
+    return mem->isOptional();
 }
 
 bool CompositeType::verifyValidDimensionType() const

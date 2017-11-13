@@ -38,6 +38,16 @@ namespace
 const std::string OptPrefix("TOpt_");
 } // namespace
 
+bool RefType::isReferredOptional() const
+{
+    assert(m_type != nullptr);
+    if (m_type->getKind() == Kind::Composite) {
+        return asCompositeType(m_type)->isBundleOptional();
+    }
+
+    return m_type->isOptional();
+}
+
 RefType::Kind RefType::getKindImpl() const
 {
     return Kind::Ref;

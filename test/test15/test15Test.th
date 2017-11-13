@@ -23,7 +23,7 @@
 #include "orig/Msg1.h"
 #include "common.h"
 
-class Test14Suite : public CxxTest::TestSuite
+class Test15Suite : public CxxTest::TestSuite
 {
 public:
     void test1();
@@ -145,7 +145,7 @@ private:
     }
 };
 
-void Test14Suite::test1()
+void Test15Suite::test1()
 {
     using TestMessage = test::common::MineMessageFull;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -163,11 +163,11 @@ void Test14Suite::test1()
     fillPadding(msg);
     verifyMine(msg, *msg2);
 
-    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
-    verifyOrig(msg, origMsg);
+    //auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    //verifyOrig(msg, origMsg);
 }
 
-void Test14Suite::test2()
+void Test15Suite::test2()
 {
     using TestMessage = test::common::MineMessageFullOutput;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -183,11 +183,11 @@ void Test14Suite::test2()
     fillPadding(msg);
     verifyMine(msg, *msg2);
 
-    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
-    verifyOrig(msg, origMsg);
+    //auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    //verifyOrig(msg, origMsg);
 }
 
-void Test14Suite::test3()
+void Test15Suite::test3()
 {
     using TestMessage = test::common::MineMessageEmpty;
     using TestMsg1 = MineMsg1<TestMessage>;

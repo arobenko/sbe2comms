@@ -165,6 +165,18 @@ void resizeList(TField& field)
     field.value().resize(TField::ParsedOptions::SequenceFixedSize);
 }
 
+template <typename TField>
+void checkFpFieldEquals(const TField& field1, const TField& field2)
+{
+    TS_ASSERT_LESS_THAN(std::abs(field1.value() - field2.value()), std::numeric_limits<typename TField::ValueType>::epsilon());
+}
+
+template <typename TVal>
+void checkFpValueEquals(const TVal& val1, const TVal& val2)
+{
+    TS_ASSERT_LESS_THAN(std::abs(val1 - val2), std::numeric_limits<TVal>::epsilon());
+}
+
 } // namespace common
 
 } // namespace test

@@ -93,4 +93,11 @@ CompositeType* asCompositeType(Type* type)
     return static_cast<CompositeType*>(type);
 }
 
+inline
+const CompositeType& asCompositeType(const Type& type)
+{
+    return static_cast<const CompositeType&>(type);
+}
+
+
 } // namespace sbe2comms

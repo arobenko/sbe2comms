@@ -28,6 +28,7 @@ class RefType : public Type
 public:
     explicit RefType(DB& db, xmlNodePtr node) : Base(db, node) {}
 
+    bool isReferredOptional() const;
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
@@ -45,5 +46,11 @@ private:
 
     Type* m_type = nullptr;
 };
+
+inline
+const RefType& asRefType(const Type& type)
+{
+    return static_cast<const RefType&>(type);
+}
 
 } // namespace sbe2comms
