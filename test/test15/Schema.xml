@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test15"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="bigEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <type name="Float1" primitiveType="float" />
+        <type name="Double1" primitiveType="double" />
+        <type name="OptFloat" primitiveType="float" presence="optional"/>
+        <type name="OptDouble" primitiveType="double" presence="optional"/>
+        <type name="ListFloat" primitiveType="float" length="2"/>
+        <type name="ListDouble" primitiveType="double" length="2"/>
+        <type name="OptListFloat" primitiveType="float" length="2" presence="optional"/>
+        <type name="OptListDouble" primitiveType="double" length="2" presence="optional"/>
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="11" type="float"/>
+        <field name="field2" id="12" type="Float1"/>
+        <field name="field3" id="13" type="double"/>
+        <field name="field4" id="14" type="Double1"/>
+        <field name="field5" id="15" type="OptFloat"/>
+        <field name="field6" id="16" type="float" presence="optional"/>
+        <field name="field7" id="17" type="Float1" presence="optional"/>
+        <field name="field8" id="18" type="OptDouble"/>
+        <field name="field9" id="19" type="double" presence="optional"/>
+        <field name="field10" id="20" type="Double1" presence="optional"/>        
+        <field name="field11" id="21" type="ListFloat"/>
+        <field name="field12" id="22" type="ListDouble"/>
+        <field name="field13" id="23" type="OptListFloat"/>
+        <field name="field14" id="24" type="OptListDouble"/>
+    </message>
+</messageSchema>

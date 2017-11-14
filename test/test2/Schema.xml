@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test1"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <composite name="groupSizeEncoding" description="Repeating group dimensions">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="numInGroup" primitiveType="uint16"/>
+        </composite>        
+        <composite name="varStringEncoding">
+            <type name="length" primitiveType="uint32" maxValue="1073741824"/>
+            <type name="varData" primitiveType="char" length="0" characterEncoding="UTF-8"/>
+        </composite>        
+        <type name="type1" primitiveType="uint16" length="3"/>
+    </types>
+    <message name="Msg1" id="1" description="TestMessage" blockLength="16">
+        <field name="field1" id="10" type="float"/>
+        <group name="Field2" id="11" blockLength="8">
+            <field name="field3" id="12" type="type1"/>
+            <data name="field4" id="13" type="varStringEncoding"/>
+        </group>        
+    </message>
+</messageSchema>

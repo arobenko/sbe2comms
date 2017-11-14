@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test16"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <composite name="Composite1">
+            <ref name="mem1" type="UInt8" />
+            <type name="mem2" primitiveType="int8" />
+            <enum name="mem3" encodingType="UInt8">
+                <validValue name="Val1">3</validValue>
+                <validValue name="Val2">5</validValue>
+            </enum>
+            <ref name="mem4" type="Enum1" />
+            <ref name="mem5" type="Set1" />
+            <set name="mem6" encodingType="uint16">
+                <choice name="bit4">4</choice>
+                <choice name="bit7">7</choice>
+                <choice name="bit12">12</choice>
+            </set>
+            <composite name="mem7">
+                <ref name="mem1" type="UInt8" />
+                <type name="mem2" primitiveType="int8" />
+            </composite>
+            <ref name="mem8" type="Composite2" />
+        </composite>
+        <type name="UInt8"  primitiveType="uint8" presence="optional" />
+        <enum name="Enum1" encodingType="int8">
+            <validValue name="Val1">-3</validValue>
+            <validValue name="Val2">1</validValue>
+        </enum>
+        <set name="Set1" encodingType="uint16">
+            <choice name="bit0">0</choice>
+            <choice name="bit8">8</choice>
+            <choice name="bit15">15</choice>
+        </set>
+        <composite name="Composite2">
+            <ref name="mem1" type="UInt8" />
+            <type name="mem2" primitiveType="int8" />
+        </composite>
+        
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="11" type="Composite1"/>
+    </message>
+</messageSchema>

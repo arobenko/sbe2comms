@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test8"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <type name="Int32_1" primitiveType="int32" minValue="-1000" maxValue="1000" />
+        <type name="Int32_2" primitiveType="int32" minValue="500" maxValue="1000" />
+        <type name="Int32_3" primitiveType="int32" minValue="-1110" maxValue="-30"/>
+        <type name="OptInt32" primitiveType="int32" presence="optional"/>
+        <type name="OptInt32_2" primitiveType="int32" presence="optional" nullValue="10000" minValue="1000" maxValue="2000"/>
+        <type name="ConstInt32" primitiveType="int32" presence="constant">-1000</type>
+        <type name="ListInt32" primitiveType="int32" length="4"/>
+        <type name="OptListInt32" primitiveType="int32" length="4" presence="optional"/>
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="10" type="int32"/>
+        <field name="field2" id="11" type="Int32_1"/>
+        <field name="field3" id="12" type="Int32_2"/>
+        <field name="field4" id="13" type="Int32_3"/>
+        <field name="field5" id="14" type="int32" presence="optional"/>
+        <field name="field6" id="15" type="Int32_1" presence="optional"/>
+        <field name="field7" id="16" type="Int32_2" presence="optional"/>
+        <field name="field8" id="17" type="OptInt32"/>
+        <field name="field9" id="18" type="ConstInt32"/>
+        <field name="field10" id="19" type="ListInt32"/>                
+        <field name="field11" id="20" type="OptListInt32"/>
+        <field name="field12" id="21" type="OptInt32_2"/>
+    </message>
+</messageSchema>

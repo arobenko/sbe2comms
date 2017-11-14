@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test13"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="bigEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <set name="Set1" encodingType="uint8">
+            <choice name="bit0">0</choice>
+            <choice name="bit1">1</choice>
+            <choice name="bit5">5</choice>
+            <choice name="bit7">7</choice>
+        </set>
+        <set name="Set2" encodingType="Int16">
+            <choice name="bit0">0</choice>
+            <choice name="bit1">1</choice>
+            <choice name="bit15">15</choice>
+        </set>
+        <set name="Set3" encodingType="uint32">
+            <choice name="bit0">0</choice>
+            <choice name="bit5">5</choice>
+            <choice name="bit30">30</choice>
+        </set>
+        <set name="Set4" encodingType="UInt64">
+            <choice name="bit0">0</choice>
+            <choice name="bit5">5</choice>
+            <choice name="bit31">31</choice>
+            <choice name="bit63">63</choice>
+        </set>
+        <type name="Int16" primitiveType="int16" />
+        <type name="UInt64" primitiveType="uint64" />                        
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="11" type="Set1"/>
+        <field name="field2" id="12" type="Set2"/>
+        <field name="field3" id="13" type="Set3"/>
+        <field name="field4" id="13" type="Set4"/>
+    </message>
+</messageSchema>

@@ -1,0 +1,213 @@
+//
+// Copyright 2017 (C). Alex Robenko. All rights reserved.
+//
+
+// This file is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include <vector>
+
+#include "mine/message/Msg1.h"
+#include "mine/TransportFrame.h"
+#include "mine/AllMessages.h"
+#include "orig/Msg1.h"
+#include "common.h"
+
+class Test15Suite : public CxxTest::TestSuite
+{
+public:
+    void test1();
+    void test2();
+    void test3();
+
+private:
+
+    template <typename TMessage>
+    using MineMsg1 = mine::message::Msg1<TMessage>;
+
+    template <typename TMessage>
+    using AllMessages = mine::AllMessages<TMessage>;
+
+    template <typename TMessage>
+    using Frame = mine::OpenFramingHeaderFrame<TMessage, AllMessages<TMessage> >;
+
+    template <typename TMsg>
+    TMsg construct()
+    {
+        TMsg msg;
+        static_assert(msg.doMinLength() == 108U, "Invalid min length");
+        static_assert(msg.doMaxLength() == 108U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 108U);
+        TS_ASSERT(msg.doValid());
+        TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
+
+        test::common::resizeList(msg.field_field11());
+        test::common::resizeList(msg.field_field12());
+        test::common::resizeList(msg.field_field13());
+        test::common::resizeList(msg.field_field14());
+
+        TS_ASSERT(msg.field_field5().isNull());
+        TS_ASSERT(msg.field_field6().isNull());
+        TS_ASSERT(msg.field_field7().isNull());
+        TS_ASSERT(msg.field_field8().isNull());
+        TS_ASSERT(msg.field_field9().isNull());
+        TS_ASSERT(msg.field_field10().isNull());
+        TS_ASSERT(msg.field_field13().value()[0].isNull());
+        TS_ASSERT(msg.field_field13().value()[1].isNull());
+        TS_ASSERT(msg.field_field14().value()[0].isNull());
+        TS_ASSERT(msg.field_field14().value()[1].isNull());
+
+        msg.field_field1().value() = 1.4f;
+        msg.field_field2().value() = 1.5f;
+        msg.field_field3().value() = 2.6;
+        msg.field_field4().value() = 2.7;
+        msg.field_field6().value() = 2.8f;
+        msg.field_field8().value() = 3.1;
+        msg.field_field10().value() = 3.2;
+
+        msg.field_field11().value()[0].value() = 5.3f;
+        msg.field_field11().value()[1].value() = 7.3f;
+
+        msg.field_field12().value()[0].value() = 10.5;
+        msg.field_field12().value()[1].value() = -11.4;
+        return msg;
+    }
+
+    template <typename TMsg>
+    void fillPadding(TMsg& msg)
+    {
+        static_cast<void>(msg);
+    }
+
+    template <typename TMsg, typename TMsgInterface>
+    void verifyMine(const TMsg& msg1, TMsgInterface& msg2)
+    {
+        test::common::Handler handler;
+        msg2.dispatch(handler);
+        TS_ASSERT_EQUALS(handler.getLastId(), msg1.doGetId());
+        auto* msg2Ptr = static_cast<const TMsg*>(&msg2);
+
+        test::common::checkFpFieldEquals(msg1.field_field1(), msg2Ptr->field_field1());
+        test::common::checkFpFieldEquals(msg1.field_field2(), msg2Ptr->field_field2());
+        test::common::checkFpFieldEquals(msg1.field_field3(), msg2Ptr->field_field3());
+        test::common::checkFpFieldEquals(msg1.field_field4(), msg2Ptr->field_field4());
+        TS_ASSERT_EQUALS(msg1.field_field5().isNull(), msg2Ptr->field_field5().isNull());
+        test::common::checkFpFieldEquals(msg1.field_field6(), msg2Ptr->field_field6());
+        TS_ASSERT_EQUALS(msg1.field_field7().isNull(), msg2Ptr->field_field7().isNull());
+        test::common::checkFpFieldEquals(msg1.field_field8(), msg2Ptr->field_field8());
+        TS_ASSERT_EQUALS(msg1.field_field9().isNull(), msg2Ptr->field_field9().isNull());
+        test::common::checkFpFieldEquals(msg1.field_field10(), msg2Ptr->field_field10());
+        test::common::checkFpFieldEquals(msg1.field_field11().value()[0], msg2Ptr->field_field11().value()[0]);
+        test::common::checkFpFieldEquals(msg1.field_field11().value()[1], msg2Ptr->field_field11().value()[1]);
+        test::common::checkFpFieldEquals(msg1.field_field12().value()[0], msg2Ptr->field_field12().value()[0]);
+        test::common::checkFpFieldEquals(msg1.field_field12().value()[1], msg2Ptr->field_field12().value()[1]);
+        TS_ASSERT_EQUALS(msg1.field_field13().value()[0].isNull(), msg2Ptr->field_field13().value()[0].isNull());
+        TS_ASSERT_EQUALS(msg1.field_field13().value()[1].isNull(), msg2Ptr->field_field13().value()[1].isNull());
+        TS_ASSERT_EQUALS(msg1.field_field14().value()[0].isNull(), msg2Ptr->field_field14().value()[0].isNull());
+        TS_ASSERT_EQUALS(msg1.field_field14().value()[1].isNull(), msg2Ptr->field_field14().value()[1].isNull());
+    }
+
+
+    template <typename TMine, typename TOrig>
+    void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
+    {
+        TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
+        TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength())
+        test::common::checkFpValueEquals(mineMsg.field_field1().value(), origMsg.field1());
+        test::common::checkFpValueEquals(mineMsg.field_field2().value(), origMsg.field2());
+        test::common::checkFpValueEquals(mineMsg.field_field3().value(), origMsg.field3());
+        test::common::checkFpValueEquals(mineMsg.field_field4().value(), origMsg.field4());
+        TS_ASSERT_EQUALS(std::isnan(mineMsg.field_field5().value()), std::isnan(origMsg.field5()));
+        test::common::checkFpValueEquals(mineMsg.field_field6().value(), origMsg.field6());
+        TS_ASSERT_EQUALS(std::isnan(mineMsg.field_field7().value()), std::isnan(origMsg.field7()));
+        test::common::checkFpValueEquals(mineMsg.field_field8().value(), origMsg.field8());
+        TS_ASSERT_EQUALS(std::isnan(mineMsg.field_field9().value()), std::isnan(origMsg.field9()));
+        test::common::checkFpValueEquals(mineMsg.field_field10().value(), origMsg.field10());
+        test::common::checkFpValueEquals(mineMsg.field_field11().value()[0].value(), origMsg.field11(0));
+        test::common::checkFpValueEquals(mineMsg.field_field11().value()[1].value(), origMsg.field11(1));
+        test::common::checkFpValueEquals(mineMsg.field_field12().value()[0].value(), origMsg.field12(0));
+        test::common::checkFpValueEquals(mineMsg.field_field12().value()[1].value(), origMsg.field12(1));
+        TS_ASSERT_EQUALS(std::isnan(mineMsg.field_field13().value()[0].value()), std::isnan(origMsg.field13(0)));
+        TS_ASSERT_EQUALS(std::isnan(mineMsg.field_field13().value()[1].value()), std::isnan(origMsg.field13(1)));
+        TS_ASSERT_EQUALS(std::isnan(mineMsg.field_field14().value()[0].value()), std::isnan(origMsg.field14(0)));
+        TS_ASSERT_EQUALS(std::isnan(mineMsg.field_field14().value()[1].value()), std::isnan(origMsg.field14(1)));
+
+    }
+};
+
+void Test15Suite::test1()
+{
+    using TestMessage = test::common::MineMessageFull;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
+
+//    TS_TRACE(buf);
+    TS_ASSERT(!buf.empty());
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    fillPadding(msg);
+    verifyMine(msg, *msg2);
+
+    //auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    //verifyOrig(msg, origMsg);
+}
+
+void Test15Suite::test2()
+{
+    using TestMessage = test::common::MineMessageFullOutput;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgOutputIter<TestMessage>(msg, frame);
+    TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    fillPadding(msg);
+    verifyMine(msg, *msg2);
+
+    //auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    //verifyOrig(msg, origMsg);
+}
+
+void Test15Suite::test3()
+{
+    using TestMessage = test::common::MineMessageEmpty;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgOutputIter(msg, frame);
+    TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
+
+
+    using OtherTestMessage = test::common::MineMessageFull;
+    using OtherTestMsg1 = MineMsg1<OtherTestMessage>;
+    using OtherTestFrame = Frame<OtherTestMessage>;
+
+    auto otherMsg = construct<OtherTestMsg1>();
+    OtherTestFrame otherFrame;
+    auto otherBuf = test::common::writeMsgIntoBuf(otherMsg, otherFrame);
+    TS_ASSERT_EQUALS(buf, otherBuf);
+}
+
+
