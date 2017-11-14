@@ -45,7 +45,7 @@ private:
     TMsg construct()
     {
         TMsg msg;
-        static_assert(msg.doMinLength() == 7U, "Invalid min length");
+        static_assert(msg.doMinLength() == 9U, "Invalid min length");
         TS_ASSERT_EQUALS(msg.doLength(), msg.doMinLength());
         TS_ASSERT_EQUALS(msg.getBlockLength(), 0U);
         TS_ASSERT(msg.doValid());
@@ -56,8 +56,14 @@ private:
         msg.field_field1().value() = "hello";
         msg.field_field2().value() = "bla";
         msg.field_field3().value() = {1, 2, 3, 4};
+        auto& field4Vec = msg.field_field4().value();
+        field4Vec.resize(4);
+        field4Vec[0].value() = 5;
+        field4Vec[1].value() = 6;
+        field4Vec[2].value() = 7;
+        field4Vec[8].value() = 8;
 
-        TS_ASSERT_EQUALS(msg.doLength(), msg.doMinLength() + 12U);
+        TS_ASSERT_EQUALS(msg.doLength(), msg.doMinLength() + 20U);
         return msg;
     }
 
@@ -79,6 +85,16 @@ private:
         auto origField3Size = origMsg.getField3(reinterpret_cast<char*>(&origField3Data[0]), origField3Data.size());
         TS_ASSERT_EQUALS(origField3Size, origField3Data.size());
 
+        std::vector<std::uint16_t> mineField4Data;
+        auto& mineField4Vec = mineMsg.field_field4().value();
+        for (auto& elem : mineField4Vec) {
+            mineField4Data.push_back(elem.value());
+        }
+
+        std::vector<std::uint16_t> origField4Data;
+        origField4Data.resize(mineField4Vec.size());
+        auto origField4Size = origMsg.getField4(reinterpret_cast<char*>(&origField4Data[0]), origField4Data.size());
+        TS_ASSERT_EQUALS(origField4Size, origField4Data.size());
 
         TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
         TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength());
@@ -86,6 +102,7 @@ private:
         TS_ASSERT_EQUALS(mineMsg.field_field1().value(), origField1Str);
         TS_ASSERT_EQUALS(mineMsg.field_field2().value(), origField2Str);
         TS_ASSERT_EQUALS(mineMsg.field_field3().value(), origField3Data);
+        TS_ASSERT_EQUALS(origField4Data, origField4Data);
     }
 };
 

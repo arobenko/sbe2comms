@@ -23,11 +23,16 @@
             <type name="length" primitiveType="uint32" maxValue="1073741824"/>
             <type name="varData" primitiveType="uint8" length="0"/>
         </composite>
+        <composite name="varDataEncoding2">
+            <type name="length" primitiveType="uint16" maxValue="1000"/>
+            <type name="varData" primitiveType="uint16" length="0"/>
+        </composite>
         
     </types>
     <message name="Msg1" id="1" description="TestMessage">
         <data name="field1" id="101" type="varStringEncoding" />
         <data name="field2" id="102" type="varStringEncoding2" />
         <data name="field3" id="103" type="varDataEncoding" />
+        <data name="field4" id="104" type="varDataEncoding2" />
     </message>
 </messageSchema>

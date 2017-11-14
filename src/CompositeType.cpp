@@ -460,7 +460,7 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
     auto& dataMem = *m_members[DataEncIdx_data];
     out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
            output::indent(indent + 1) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceSizeFieldPrefix<\n" <<
+           output::indent(indent + 2) << "comms::option::SequenceSerLengthFieldPrefix<\n" <<
            output::indent(indent + 3) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << '<' << OptPrefix << lengthExtraOpt << ">\n" <<
            output::indent(indent + 2) << ">,\n" <<
            output::indent(indent + 2) << OptPrefix << dataExtraOpt << ",\n" <<
