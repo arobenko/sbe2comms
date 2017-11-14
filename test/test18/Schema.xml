@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test18"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <composite name="listDimensions">
+            <type name="blockLength" primitiveType="uint8" />
+            <type name="numInGroup" primitiveType="uint8" />
+        </composite>
+        <composite name="groupSizeEncoding">
+            <type name="numInGroup" primitiveType="uint16" />
+            <type name="blockLength" primitiveType="uint16" />
+        </composite>
+        <type name="UInt8"  primitiveType="uint8" presence="optional" />
+        <composite name="Composite1">
+            <ref name="mem1" type="UInt8" />
+            <type name="mem2" primitiveType="int8" />
+        </composite>
+        <enum name="Enum1" encodingType="int16">
+            <validValue name="Val1">-10</validValue>
+            <validValue name="Val2">0</validValue>
+            <validValue name="Val3">1</validValue>
+        </enum>
+        <set name="Set1" encodingType="uint32">
+            <choice name="bit0">0</choice>
+            <choice name="bit16">16</choice>
+            <choice name="bit31">31</choice>
+        </set>
+        
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <group name="field1" id="11" dimensionType="listDimensions">
+            <field name="mem1" type="UInt8" id="101"/>
+            <field name="mem2" type="Enum1" id="102" offset="2" />
+            <field name="mem3" type="Set1" id="103" offset="4" />
+            <field name="mem4" type="Composite1" id="104" offset="10" />
+            <group name="mem5" id="105" offset="16">
+                <field name="mem1" type="uint32" id="1001" />
+                <field name="mem2" type="int32" id="1002" />
+            </group>
+        </group>
+    </message>
+</messageSchema>

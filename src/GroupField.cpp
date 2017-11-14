@@ -287,7 +287,7 @@ bool GroupField::writeMembers(std::ostream& out, unsigned indent)
         result = m->write(out, indent + 1) && result;
     }
 
-    out << output::indent(indent + 1) << "/// \\ brief Bundling all the defined member types into a single std::tuple.\n";
+    out << output::indent(indent + 1) << "/// \\brief Bundling all the defined member types into a single std::tuple.\n";
     out << output::indent(indent + 1) << "using All = std::tuple<\n";
     for (auto& m : m_members) {
         auto& mName = m->getName();

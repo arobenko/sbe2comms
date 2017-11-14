@@ -349,7 +349,7 @@ bool BuiltIn::write(DB& db)
     }
 
     out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly types\n"
+           "/// \\brief Contains definition of implicitly defined types\n"
            "\n\n"
            "#pragma once\n\n"
            "#include <cstdint>\n"
