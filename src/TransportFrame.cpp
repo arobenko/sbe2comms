@@ -67,7 +67,6 @@ bool TransportFrame::writeProtocolDef()
            "#include \"comms/protocol/MsgDataLayer.h\"\n"
            "#include \"comms/options.h\"\n"
            "#include \"comms/field/ArrayList.h\"\n"
-           "#include \"" << common::fieldsDefFileName() << "\"\n"
            "#include \"" << common::messageHeaderLayerFileName() << "\"\n"
            "#include \"" << common::openFramingHeaderLayerFileName() << "\"\n"
            "#include \"" << common::defaultOptionsFileName() << "\"\n\n";

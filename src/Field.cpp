@@ -47,6 +47,7 @@ bool Field::parse()
     if (deprecated <= sinceVer) {
         log::warning() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
     }
+
     return parseImpl();
 }
 
@@ -175,14 +176,10 @@ unsigned Field::getOffset() const
     return prop::offset(m_props);
 }
 
-void Field::updateExtraHeaders(std::set<std::string>& headers)
+void Field::updateExtraHeaders(ExtraHeaders& headers)
 {
     for (auto& h : m_extraHeaders) {
-        if (headers.find(h) != headers.end()) {
-            continue;
-        }
-
-        headers.insert(h);
+        common::recordExtraHeader(h, headers);
     }
 }
 
@@ -222,11 +219,14 @@ void Field::writeOptions(std::ostream& out, unsigned indent)
 
 void Field::recordExtraHeader(const std::string& header)
 {
-    auto iter = m_extraHeaders.find(header);
-    if (iter != m_extraHeaders.end()) {
-        return;
+    common::recordExtraHeader(header, m_extraHeaders);
+}
+
+void Field::recordMultipleExtraHeaders(const ExtraHeaders& headers)
+{
+    for (auto& h : headers) {
+        recordExtraHeader(h);
     }
-    m_extraHeaders.insert(header);
 }
 
 const std::string& Field::getDefaultOptMode() const

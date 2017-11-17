@@ -71,6 +71,14 @@ bool GroupField::parseImpl()
     }
 
     getDb().recordGroupListUsage();
+    recordExtraHeader(common::localHeader(getDb().getProtocolNamespace(), common::builtinNamespaceNameStr(), common::groupListStr() + ".h"));
+    recordExtraHeader(common::localHeader(getDb().getProtocolNamespace(), common::fieldNamespaceNameStr(), m_type->getName() + ".h"));
+    ExtraHeaders membersHeaders;
+
+    for (auto& m : m_members) {
+        m->updateExtraHeaders(membersHeaders);
+    }
+    recordMultipleExtraHeaders(membersHeaders);
     return true;
 }
 

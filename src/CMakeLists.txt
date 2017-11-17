@@ -34,6 +34,7 @@ set (
     "MessageHeaderLayer.cpp"
     "OpenFramingHeaderLayer.cpp"
     "TransportFrame.cpp"
+    "FieldBase.cpp"
     "common.cpp"
     "prop.cpp"
     "output.cpp"

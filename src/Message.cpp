@@ -597,37 +597,16 @@ void Message::writeExtraDefHeaders(std::ostream& out)
 {
     std::set<std::string> extraHeaders;
     extraHeaders.insert("<iterator>");
+    extraHeaders.insert("\"comms/MessageBase.h\"");
+    extraHeaders.insert("\"comms/Assert.h\"");
+    extraHeaders.insert('\"' + napespacePrefix(m_db) + common::defaultOptionsFileName() + '\"');
+    extraHeaders.insert('\"' + napespacePrefix(m_db) + common::msgIdFileName() + '\"');
 
     for (auto& f : m_fields) {
         f->updateExtraHeaders(extraHeaders);
     }
 
-    for (auto& h : extraHeaders) {
-        out << "#include " << h << '\n';
-    }
-
-    out << "#include \"comms/MessageBase.h\"\n"
-           "#include \"comms/Assert.h\"\n"
-           "#include \"" << napespacePrefix(m_db) << common::defaultOptionsFileName() << "\"\n" <<
-           "#include \"" << napespacePrefix(m_db) << common::msgIdFileName() << "\"\n";
-
-    if (!m_fields.empty()) {
-        out << "#include \"" << napespacePrefix(m_db) << common::fieldsDefFileName() << "\"\n";
-    }
-
-    auto hasBuiltIns =
-        std::any_of(
-            m_fields.begin(), m_fields.end(),
-            [](FieldsList::const_reference& f)
-            {
-                return f->usesBuiltInType();
-            });
-
-    if (hasBuiltIns) {
-        out << "#include \"" << napespacePrefix(m_db) << common::builtinsDefFileName() << "\"\n";
-    }
-
-    out << '\n';
+    common::writeExtraHeaders(out, extraHeaders);
 }
 
 } // namespace sbe2comms

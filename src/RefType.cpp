@@ -60,13 +60,13 @@ bool RefType::parseImpl()
         return false;
     }
 
+    addExtraInclude('\"' + m_type->getName() + ".h\"");
     return true;
 }
 
 bool RefType::writeImpl(std::ostream& out, unsigned indent)
 {
     assert(m_type != nullptr);
-    assert(m_type->isWritten());
 
     if (isBundle()) {
         writeBundle(out, indent);
@@ -92,15 +92,6 @@ std::size_t RefType::getSerializationLengthImpl() const
 {
     assert(m_type != nullptr);
     return m_type->getSerializationLength();
-}
-
-bool RefType::writeDependenciesImpl(std::ostream& out, unsigned indent)
-{
-    if (m_type == nullptr) {
-        return false;
-    }
-
-    return m_type->write(out, indent);
 }
 
 bool RefType::hasFixedLengthImpl() const

@@ -18,6 +18,9 @@
 #include "Type.h"
 
 #include <iostream>
+#include <fstream>
+
+#include <boost/filesystem.hpp>
 
 #include "DB.h"
 #include "common.h"
@@ -29,8 +32,39 @@
 #include "RefType.h"
 #include "log.h"
 
+namespace bf = boost::filesystem;
+
 namespace sbe2comms
 {
+
+namespace
+{
+
+void writeFileHeader(std::ostream& out, const std::string& name)
+{
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of \\ref " << common::fieldNamespaceStr() << name << " field.\n\n"
+           "#pragma once\n\n";
+}
+
+void openNamespaces(std::ostream& out, DB& db)
+{
+    common::writeProtocolNamespaceBegin(db.getProtocolNamespace(), out);
+
+    out << "namespace " << common::fieldNamespaceNameStr() << "\n"
+            "{\n"
+            "\n";
+}
+
+void closeNamespaces(std::ostream& out, DB& db)
+{
+    out << "} // namespace " << common::fieldNamespaceNameStr() << "\n"
+            "\n";
+
+    common::writeProtocolNamespaceEnd(db.getProtocolNamespace(), out);
+}
+
+} // namespace
 
 Type::Type(DB& db, xmlNodePtr node)
   : m_db(db),
@@ -61,6 +95,7 @@ bool Type::parse()
         return false;
     }
 
+    m_extraIncludes.insert('\"' + common::fieldBaseFileName() + '\"');
     return parseImpl();
 }
 
@@ -189,13 +224,7 @@ std::pair<std::string, bool> Type::getFailOnInvalid() const
 void Type::updateExtraIncludes(ExtraIncludes& extraIncludes)
 {
     for (auto& i : m_extraIncludes) {
-        auto iter = extraIncludes.lower_bound(i);
-        if ((iter != extraIncludes.end()) &&
-            (*iter == i)) {
-            continue;
-        }
-
-        extraIncludes.insert(iter, i);
+        common::recordExtraHeader(i, extraIncludes);
     }
 }
 
@@ -245,6 +274,35 @@ Type::Ptr Type::create(DB& db, xmlNodePtr node)
     return createIter->second(db, node);
 }
 
+bool Type::writeProtocolDef()
+{
+    if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace(), common::fieldDirName())) {
+        return false;
+    }
+
+    auto fieldDirRelPath =
+            common::protocolDirRelPath(m_db.getProtocolNamespace(), common::fieldDirName());
+
+    const std::string Ext(".h");
+    auto filename = getName() + Ext;
+    auto relPath = bf::path(fieldDirRelPath) / filename;
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+
+    log::info() << "Generating " << relPath.string() << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    writeFileHeader(out, getName());
+    common::writeExtraHeaders(out, m_extraIncludes);
+    openNamespaces(out, m_db);
+    bool result = write(out);
+    closeNamespaces(out, m_db);
+    return result && out.good();
+}
+
 bool Type::write(std::ostream& out, unsigned indent)
 {
     assert(doesExist());
@@ -272,13 +330,6 @@ bool Type::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std
 {
     out << output::indent(indent) << "/// \\brief Default options for \\ref " << scope << getReferenceName() << " field.\n" <<
            output::indent(indent) << "using " << getReferenceName() << common::eqEmptyOptionStr() << ";\n\n";
-    return true;
-}
-
-bool Type::writeDependenciesImpl(std::ostream& out, unsigned indent)
-{
-    static_cast<void>(out);
-    static_cast<void>(indent);
     return true;
 }
 
@@ -325,11 +376,6 @@ void Type::writeExtraOptions(std::ostream& out, unsigned indent)
         out << ",\n" <<
                output::indent(indent) << o;
     }
-}
-
-void Type::writeBaseDef(std::ostream& out, unsigned indent)
-{
-    out << output::indent(indent) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n";
 }
 
 std::string Type::nodeText()

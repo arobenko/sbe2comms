@@ -39,8 +39,6 @@ namespace sbe2comms
 namespace
 {
 
-const std::string CharType("char");
-
 const std::string& primitiveFloatToStd(const std::string& type)
 {
     static const std::string Values[] = {
@@ -115,12 +113,30 @@ bool BasicType::parseImpl()
         }
     }
 
-    auto& fpType = primitiveFloatToStd(getPrimitiveType());
-    if (!fpType.empty()) {
-        addExtraInclude("<limits>");
-        addExtraInclude("<cmath>");
-    }
+    do {
+        bool list = (getLengthProp() != 1U);
+        bool string = list && isString();
+        if (string || isConstString()) {
+            addExtraInclude("\"comms/field/String.h\"");
+            break;
+        }
 
+        if (list) {
+            addExtraInclude("\"comms/field/ArrayList.h\"");
+        }
+
+        if (isIntType()) {
+            addExtraInclude("<cstdint>");
+            if ((!list) || (!isRawData())) {
+                addExtraInclude("\"comms/field/IntValue.h\"");
+            }
+        }
+        else if (isFpType()) {
+            addExtraInclude("<limits>");
+            addExtraInclude("<cmath>");
+            addExtraInclude("\"comms/field/FloatValue.h\"");
+        }
+    } while (false);
     return true;
 }
 
@@ -373,7 +389,6 @@ bool BasicType::writeSimpleInt(std::ostream& out,
             return false;
         }
 
-        log::info() << "Type=" << getName() << " min=" << bigMinVal.first << "; max=" << bigMaxVal.first << std::endl;
         return writeSimpleBigUnsignedInt(out, indent, isElement, bigMinVal.first, bigMaxVal.first);
     }
 
@@ -560,9 +575,9 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
             out << '\n' <<
                    output::indent(indent + 1) << "/// \\brief Value validity check function.\n" <<
                    output::indent(indent + 1) << "bool valid() const\n" <<
-                   output::indent(indent + 1) << "{\n";
-            writeBaseDef(out, indent + 2);
-            out << output::indent(indent + 2) << "auto defaultValue = static_cast<typename Base::ValueType>(" << constValStr << ");\n" <<
+                   output::indent(indent + 1) << "{\n" <<
+                   output::indent(indent + 2) << common::fieldBaseDefStr() <<
+                   output::indent(indent + 2) << "auto defaultValue = static_cast<typename Base::ValueType>(" << constValStr << ");\n" <<
                    output::indent(indent + 2) << "return std::abs(Base::value() - defaultValue) < std::numberic_limits<typename Base::ValueType>::epsilon;\n" <<
                    output::indent(indent + 1) << "}\n";
             result = true;
@@ -769,7 +784,7 @@ bool BasicType::isString() const
         return true;
     }
 
-    return getPrimitiveType() == CharType;
+    return getPrimitiveType() == common::charType();
 }
 
 bool BasicType::isConstString() const
@@ -791,7 +806,7 @@ bool BasicType::isRawData(const std::string& primType) const
     }
 
     static const std::string RawDataTypes[] = {
-        CharType,
+        common::charType(),
         "int8",
         "uint8"
     };
@@ -801,9 +816,9 @@ bool BasicType::isRawData(const std::string& primType) const
 
 void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
 {
-    auto minValue = common::intMinValue(CharType, std::string());
+    auto minValue = common::intMinValue(common::charType(), std::string());
     assert (minValue.second);
-    auto maxValue = common::intMaxValue(CharType, std::string());
+    auto maxValue = common::intMaxValue(common::charType(), std::string());
     assert(maxValue.second);
     out << output::indent(indent) << "/// \\brief Value validity check function.\n" <<
            output::indent(indent) << "bool valid() const\n" <<

@@ -71,6 +71,16 @@ Field::Kind BasicField::getKindImpl() const
 
 bool BasicField::parseImpl()
 {
+    auto getTypeHeader =
+        [this](const std::string& fieldNs, const std::string& typeName) -> std::string
+        {
+            return
+                '\"' +
+                common::pathTo(
+                    getDb().getProtocolNamespace(),
+                    fieldNs + '/' + typeName + ".h") +
+                '\"';
+        };
     do {
         auto& typeName = getType();
         if (typeName.empty()) {
@@ -79,6 +89,10 @@ bool BasicField::parseImpl()
                 if (!valueRef.empty()) {
                     assert(!m_generatedPadding);
                     m_type = getTypeFromValueRef();
+                    if (m_type != nullptr) {
+                        recordExtraHeader(
+                            getTypeHeader(common::fieldNamespaceNameStr(), m_type->getName()));
+                    }
                     break;
                 }
             }
@@ -90,16 +104,24 @@ bool BasicField::parseImpl()
         if (m_generatedPadding) {
             m_type = getDb().findPaddingType(typeName);
             assert(m_type != nullptr);
+            recordExtraHeader(
+                getTypeHeader(common::builtinNamespaceNameStr(), common::padStr()));
             break;
         }
 
         m_type = getDb().findType(typeName);
         if (m_type != nullptr) {
+            recordExtraHeader(
+                getTypeHeader(common::fieldNamespaceNameStr(), m_type->getName()));
             break;
         }
 
         m_type = getDb().getBuiltInType(typeName);
         assert((m_type == nullptr) || getDb().isRecordedBuiltInType(typeName));
+        recordExtraHeader(
+            getTypeHeader(common::fieldNamespaceNameStr(), common::fieldBaseStr()));
+        recordExtraHeader(
+            getTypeHeader(common::builtinNamespaceNameStr(), m_type->getName()));
     } while (false);
 
     if (m_type == nullptr) {
@@ -130,8 +152,7 @@ bool BasicField::parseImpl()
 
     if (isOptional()) {
         if (m_type->getKind() == Type::Kind::Basic) {
-            auto* basicType = static_cast<const BasicType*>(m_type);
-            if (basicType->isFpType()) {
+            if (asBasicType(m_type)->isFpType()) {
                 recordExtraHeader("<cmath>");
                 recordExtraHeader("<limits>");
             }

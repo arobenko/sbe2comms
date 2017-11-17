@@ -83,6 +83,7 @@ public:
         return getKindImpl();
     }
 
+    bool writeProtocolDef();
     bool write(std::ostream& out, unsigned indent = 0);
 
     bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
@@ -103,11 +104,6 @@ public:
     std::size_t getSerializationLength() const
     {
         return getSerializationLengthImpl();
-    }
-
-    bool writeDependencies(std::ostream& out, unsigned indent = 0)
-    {
-        return writeDependenciesImpl(out, indent);
     }
 
     bool hasFixedLength() const
@@ -161,7 +157,6 @@ protected:
     virtual bool writeImpl(std::ostream& out, unsigned indent) = 0;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope);
     virtual std::size_t getSerializationLengthImpl() const = 0;
-    virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent);
     virtual bool hasFixedLengthImpl() const = 0;
     virtual ExtraOptInfosList getExtraOptInfosImpl() const;
     virtual bool canBeExtendedAsOptionalImpl() const;
@@ -171,7 +166,6 @@ protected:
     void writeElementBrief(std::ostream& out, unsigned indent);
     void writeElementHeader(std::ostream& out, unsigned indent);
     void writeExtraOptions(std::ostream& out, unsigned indent);
-    static void writeBaseDef(std::ostream& out, unsigned indent);
     std::string nodeText();
     void addExtraInclude(const std::string& val);
     static std::size_t primitiveLength(const std::string& type);

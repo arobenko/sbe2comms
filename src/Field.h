@@ -31,6 +31,7 @@ class DB;
 class Field
 {
 public:
+    using ExtraHeaders = std::set<std::string>;
     using Ptr = std::unique_ptr<Field>;
     explicit Field(
         DB& db,
@@ -78,7 +79,7 @@ public:
     unsigned getSinceVersion() const;
     const std::string& getType() const;
     unsigned getOffset() const;
-    void updateExtraHeaders(std::set<std::string>& headers);
+    void updateExtraHeaders(ExtraHeaders& headers);
     bool isCommsOptionalWrapped() const;
 
     Kind getKind() const
@@ -111,6 +112,7 @@ protected:
     void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);
     static void writeOptions(std::ostream& out, unsigned indent);
     void recordExtraHeader(const std::string& header);
+    void recordMultipleExtraHeaders(const ExtraHeaders& headers);
     std::string getFieldOptString() const;
     std::string getTypeOptString(const Type& type) const;
 
@@ -133,12 +135,11 @@ protected:
 
 private:
     const std::string& getDefaultOptMode() const;
-
     DB& m_db;
     xmlNodePtr m_node = nullptr;
     std::string m_scope;
     XmlPropsMap m_props;
-    std::set<std::string> m_extraHeaders;
+    ExtraHeaders m_extraHeaders;
 };
 
 using FieldPtr = Field::Ptr;

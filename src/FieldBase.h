@@ -21,13 +21,17 @@ namespace sbe2comms
 {
 
 class DB;
-class BuiltIn
+
+class FieldBase
 {
 public:
-    BuiltIn(DB& db);
+    FieldBase(DB& db) : m_db(db) {}
+
     bool write();
 
 private:
+    bool writeProtocolDef();
+
     DB& m_db;
 };
 

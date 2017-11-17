@@ -79,6 +79,7 @@ bool SetType::parseImpl()
         log::warning() << "Ignoring \"length\" property of \"" << getName() << "\" type to match sbe-tool." << std::endl;
     }
 
+    addExtraInclude("\"comms/field/BitmaskValue.h\"");
     return true;
 }
 

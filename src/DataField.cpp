@@ -65,6 +65,7 @@ bool DataField::parseImpl()
 
     compType->recordDataUse();
     m_type = typePtr;
+    recordExtraHeader(common::localHeader(getDb().getProtocolNamespace(), common::fieldNamespaceNameStr(), m_type->getName() + ".h"));
     return true;
 }
 

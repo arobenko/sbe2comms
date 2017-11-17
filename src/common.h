@@ -31,9 +31,8 @@ namespace common
 const std::string& charType();
 const std::string& uint64Type();
 const std::string& messageDirName();
+const std::string& fieldDirName();
 const std::string& includeDirName();
-const std::string& fieldsDefFileName();
-const std::string& builtinsDefFileName();
 const std::string& defaultOptionsFileName();
 const std::string& msgIdFileName();
 const std::string& msgInterfaceFileName();
@@ -47,6 +46,7 @@ const std::string& elementSuffixStr();
 const std::string& extraOptionsTemplParamStr();
 const std::string& fieldBaseStr();
 const std::string& fieldBaseDefStr();
+const std::string& fieldBaseFileName();
 const std::string& messageBaseDefStr();
 const std::string& enumValSuffixStr();
 const std::string& enumNullValueStr();
@@ -55,6 +55,7 @@ const std::string& fieldNamespaceNameStr();
 const std::string& messageNamespaceStr();
 const std::string& messageNamespaceNameStr();
 const std::string& builtinNamespaceStr();
+const std::string& builtinNamespaceNameStr();
 const std::string& memembersSuffixStr();
 const std::string& fieldsSuffixStr();
 const std::string& eqEmptyOptionStr();
@@ -78,7 +79,8 @@ const std::string& padStr();
 std::string num(std::intmax_t val);
 std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
-std::string pathTo(const std::string& ns, const std::string path);
+std::string pathTo(const std::string& ns, const std::string& path);
+std::string localHeader(const std::string& ns, const std::string& localNs, const std::string& path);
 const std::string& primitiveTypeToStdInt(const std::string& type);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
@@ -95,7 +97,9 @@ void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = f
 void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
+void writeExtraHeaders(std::ostream& out, const std::set<std::string>& allHeaders);
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders);
+
 std::string protocolDirRelPath(const std::string& ns, const std::string& extraDir = std::string());
 bool createProtocolDefDir(
     const std::string& root,

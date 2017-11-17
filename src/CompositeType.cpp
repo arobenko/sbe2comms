@@ -156,6 +156,16 @@ bool CompositeType::parseImpl()
     if ((isMessageHeader()) && (!checkMessageHeader())) {
         return false;
     }
+    
+    ExtraIncludes inc;
+    for (auto& m : m_members) {
+        m->updateExtraIncludes(inc);
+    }
+
+    for (auto& i : inc) {
+        addExtraInclude(i);
+    }
+    addExtraInclude("\"comms/field/Bundle.h\"");
 
     return true;
 }
@@ -163,12 +173,6 @@ bool CompositeType::parseImpl()
 bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
 {
     assert(!m_members.empty());
-    for (auto& m : m_members) {
-        if (!m->writeDependencies(out, indent)) {
-            log::error() << "Failed to write dependencies for composite \"" << getName() << "\"." << std::endl;
-            return false;
-        }
-    }
 
     if (!checkDataValid()) {
         return false;
@@ -208,15 +212,6 @@ std::size_t CompositeType::getSerializationLengthImpl() const
             {
                 return soFar + t->getSerializationLength();
             });
-}
-
-bool CompositeType::writeDependenciesImpl(std::ostream& out, unsigned indent)
-{
-    bool result = true;
-    for (auto& m : m_members) {
-        result = m->writeDependencies(out, indent) && result;
-    }
-    return result;
 }
 
 bool CompositeType::hasFixedLengthImpl() const

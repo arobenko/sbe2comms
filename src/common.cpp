@@ -23,11 +23,13 @@
 #include <sstream>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "output.h"
 #include "log.h"
 
 namespace bf = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -53,21 +55,15 @@ const std::string& messageDirName()
     return Name;
 }
 
+const std::string& fieldDirName()
+{
+    static const std::string Name("field");
+    return Name;
+}
+
 const std::string& includeDirName()
 {
     static const std::string Name("include");
-    return Name;
-}
-
-const std::string& fieldsDefFileName()
-{
-    static const std::string Name("field.h");
-    return Name;
-}
-
-const std::string& builtinsDefFileName()
-{
-    static const std::string Name("sbe2comms.h");
     return Name;
 }
 
@@ -265,6 +261,12 @@ const std::string& fieldBaseDefStr()
     return Str;
 }
 
+const std::string& fieldBaseFileName()
+{
+    static const std::string Str(fieldBaseStr() + ".h");
+    return Str;
+}
+
 const std::string& messageBaseDefStr()
 {
     static const std::string Str("using Base = typename std::decay<decltype(toMessageBase(*this))>::type;\n");
@@ -309,7 +311,13 @@ const std::string& messageNamespaceNameStr()
 
 const std::string& builtinNamespaceStr()
 {
-    static const std::string Str("sbe2comms::");
+    static const std::string Str(builtinNamespaceNameStr() + "::");
+    return Str;
+}
+
+const std::string& builtinNamespaceNameStr()
+{
+    static const std::string Str("sbe2comms");
     return Str;
 }
 
@@ -488,7 +496,7 @@ std::string scopeFor(const std::string& ns, const std::string type)
     return result;
 }
 
-std::string pathTo(const std::string& ns, const std::string path)
+std::string pathTo(const std::string& ns, const std::string& path)
 {
     std::string result = ns;
     if (!ns.empty()) {
@@ -496,6 +504,16 @@ std::string pathTo(const std::string& ns, const std::string path)
     }
     result += path;
     return result;
+}
+
+std::string localHeader(const std::string& ns, const std::string& localNs, const std::string& path)
+{
+    auto localPath = localNs;
+    if (!localPath.empty()) {
+        localPath += '/';
+    }
+    localPath += path;
+    return '\"' + pathTo(ns, localPath) + '\"';
 }
 
 const std::string& primitiveTypeToStdInt(const std::string& type)
@@ -630,6 +648,43 @@ void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
            output::indent(indent + 1) << fieldBaseDefStr() <<
            output::indent(indent + 1) << "Base::value() = Base::ValueType::" << enumNullValueStr() << ";\n" <<
            output::indent(indent) << "}\n";
+}
+
+void writeExtraHeaders(std::ostream& out, const std::set<std::string>& allHeaders)
+{
+    auto writeExtraHeadersFunc =
+            [&out, &allHeaders](const std::string& prefix, const std::string& notPrefix = std::string())
+            {
+                bool wroteHeaders = false;
+                for (auto& h : allHeaders) {
+                    if ((!prefix.empty()) && !ba::starts_with(h, prefix)) {
+                        continue;
+                    }
+
+                    if ((!notPrefix.empty()) && (ba::starts_with(h, notPrefix))) {
+                        continue;
+                    }
+
+                    wroteHeaders = true;
+                    out << "#include " << h << '\n';
+                }
+
+                if (wroteHeaders) {
+                    out << '\n';
+                }
+
+            };
+
+    static const std::string SysHeaderPrefix("<");
+    writeExtraHeadersFunc(SysHeaderPrefix);
+
+    static const std::string CommsHeaderPrefix("\"comms/");
+    writeExtraHeadersFunc(CommsHeaderPrefix);
+
+    static const std::string InternalHeaderPrefix("\"");
+    writeExtraHeadersFunc(InternalHeaderPrefix, CommsHeaderPrefix);
+
+    writeExtraHeadersFunc(std::string(), InternalHeaderPrefix);
 }
 
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders)

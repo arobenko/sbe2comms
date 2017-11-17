@@ -52,18 +52,6 @@ bool MessageHeaderLayer::writeProtocolDef()
         return false;
     }
 
-    out << "/// \\file\n"
-           "/// \\brief Contains definition of MessageHeaderLayer transport layer.\n\n"
-           "#pragma once\n\n"
-           "#include \"comms/util/Tuple.h\"\n"
-           "#include \"comms/protocol/ProtocolLayerBase.h\"\n"
-           "#include \"comms/MsgFactory.h\"\n"
-           "#include \"" << common::fieldsDefFileName() << "\"\n"
-           "#include \"" << common::defaultOptionsFileName() << "\"\n\n";
-
-    auto& ns = m_db.getProtocolNamespace();
-    common::writeProtocolNamespaceBegin(ns, out);
-
     auto& messageHeaderType = m_db.getMessageHeaderType();
     if (messageHeaderType.empty()) {
         log::error() << "Unknown message header type" << std::endl;
@@ -75,6 +63,22 @@ bool MessageHeaderLayer::writeProtocolDef()
         assert(!"Something is wrong");
         return false;
     }
+
+    auto& ns = m_db.getProtocolNamespace();
+    std::set<std::string> headers;
+    headers.insert("\"comms/util/Tuple.h\"");
+    headers.insert("\"comms/protocol/ProtocolLayerBase.h\"");
+    headers.insert("\"comms/MsgFactory.h\"");
+    headers.insert('\"' + common::pathTo(ns, common::defaultOptionsFileName()) + '\"');
+    headers.insert('\"' + common::pathTo(ns, common::fieldNamespaceNameStr() + '/' + messageHeader->getName() + ".h") + '\"');
+
+
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of MessageHeaderLayer transport layer.\n\n"
+           "#pragma once\n\n";
+
+    common::writeExtraHeaders(out, headers);
+    common::writeProtocolNamespaceBegin(ns, out);
 
     auto opts = messageHeader->getExtraOptInfos();
     auto& name = common::messageHeaderLayerStr();

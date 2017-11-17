@@ -58,13 +58,8 @@ void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& name)
            output::indent(1) << ">;\n\n";
 }
 
-void writeBuiltInInt(std::ostream& out, const std::string& name)
+void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
 {
-    if (name == common::uint64Type()) {
-        writeBuiltInBigUnsignedInt(out, name);
-        return;
-    }
-
     auto minVal = common::intMinValue(name);
     auto maxVal = common::intMaxValue(name);
     assert(minVal.second);
@@ -83,7 +78,7 @@ void writeBuiltInInt(std::ostream& out, const std::string& name)
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << type << ",\n" <<
            output::indent(2) << "TOpt...,\n";
-    if ((0 < minVal.first) || 
+    if ((0 < minVal.first) ||
         (maxVal.first < 0)) {
         auto defValue = std::min(std::max(std::intmax_t(0), minVal.first), maxVal.first);
         out << output::indent(2) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">,\n";
@@ -92,22 +87,70 @@ void writeBuiltInInt(std::ostream& out, const std::string& name)
            output::indent(1) << ">;\n\n";
 }
 
+void writeBuiltInInt(std::ostream& out, const std::string& name)
+{
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << name << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include <cstdint>\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/IntValue.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n";
+
+
+    if (name == common::uint64Type()) {
+        writeBuiltInBigUnsignedInt(out, name);
+    }
+    else {
+        writeBuiltInRegularInt(out, name);
+    }
+
+    out << "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+}
+
 void writeBuiltInFloat(std::ostream& out, const std::string& name)
 {
-    out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
+    auto& refName = common::renameKeyword(name);
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << refName << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/FloatValue.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Definition of built-in \"" << name << "\" type\n"
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << common::renameKeyword(name) << " = \n" <<
+           "using " << refName << " = \n" <<
            output::indent(1) << "comms::field::FloatValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << name << ",\n" <<
            output::indent(2) << "TOpt...\n" <<
-           output::indent(1) << ">;\n\n";
+           output::indent(1) << ">;\n\n" <<
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
 }
 
-void writeBuiltIn(std::ostream& out, const std::string& name)
+bool writeBuiltIn(DB& db, const std::string& name)
 {
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + name + ".h");
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
     static const std::string FloatTypes[] = {
         "float",
         "double"
@@ -116,14 +159,38 @@ void writeBuiltIn(std::ostream& out, const std::string& name)
     auto iter = std::find(std::begin(FloatTypes), std::end(FloatTypes), name);
     if (iter != std::end(FloatTypes)) {
         writeBuiltInFloat(out, name);
-        return;
+        return out.good();
     }
     writeBuiltInInt(out, name);
+    return out.good();
 }
 
-void writeGroupList(std::ostream& out)
+bool writeGroupList(DB& db)
 {
-    out << "/// \\brief Generic list type to be used to defaine a \"group\" list.\n"
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + common::groupListStr() + ".h");
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::groupListStr() << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include <cstdint>\n\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/ArrayList.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Generic list type to be used to defaine a \"group\" list.\n"
            "/// \\tparam TFieldBase Common base class of all the fields.\n"
            "/// \\tparam TElement Element of the list, expected to be a variant of \\b comms::field::Bundle.\n"
            "/// \\tparam TDimensionType Dimention type field with \"blockLength\" and \"numInGroup\" members.\n"
@@ -136,7 +203,7 @@ void writeGroupList(std::ostream& out)
            output::indent(1) << "std::size_t TRootCount,\n" <<
            output::indent(1) << "typename... TOpt\n" <<
            ">\n"
-           "struct groupList : public\n" <<
+           "struct " << common::groupListStr() << " : public\n" <<
            output::indent(1) << "comms::field::ArrayList<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << "TElement,\n" <<
@@ -265,17 +332,43 @@ void writeGroupList(std::ostream& out)
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "static_assert(TElement::template minLengthUntil<TRootCount>() == TElement::template maxLengthUntil<TRootCount>(),\n" <<
            output::indent(2) << "\"Root block must have fixed length\");\n" <<
-           "};\n\n";
+           "};\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    return out.good();
 }
 
-void writeOpenFrameHeader(DB& db, std::ostream& out)
+bool writeOpenFrameHeader(DB& db)
 {
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + common::openFramingHeaderStr() + ".h");
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
     static const std::string BigEndianStr("comms::Field<comms::option::BigEndian>");
     std::string sync("0x5be0");
     if (ba::ends_with(db.getEndian(), "LittleEndian")) {
         sync = "0xeb50";
     }
-    out << "/// \\brief Simple Open Framing Header definition.\n"
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::openFramingHeaderStr() << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include <cstdint>\n\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/Bundle.h\"\n"
+           "#include \"comms/field/IntValue.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Simple Open Framing Header definition.\n"
            "struct " << common::openFramingHeaderStr() << " : public\n" <<
            output::indent(1) << "comms::field::Bundle<\n" <<
            output::indent(2) << BigEndianStr << ",\n" <<
@@ -303,12 +396,37 @@ void writeOpenFrameHeader(DB& db, std::ostream& out)
            output::indent(2) << "messageLength,\n" <<
            output::indent(2) << "encodingType\n" <<
            output::indent(1) << ");\n"
-           "};\n\n";
+           "};\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    return out.good();
 }
 
-void writePad(std::ostream& out)
+bool writePad(DB& db)
 {
-    out << "/// \\brief Padding type definition.\n"
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + common::padStr() + ".h");
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::padStr() << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include <cstdint>\n\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/ArrayList.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Padding type definition.\n"
            "/// \\tparam TFieldBase Base class of all the fields.\n"
            "/// \\tparam TLen Length of the padding.\n"
            "/// \\tparam TOpt Extra options...\n"
@@ -323,57 +441,37 @@ void writePad(std::ostream& out)
            output::indent(2) << "std::uint8_t,\n" <<
            output::indent(2) << "TOpt...,\n" <<
            output::indent(2) << "comms::option::SequenceFixedSize<TLen>\n" <<
-           output::indent(1) << ">;\n\n";
+           output::indent(1) << ">;\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    return out.good();
 }
 
 
 } // namespace
 
-bool BuiltIn::write(DB& db)
+BuiltIn::BuiltIn(DB& db)
+  : m_db(db)
 {
-    auto builtIns = db.getAllUsedBuiltInTypes();
-    bool hasGroupList = db.isGroupListRecorded();
-    bool hasPadding = db.isPaddingRecorded();
+}
 
-    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace())) {
-        return false;
-    }
-
-    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinsDefFileName());
-    auto filePath = bf::path(db.getRootPath()) / relPath;
-    log::info() << "Generating " << relPath << std::endl;
-    std::ofstream out(filePath.string());
-    if (!out) {
-        log::error() << "Failed to create " << filePath.string() << std::endl;
-        return false;
-    }
-
-    out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly defined types\n"
-           "\n\n"
-           "#pragma once\n\n"
-           "#include <cstdint>\n"
-           "#include \"comms/Field.h\"\n"
-           "#include \"comms/fields.h\"\n"
-           "#include \"comms/options.h\"\n"
-           "namespace sbe2comms\n"
-           "{\n\n";
+bool BuiltIn::write()
+{
+    bool result = true;
+    auto builtIns = m_db.getAllUsedBuiltInTypes();
     for (auto& t : builtIns) {
-        writeBuiltIn(out, t);
+        result = writeBuiltIn(m_db, t) && result;
     }
 
-    if (hasPadding) {
-        writePad(out);
+    if (m_db.isPaddingRecorded()) {
+        result = writePad(m_db) && result;
     }
 
-    if (hasGroupList) {
-        writeGroupList(out);
+    if (m_db.isGroupListRecorded()) {
+        result = writeGroupList(m_db) && result;
     }
 
-    writeOpenFrameHeader(db, out);
-
-    out << "}\n\n";
-    return out.good();
+    result = writeOpenFrameHeader(m_db) && result;
+    return result;
 }
 
 } // namespace sbe2comms

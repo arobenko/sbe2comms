@@ -92,6 +92,7 @@ bool EnumType::parseImpl()
         return false;
     }
 
+    addExtraInclude("\"comms/field/EnumValue.h\"");
     auto ranges = getValidRanges();
     if (MaxRangesCount < ranges.size()) {
         addExtraInclude("<algorithm>");
@@ -279,7 +280,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         out << output::indent(indent + 1) << "/// \\brief Custom implementation of validity check.\n" <<
                output::indent(indent + 1) << "bool valid() const\n" <<
                output::indent(indent + 1) << "{\n" <<
-               output::indent(indent + 2) << "using Base = typename std::decay<decltype(toFieldBase(*this))>::type;\n" <<
+               output::indent(indent + 2) << common::fieldBaseDefStr() <<
                output::indent(indent + 2) << "static const " << enumName << " Values[] = {\n";
         std::intmax_t last = 0;
         bool firstValue = true;

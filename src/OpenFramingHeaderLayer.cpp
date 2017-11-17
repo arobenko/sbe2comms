@@ -58,7 +58,7 @@ bool OpenFramingHeaderLayer::writeProtocolDef()
            "#include <iterator>\n"
            "#include <type_traits>\n\n"
            "#include \"comms/protocol/ProtocolLayerBase.h\"\n"
-           "#include \"" << common::builtinsDefFileName() << "\"\n\n";
+           "#include \"" << common::builtinNamespaceNameStr() + '/' + common::openFramingHeaderStr() << ".h\"\n\n";
 
     auto& ns = m_db.getProtocolNamespace();
     common::writeProtocolNamespaceBegin(ns, out);
