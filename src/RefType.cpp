@@ -113,6 +113,34 @@ Type::ExtraOptInfosList RefType::getExtraOptInfosImpl() const
     return opts;
 }
 
+bool RefType::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+    auto nameStr = '\"' + getName() + '\"';
+    if (scope.empty()) {
+        nameStr = common::fieldNameParamNameStr();
+    }
+
+    assert(m_type != nullptr);
+    auto refPropsStr = "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           "<>;\n" <<
+           output::indent(indent) << fieldType << ' ' << props << "(" << refPropsStr << ");\n\n";
+
+    if (scope.empty()) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+
+    return true;
+}
+
+
 Type* RefType::getReferenceType()
 {
     auto& p = getProps();

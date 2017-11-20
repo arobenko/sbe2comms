@@ -31,6 +31,7 @@ set (
     "MsgId.cpp"
     "MsgInterface.cpp"
     "AllMessages.cpp"
+    "AllFields.cpp"
     "MessageHeaderLayer.cpp"
     "OpenFramingHeaderLayer.cpp"
     "TransportFrame.cpp"

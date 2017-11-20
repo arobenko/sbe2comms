@@ -136,6 +136,37 @@ bool SetType::hasFixedLengthImpl() const
     return getAdjustedLengthProp() != 0U;
 }
 
+bool SetType::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+    auto nameStr = common::fieldNameParamNameStr();
+    if (!scope.empty()) {
+        nameStr = '\"' + getName() + '\"';
+    }
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << nameStr << ")";
+    for (auto& b : m_bits) {
+        out << '\n' <<
+               output::indent(indent + 2) << ".add(" << b.first << ", \"" << b.second << "\")";
+    }
+    out << ";\n\n";
+
+    if (scope.empty()) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+
+    return true;
+}
+
 void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 {
     auto name = getName();

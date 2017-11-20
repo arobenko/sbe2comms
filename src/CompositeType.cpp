@@ -247,6 +247,69 @@ Type::ExtraOptInfosList CompositeType::getExtraOptInfosImpl() const
     return list;
 }
 
+bool CompositeType::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           "<>;\n";
+
+    auto subScope = scope + getName() + common::memembersSuffixStr() + "::";
+    auto nameStr = common::fieldNameParamNameStr();
+    if (!scope.empty()) {
+        nameStr = '\"' + getName() + '\"';
+    }
+
+    if (!isBundle()) {
+        assert(dataUseRecorded());
+        assert(DataEncIdx_numOfValues <= m_members.size());
+        auto& varDataMem = m_members[DataEncIdx_data];
+
+        if (!varDataMem->writePluginProperties(out, indent, subScope)) {
+            return false;
+        }
+
+        std::string memProps;
+        scopeToPropertyDefNames(subScope, varDataMem->getName(), nullptr, &memProps);
+
+        out << output::indent(indent) << "auto " << props << " =\n" <<
+               output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(" << memProps << ".asMap())\n" <<
+               output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
+
+        if (scope.empty()) {
+            out << output::indent(indent) << "return " << props << ".asMap();\n";
+        }
+
+        return true;
+    }
+
+
+    out << output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">().name(" << nameStr << ");\n\n";
+
+    for (auto& m : m_members) {
+        if (!m->writePluginProperties(out, indent, subScope)) {
+            return false;
+        }
+
+        std::string memProps;
+        scopeToPropertyDefNames(subScope, m->getName(), nullptr, &memProps);
+        out << output::indent(indent) << props << ".add(" << memProps << ".asMap());\n\n";
+    }
+
+    if (scope.empty()) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+
+    return true;
+}
+
 bool CompositeType::prepareMembers()
 {
     assert(m_members.empty());

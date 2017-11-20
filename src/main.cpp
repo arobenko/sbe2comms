@@ -26,6 +26,7 @@
 #include "MsgId.h"
 #include "MsgInterface.h"
 #include "AllMessages.h"
+#include "AllFields.h"
 #include "MessageHeaderLayer.h"
 #include "OpenFramingHeaderLayer.h"
 #include "TransportFrame.h"
@@ -61,10 +62,13 @@ bool writeTypes(DB& db)
 {
     FieldBase fieldBase(db);
     bool result = fieldBase.write();
-    for (auto* t : db.getTypesList()) {
-        result = t->writeProtocolDef() && result;
+    for (auto& t : db.getTypes()) {
+        assert(t.second);
+        result = t.second->writeProtocolDef() && result;
     }
 
+    AllFields allFields(db);
+    result = allFields.write() && result;
     return result;
 }
 

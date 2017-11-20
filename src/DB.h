@@ -36,7 +36,6 @@ class DB
 {
 public:
     using TypesMap = std::map<std::string, TypePtr>;
-    using TypesList = std::list<Type*>;
     using MessagePtr = std::unique_ptr<Message>;
     using MessagesMap = std::map<std::string, MessagePtr>;
     using MessagesIdMap = std::map<unsigned, MessagesMap::const_iterator>;
@@ -56,11 +55,6 @@ public:
     const TypesMap& getTypes() const
     {
         return m_types;
-    }
-
-    const TypesList& getTypesList() const
-    {
-        return m_typesList;
     }
 
     MessagesMap& getMessages()
@@ -138,7 +132,6 @@ private:
     std::unique_ptr<MessageSchema> m_messageSchema;
     XmlNodePtr m_msgIdEnum;
     TypesMap m_types;
-    TypesList m_typesList;
     GeneratedTypeMap m_builtInTypes;
     GeneratedTypeMap m_paddingTypes;
     MessagesMap m_messages;

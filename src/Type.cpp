@@ -21,6 +21,7 @@
 #include <fstream>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "DB.h"
 #include "common.h"
@@ -33,6 +34,7 @@
 #include "log.h"
 
 namespace bf = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -345,6 +347,33 @@ bool Type::canBeExtendedAsOptionalImpl() const
     return false;
 }
 
+bool Type::writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(m_db.getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">().name(";
+    if (scope.empty()) {
+        out  << common::fieldNameParamNameStr();
+    }
+    else {
+        out << '\"' << getName() << '\"';
+    }
+    out << ");\n\n";
+
+    if (scope.empty()) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+    return true;
+}
+
 void Type::writeBrief(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
@@ -439,5 +468,28 @@ std::intmax_t Type::builtInIntNullValue(const std::string& type)
     assert(iter != Map.end());
     return iter->second;
 }
+
+void Type::scopeToPropertyDefNames(const std::string& scope, std::string* fieldType, std::string* propsName)
+{
+    return scopeToPropertyDefNames(scope, getName(), fieldType, propsName);
+}
+
+void Type::scopeToPropertyDefNames(
+    const std::string& scope,
+    const std::string& name,
+    std::string* fieldType,
+    std::string* propsName)
+{
+    auto scopeNameStr = ba::replace_all_copy(scope, "::", "_");
+    if (fieldType != nullptr) {
+        *fieldType = "Field_" + scopeNameStr + name;
+    }
+
+    if (propsName != nullptr) {
+        *propsName = "props_" + scopeNameStr + name;
+    }
+
+}
+
 
 } // namespace sbe2comms

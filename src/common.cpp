@@ -61,6 +61,18 @@ const std::string& fieldDirName()
     return Name;
 }
 
+const std::string& fieldHeaderFileName()
+{
+    static const std::string Name("field.h");
+    return Name;
+}
+
+const std::string& fieldDefFileName()
+{
+    static const std::string Name("field.cpp");
+    return Name;
+}
+
 const std::string& includeDirName()
 {
     static const std::string Name("include");
@@ -321,6 +333,18 @@ const std::string& builtinNamespaceNameStr()
     return Str;
 }
 
+const std::string& pluginNamespaceNameStr()
+{
+    static const std::string Str("cc_plugin");
+    return Str;
+}
+
+const std::string& pluginNamespaceStr()
+{
+    static const std::string Str(pluginNamespaceNameStr() + "::");
+    return Str;
+}
+
 const std::string& memembersSuffixStr()
 {
     static const std::string Str("Members");
@@ -438,6 +462,12 @@ const std::string& openFramingHeaderFrameStr()
 const std::string& padStr()
 {
     static const std::string Str("pad");
+    return Str;
+}
+
+const std::string& fieldNameParamNameStr()
+{
+    static const std::string Str("fieldName");
     return Str;
 }
 
@@ -716,6 +746,27 @@ void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out)
     out << "} // namespace " << ns << "\n\n";
 }
 
+void writePluginNamespaceBegin(const std::string& ns, std::ostream& out)
+{
+    if (!ns.empty()) {
+        out << "namespace " << ns << "\n"
+               "{\n"
+               "\n";
+    }
+
+    out << "namespace " << common::pluginNamespaceNameStr() << "\n"
+           "{\n\n";
+}
+
+void writePluginNamespaceEnd(const std::string& ns, std::ostream& out)
+{
+    out << "} // namespace " << common::pluginNamespaceNameStr() << "\n\n";
+
+    if (!ns.empty()) {
+        out << "} // namespace " << ns << "\n\n";
+    }
+}
+
 std::string protocolDirRelPath(const std::string& ns, const std::string& extraDir)
 {
     bf::path path(includeDirName());
@@ -743,6 +794,28 @@ bool createProtocolDefDir(
     bf::create_directories(protocolDir, ec);
     if (ec) {
         log::error() << "Failed to create \"" << protocolRelDir.string() <<
+                "\" with error \"" << ec.message() << "\"!" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool createPluginDefDir(
+    const std::string& root,
+    const std::string& extraDir)
+{
+    bf::path rootPath(root);
+    bf::path dir(pluginNamespaceNameStr());
+    if (!extraDir.empty()) {
+        dir /= extraDir;
+    }
+
+    bf::path fullPath = rootPath / dir;
+
+    boost::system::error_code ec;
+    bf::create_directories(fullPath, ec);
+    if (ec) {
+        log::error() << "Failed to create \"" << dir.string() <<
                 "\" with error \"" << ec.message() << "\"!" << std::endl;
         return false;
     }

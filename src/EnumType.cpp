@@ -159,6 +159,37 @@ bool EnumType::canBeExtendedAsOptionalImpl() const
     return getAdjustedLengthProp() == 1U;
 }
 
+bool EnumType::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+    auto nameStr = common::fieldNameParamNameStr();
+    if (!scope.empty()) {
+        nameStr = '\"' + getName() + '\"';
+    }
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << nameStr << ")";
+    for (auto& v : m_values) {
+        out << '\n' <<
+               output::indent(indent + 2) << ".add(\"" << v.second << "\", " << v.first << ")";
+    }
+    out << ";\n\n";
+
+    if (scope.empty()) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+
+    return true;
+}
+
 void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
 {
     auto& underlying = getUnderlyingType();

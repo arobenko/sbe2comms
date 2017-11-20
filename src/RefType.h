@@ -37,6 +37,10 @@ protected:
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
     virtual ExtraOptInfosList getExtraOptInfosImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope) override;
 
 private:
     Type* getReferenceType();

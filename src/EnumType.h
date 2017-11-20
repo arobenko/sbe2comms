@@ -46,6 +46,10 @@ protected:
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
     virtual bool canBeExtendedAsOptionalImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope) override;
 
 private:
     using Values = std::map<std::intmax_t, std::string>;

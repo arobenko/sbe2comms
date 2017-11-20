@@ -344,7 +344,6 @@ bool DB::recordTypeRef(xmlNodePtr node)
     }
 
     if (doesElementExist(prop::sinceVersion(props))) {
-        m_typesList.push_back(ptr.get());
         m_types.insert(std::make_pair(name, std::move(ptr)));
     }
 

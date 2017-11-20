@@ -85,6 +85,10 @@ public:
 
     bool writeProtocolDef();
     bool write(std::ostream& out, unsigned indent = 0);
+    bool writePluginProperties(std::ostream& out, unsigned indent, const std::string& scope = std::string())
+    {
+        return writePluginPropertiesImpl(out, indent, scope);
+    }
 
     bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
     {
@@ -160,6 +164,10 @@ protected:
     virtual bool hasFixedLengthImpl() const = 0;
     virtual ExtraOptInfosList getExtraOptInfosImpl() const;
     virtual bool canBeExtendedAsOptionalImpl() const;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope);
 
     void writeBrief(std::ostream& out, unsigned indent);
     void writeHeader(std::ostream& out, unsigned indent, bool extraOpts = true);
@@ -171,8 +179,15 @@ protected:
     static std::size_t primitiveLength(const std::string& type);
     static std::pair<std::intmax_t, bool> stringToInt(const std::string& str);
     static std::intmax_t builtInIntNullValue(const std::string& type);
-
-
+    void scopeToPropertyDefNames(
+        const std::string& scope,
+        std::string* fieldType,
+        std::string* propsName);
+    static void scopeToPropertyDefNames(
+        const std::string& scope,
+        const std::string& name,
+        std::string* fieldType,
+        std::string* propsName);
 private:
     DB& m_db;
     xmlNodePtr m_node = nullptr;

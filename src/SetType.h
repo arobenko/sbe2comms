@@ -36,6 +36,10 @@ protected:
     virtual bool writeImpl(std::ostream& out, unsigned indent) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope) override;
 
 private:
     using BitsMap = std::map<unsigned, std::string>;

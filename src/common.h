@@ -32,6 +32,8 @@ const std::string& charType();
 const std::string& uint64Type();
 const std::string& messageDirName();
 const std::string& fieldDirName();
+const std::string& fieldHeaderFileName();
+const std::string& fieldDefFileName();
 const std::string& includeDirName();
 const std::string& defaultOptionsFileName();
 const std::string& msgIdFileName();
@@ -56,6 +58,8 @@ const std::string& messageNamespaceStr();
 const std::string& messageNamespaceNameStr();
 const std::string& builtinNamespaceStr();
 const std::string& builtinNamespaceNameStr();
+const std::string& pluginNamespaceNameStr();
+const std::string& pluginNamespaceStr();
 const std::string& memembersSuffixStr();
 const std::string& fieldsSuffixStr();
 const std::string& eqEmptyOptionStr();
@@ -76,6 +80,7 @@ const std::string& openFramingHeaderLayerFileName();
 const std::string& openFramingHeaderLayerStr();
 const std::string& openFramingHeaderFrameStr();
 const std::string& padStr();
+const std::string& fieldNameParamNameStr();
 std::string num(std::intmax_t val);
 std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
@@ -97,13 +102,19 @@ void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = f
 void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
+void writePluginNamespaceBegin(const std::string& ns, std::ostream& out);
+void writePluginNamespaceEnd(const std::string& ns, std::ostream& out);
 void writeExtraHeaders(std::ostream& out, const std::set<std::string>& allHeaders);
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders);
 
 std::string protocolDirRelPath(const std::string& ns, const std::string& extraDir = std::string());
+
 bool createProtocolDefDir(
     const std::string& root,
     const std::string& ns,
+    const std::string& extraDir = std::string());
+bool createPluginDefDir(
+    const std::string& root,
     const std::string& extraDir = std::string());
 
 std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value = std::string());
