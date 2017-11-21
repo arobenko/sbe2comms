@@ -72,6 +72,24 @@ void closeNamespaces(std::ostream& out, DB& db)
     common::writeProtocolNamespaceEnd(db.getProtocolNamespace(), out);
 }
 
+void openPluginNamespaces(std::ostream& out, DB& db)
+{
+    common::writePluginNamespaceBegin(db.getProtocolNamespace(), out);
+
+    out << "namespace " << common::messageDirName() << "\n"
+            "{\n"
+            "\n";
+}
+
+void closePluginNamespaces(std::ostream& out, DB& db)
+{
+    out << "} // namespace " << common::messageDirName() << "\n"
+            "\n";
+
+    common::writePluginNamespaceEnd(db.getProtocolNamespace(), out);
+}
+
+
 void openFieldsDef(std::ostream& out, const std::string& name)
 {
     out <<
@@ -114,25 +132,11 @@ bool Message::parse()
 
     return true;
 }
-
 bool Message::write()
 {
-
-    if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace(), common::messageDirName())) {
-        return false;
-    }
-
-    auto messageDirRelPath =
-            common::protocolDirRelPath(m_db.getProtocolNamespace(), common::messageDirName());
-
-    const std::string Ext(".h");
-    auto filename = getName() + Ext;
-    auto relPath = bf::path(messageDirRelPath) / filename;
-    auto filePath = bf::path(m_db.getRootPath()) / relPath;
-
-    log::info() << "Generating " << relPath.string() << std::endl;
-    return writeMessageDef(filePath.string());
+    return writeProtocolDef() && writePluginHeader() && writePluginSrc();
 }
+
 
 bool Message::writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
 {
@@ -608,5 +612,131 @@ void Message::writeExtraDefHeaders(std::ostream& out)
 
     common::writeExtraHeaders(out, extraHeaders);
 }
+
+bool Message::writeProtocolDef()
+{
+    if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace(), common::messageDirName())) {
+        return false;
+    }
+
+    auto messageDirRelPath =
+            common::protocolDirRelPath(m_db.getProtocolNamespace(), common::messageDirName());
+
+    const std::string Ext(".h");
+    auto filename = getName() + Ext;
+    auto relPath = bf::path(messageDirRelPath) / filename;
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+
+    log::info() << "Generating " << relPath.string() << std::endl;
+    return writeMessageDef(filePath.string());
+}
+
+bool Message::writePluginHeader()
+{
+    if (!common::createPluginDefDir(m_db.getRootPath(), common::messageDirName())) {
+        return false;
+    }
+
+    auto& ns = common::pluginNamespaceNameStr();
+    auto relPath = common::pathTo(ns, common::messageDirName() + '/' + getName() + ".h");
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "#pragma once\n\n"
+           "#include \"comms_champion/comms_champion.h\"\n"
+           "#include \"cc_plugin/" << common::msgInterfaceFileName() << "\"\n"
+           "#include " << common::localHeader(ns, common::messageNamespaceNameStr(), getName() + ".h") << "\n\n";
+
+    openPluginNamespaces(out, m_db);
+
+    auto& protNs = m_db.getProtocolNamespace();
+    auto protMsgScope = common::scopeFor(protNs, common::messageNamespaceStr() + getName());
+    auto pluginInterfaceScope = common::scopeFor(protNs, common::pluginNamespaceStr() + common::msgInterfaceStr());
+
+    out << "class " << getReferenceName() << " : public\n" <<
+           output::indent(1) << "comms_champion::ProtocolMessageBase<\n" <<
+           output::indent(2) << protMsgScope << '<' << pluginInterfaceScope << ">,\n" <<
+           output::indent(2) << getReferenceName() << ">\n" <<
+           "{\n"
+           "protected:\n" <<
+           output::indent(1) << "virtual const char* nameImpl() const override;\n" <<
+           output::indent(1) << "virtual const QVariantList& fieldsPropertiesImpl() const override;\n" <<
+           "};\n\n";
+    closePluginNamespaces(out, m_db);
+    return true;
+
+}
+
+bool Message::writePluginSrc()
+{
+    if (!common::createPluginDefDir(m_db.getRootPath(), common::messageDirName())) {
+        return false;
+    }
+
+    auto& ns = common::pluginNamespaceNameStr();
+    auto relPath = common::pathTo(ns, common::messageDirName() + '/' + getName() + ".cpp");
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "#include \"" << getName() << ".h\"\n\n"
+           "#include <cassert>\n"
+           "#include <QtCore/QVariantList>\n"
+           "#include \"cc_plugin/" << common::fieldHeaderFileName() << "\"\n\n";
+
+    openPluginNamespaces(out, m_db);
+
+    out << "namespace\n"
+           "{\n\n";
+    // TODO: generate functions for fields
+
+    static const std::string createFieldPropsFuncPrefix("createFieldProps_");
+    for (auto& f : m_fields) {
+        out << "QVariantMap " << createFieldPropsFuncPrefix << f->getName() << "()\n"
+               "{\n" <<
+               output::indent(1) << "// TODO\n" <<
+               "}\n\n";
+
+    }
+
+    static const std::string createPropertiesFuncName("createFieldsProperties");
+    out << "QVariantList " << createPropertiesFuncName << "()\n"
+           "{\n" <<
+           output::indent(1) << "QVariantList props;\n";
+    for (auto& f : m_fields) {
+        out << output::indent(1) << "props.append(" << createFieldPropsFuncPrefix << f->getName() << "());\n";
+    }
+
+    out << '\n' <<
+           output::indent(1) << "assert(props.size() == " << getReferenceName() << "::FieldIdx_numOfValues);\n" <<
+           output::indent(1) << "return props;\n"
+           "}\n\n"
+           "} // namespace\n\n"
+           "const char* " << getReferenceName() << "::nameImpl() const\n"
+           "{\n" <<
+           output::indent(1) << "static const char* Str = \"" << getName() << "\";\n" <<
+           output::indent(1) << "return Str;\n"
+           "}\n\n"
+           "const QVariantList& " << getReferenceName() << "::fieldsPropertiesImpl() const\n"
+           "{\n" <<
+           output::indent(1) << "static const auto Props = " << createPropertiesFuncName << "();\n" <<
+           output::indent(1) << "return Props;\n"
+           "}\n\n";
+
+    closePluginNamespaces(out, m_db);
+    return true;
+
+}
+
+
 
 } // namespace sbe2comms

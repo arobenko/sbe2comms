@@ -93,7 +93,13 @@ const std::string& msgIdFileName()
 
 const std::string& msgInterfaceFileName()
 {
-    static const std::string Name("Message.h");
+    static const std::string Name(msgInterfaceStr() + ".h");
+    return Name;
+}
+
+const std::string& msgInterfaceStr()
+{
+    static const std::string Name("Message");
     return Name;
 }
 

@@ -38,6 +38,7 @@ const std::string& includeDirName();
 const std::string& defaultOptionsFileName();
 const std::string& msgIdFileName();
 const std::string& msgInterfaceFileName();
+const std::string& msgInterfaceStr();
 const std::string& allMessagesFileName();
 const std::string& allMessagesStr();
 const std::string& defaultOptionsStr();

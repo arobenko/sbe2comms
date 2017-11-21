@@ -31,6 +31,7 @@ public:
 
 private:
     bool writeProtocolDef();
+    bool writePluginHeader();
 
     DB& m_db;
 };

@@ -59,6 +59,9 @@ private:
     void writeReadFunc(std::ostream& out);
     void writePrivateMembers(std::ostream& out);
     void writeExtraDefHeaders(std::ostream& out);
+    bool writeProtocolDef();
+    bool writePluginHeader();
+    bool writePluginSrc();
 
     DB& m_db;
     xmlNodePtr m_node = nullptr;
