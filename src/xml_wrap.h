@@ -67,7 +67,7 @@ std::list<xmlNodePtr> xmlChildren(xmlNodePtr node, const std::string& name = std
 XmlNodePtr xmlCreatePadding(unsigned idx, unsigned len);
 XmlNodePtr xmlCreateRawDataType(const std::string& name, unsigned len);
 XmlNodePtr xmlCreateBuiltInType(const std::string& name);
-XmlNodePtr xmlCreatePaddingField(unsigned idx, const std::string& typeName);
+XmlNodePtr xmlCreatePaddingField(unsigned idx, const std::string& typeName, unsigned sinceVersion);
 
 XmlNodePtr xmlEnumValidValue(const std::string& name, const std::string& encType, const XmlEnumValuesList& values);
 

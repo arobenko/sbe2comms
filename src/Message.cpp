@@ -183,9 +183,10 @@ bool Message::createFields()
     bool dataMembers = false;
     auto blockLength = prop::blockLength(m_props);
     auto scope = getName() + common::fieldsSuffixStr() + "::";
+    unsigned lastSinceVersion = 0U;
 
     auto addPaddingFunc =
-        [this, &padCount, &expOffset, &scope](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
+        [this, &padCount, &expOffset, &scope, &lastSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
         {
             ++padCount;
             auto* padType = m_db.getPaddingType(padLen);
@@ -194,7 +195,7 @@ bool Message::createFields()
                 return false;
             }
 
-            auto padNode = xmlCreatePaddingField(padCount, padType->getName());
+            auto padNode = xmlCreatePaddingField(padCount, padType->getName(), lastSinceVersion);
             assert(padNode);
             auto padField = Field::create(m_db, padNode.get(), scope);
             assert(padField);
@@ -250,6 +251,13 @@ bool Message::createFields()
             log::error() << "Field \"" << fieldPtr->getName() << "\" of \"" << getName() << "\" message cannot follow other group or data" << std::endl;
             return false;
         }
+
+        auto sinceVersion = fieldPtr->getSinceVersion();
+        if (sinceVersion < lastSinceVersion) {
+            log::error() << "Unexpected \"sinceVersion\" attribue value of \"" << fieldPtr->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
+            return false;
+        }
+        lastSinceVersion = sinceVersion;
 
         if (fieldPtr->getKind() == Field::Kind::Data) {
             dataMembers = true;

@@ -150,8 +150,9 @@ bool GroupField::prepareMembers()
     bool dataMembers = false;
     auto blockLength = getBlockLength();
     auto scope = getScope() + getName() + common::memembersSuffixStr() + "::";
+    auto lastSinceVersion = 0U;
     auto addPaddingFunc =
-        [this, &padCount, &expOffset, &scope](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
+        [this, &padCount, &expOffset, &scope, &lastSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
         {
             ++padCount;
             auto* padType = getDb().getPaddingType(padLen);
@@ -160,7 +161,7 @@ bool GroupField::prepareMembers()
                 return false;
             }
 
-            auto padNode = xmlCreatePaddingField(padCount, padType->getName());
+            auto padNode = xmlCreatePaddingField(padCount, padType->getName(), lastSinceVersion);
             assert(padNode);
             auto padField = Field::create(getDb(), padNode.get(), scope);
             assert(padField);
@@ -220,6 +221,14 @@ bool GroupField::prepareMembers()
         if (mem->getKind() == Kind::Data) {
             dataMembers = true;
         }
+
+        auto sinceVersion = mem->getSinceVersion();
+        auto expMinSinceVersion = std::min(getSinceVersion(), lastSinceVersion);
+        if (sinceVersion < expMinSinceVersion) {
+            log::error() << "Unexpected \"sinceVersion\" attribue value of \"" << mem->getName() << "\", expected to be greater or equal to " << expMinSinceVersion << std::endl;
+            return false;
+        }
+        lastSinceVersion = sinceVersion;
 
         do {
             if (!rootBlock) {

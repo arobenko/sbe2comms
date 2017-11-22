@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test21"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian"
+               version="3">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <type name="Int16_1" primitiveType="int16" minValue="-1000" maxValue="1000" />
+        <type name="Int16_2" primitiveType="int16" minValue="500" maxValue="1000" />
+    </types>
+    <message name="Msg1" id="5" description="TestMessage" blockLength="12">
+        <field name="field1" id="10" type="int16"/>
+        <field name="field2" id="11" type="Int16_1" sinceVersion="1" offset="4"/>
+        <field name="field3" id="12" type="Int16_2" sinceVersion="2" offset="8"/>
+    </message>
+</messageSchema>

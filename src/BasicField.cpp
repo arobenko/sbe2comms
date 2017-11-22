@@ -214,7 +214,6 @@ bool BasicField::writePluginPropertiesImpl(std::ostream& out,
 {
     assert(m_type != nullptr);
     if (m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName())) {
-        assert(!commsOptional);
         writeBuiltinPluginProperties(out, indent, scope, returnResult);
         return true;
     }

@@ -48,6 +48,10 @@ bool Field::parse()
         log::warning() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
     }
 
+    if (!getDefaultOptMode().empty()) {
+        recordExtraHeader("\"comms/field/Optional.h\"");
+    }
+
     return parseImpl();
 }
 
