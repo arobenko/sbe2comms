@@ -174,7 +174,11 @@ unsigned Field::getDeprecated() const
 unsigned Field::getSinceVersion() const
 {
     assert(!m_props.empty());
-    return prop::sinceVersion(m_props);
+    auto val = prop::sinceVersion(m_props);
+    if (val == m_containingGroupVersion) {
+        return 0U;
+    }
+    return val;
 }
 
 const std::string& Field::getType() const

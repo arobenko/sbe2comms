@@ -151,8 +151,9 @@ bool GroupField::prepareMembers()
     auto blockLength = getBlockLength();
     auto scope = getScope() + getName() + common::memembersSuffixStr() + "::";
     auto lastSinceVersion = 0U;
+    auto thisFieldSinceVersion = getSinceVersion();
     auto addPaddingFunc =
-        [this, &padCount, &expOffset, &scope, &lastSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
+        [this, &padCount, &expOffset, &scope, &lastSinceVersion, thisFieldSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
         {
             ++padCount;
             auto* padType = getDb().getPaddingType(padLen);
@@ -165,6 +166,7 @@ bool GroupField::prepareMembers()
             assert(padNode);
             auto padField = Field::create(getDb(), padNode.get(), scope);
             assert(padField);
+            padField->setContainingGroupVersion(thisFieldSinceVersion);
             assert(padField->getKind() == Field::Kind::Basic);
             auto* castedPadMem = static_cast<BasicField*>(padField.get());
             castedPadMem->setGeneratedPadding();
@@ -197,6 +199,8 @@ bool GroupField::prepareMembers()
             log::error() << "Failed to create members of \"" << getName() << "\" group." << std::endl;
             return false;
         }
+
+        mem->setContainingGroupVersion(thisFieldSinceVersion);
 
         std::string cName(reinterpret_cast<const char*>(c->name));
         if (!mem->parse()) {

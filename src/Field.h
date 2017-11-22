@@ -108,6 +108,11 @@ public:
         return m_node;
     }
 
+    void setContainingGroupVersion(unsigned version)
+    {
+        m_containingGroupVersion = version;
+    }
+
 protected:
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
@@ -156,6 +161,7 @@ private:
     std::string m_scope;
     XmlPropsMap m_props;
     ExtraHeaders m_extraHeaders;
+    unsigned m_containingGroupVersion = 0U;
 };
 
 using FieldPtr = Field::Ptr;
