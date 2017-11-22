@@ -128,6 +128,15 @@ bool Field::write(std::ostream& out, unsigned indent)
     return true;
 }
 
+bool Field::writePluginProperties(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult)
+{
+    return writePluginPropertiesImpl(out, indent, scope, returnResult, !getDefaultOptMode().empty());
+}
+
 bool Field::hasPresence() const
 {
     assert(!m_props.empty());
@@ -200,6 +209,23 @@ bool Field::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const st
     return true;
 }
 
+bool Field::writePluginPropertiesImpl(std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptional)
+{
+    // TODO: remove
+    static_cast<void>(out);
+    static_cast<void>(indent);
+    static_cast<void>(scope);
+    static_cast<void>(returnResult);
+    static_cast<void>(commsOptional);
+    out << output::indent(indent) << "// TODO\n";
+    return true;
+}
+
+
 void Field::writeHeader(std::ostream& out, unsigned indent, const std::string& suffix)
 {
     if (suffix.empty()) {
@@ -229,16 +255,6 @@ void Field::recordMultipleExtraHeaders(const ExtraHeaders& headers)
     }
 }
 
-const std::string& Field::getDefaultOptMode() const
-{
-    if (m_db.getMinRemoteVersion() < getSinceVersion()) {
-        static const std::string Mode("comms::field::OptionalMode::Exists");
-        return Mode;
-    }
-
-    return common::emptyString();
-}
-
 std::string Field::getFieldOptString() const
 {
     return common::optParamPrefixStr() + common::messageNamespaceStr() +
@@ -258,5 +274,22 @@ std::string Field::getTypeOptString(const Type& type) const
     return result;
 }
 
+void Field::scopeToPropertyDefNames(
+    const std::string& scope,
+    std::string* fieldType,
+    std::string* propsName)
+{
+    return common::scopeToPropertyDefNames(scope, getName(), fieldType, propsName);
+}
+
+const std::string& Field::getDefaultOptMode() const
+{
+    if (m_db.getMinRemoteVersion() < getSinceVersion()) {
+        static const std::string Mode("comms::field::OptionalMode::Exists");
+        return Mode;
+    }
+
+    return common::emptyString();
+}
 
 } // namespace sbe2comms

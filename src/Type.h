@@ -183,11 +183,6 @@ protected:
         const std::string& scope,
         std::string* fieldType,
         std::string* propsName);
-    static void scopeToPropertyDefNames(
-        const std::string& scope,
-        const std::string& name,
-        std::string* fieldType,
-        std::string* propsName);
 private:
     DB& m_db;
     xmlNodePtr m_node = nullptr;

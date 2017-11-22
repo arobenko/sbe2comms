@@ -927,6 +927,24 @@ std::uintmax_t defaultBigUnsignedNullValue()
     return std::numeric_limits<std::uint64_t>::max();
 }
 
+void scopeToPropertyDefNames(
+    const std::string& scope,
+    const std::string& name,
+    std::string* fieldType,
+    std::string* propsName)
+{
+    auto scopeNameStr = ba::replace_all_copy(scope, "::", "_");
+    ba::replace_all(scopeNameStr, "<>", "");
+    if (fieldType != nullptr) {
+        *fieldType = "Field_" + scopeNameStr + name;
+    }
+
+    if (propsName != nullptr) {
+        *propsName = "props_" + scopeNameStr + name;
+    }
+
+}
+
 } // namespace common
 
 } // namespace sbe2comms

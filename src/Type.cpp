@@ -471,25 +471,7 @@ std::intmax_t Type::builtInIntNullValue(const std::string& type)
 
 void Type::scopeToPropertyDefNames(const std::string& scope, std::string* fieldType, std::string* propsName)
 {
-    return scopeToPropertyDefNames(scope, getName(), fieldType, propsName);
+    return common::scopeToPropertyDefNames(scope, getName(), fieldType, propsName);
 }
-
-void Type::scopeToPropertyDefNames(
-    const std::string& scope,
-    const std::string& name,
-    std::string* fieldType,
-    std::string* propsName)
-{
-    auto scopeNameStr = ba::replace_all_copy(scope, "::", "_");
-    if (fieldType != nullptr) {
-        *fieldType = "Field_" + scopeNameStr + name;
-    }
-
-    if (propsName != nullptr) {
-        *propsName = "props_" + scopeNameStr + name;
-    }
-
-}
-
 
 } // namespace sbe2comms

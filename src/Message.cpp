@@ -697,14 +697,17 @@ bool Message::writePluginSrc()
 
     out << "namespace\n"
            "{\n\n";
-    // TODO: generate functions for fields
 
     static const std::string createFieldPropsFuncPrefix("createFieldProps_");
+    auto relScope = common::messageNamespaceStr() + getName() + common::memembersSuffixStr() + "<>::";
+    auto scope = common::scopeFor(m_db.getProtocolNamespace(), relScope);
     for (auto& f : m_fields) {
         out << "QVariantMap " << createFieldPropsFuncPrefix << f->getName() << "()\n"
-               "{\n" <<
-               output::indent(1) << "// TODO\n" <<
-               "}\n\n";
+               "{\n";
+        if (!f->writePluginProperties(out, 1, scope)) {
+            return false;
+        }
+        out << "}\n\n";
 
     }
 

@@ -206,6 +206,32 @@ bool BasicField::usesBuiltInTypeImpl() const
     return m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName());
 }
 
+bool BasicField::writePluginPropertiesImpl(std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptional)
+{
+    assert(m_type != nullptr);
+    if (m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName())) {
+        assert(!commsOptional);
+        writeBuiltinPluginProperties(out, indent, scope, returnResult);
+        return true;
+    }
+
+    if (isSimpleAlias()) {
+        writeSimpleAliasPluginProperties(out, indent, scope, returnResult, commsOptional);
+        return true;
+    }
+
+//    log::error() << "NYI: " << getName() << std::endl;
+//    assert(0);
+//    return false;
+
+    out << output::indent(indent) << "// TODO: " << getName() << "\n";
+    return true;
+}
+
 bool BasicField::checkRequired() const
 {
     assert(m_type != nullptr);
@@ -570,6 +596,45 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
            output::indent(indent) << "{\n";
     common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValueStr);
     out << output::indent(indent) << "};\n\n";
+}
+
+void BasicField::writeBuiltinPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+    out << output::indent(indent) << "using " << fieldType << " = " << scope + getName() << ";\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType <<
+           ">().name(" << '\"' << getName() << "\");\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+}
+
+void BasicField::writeSimpleAliasPluginProperties(std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptional)
+{
+    static_cast<void>(commsOptional);
+    std::string props;
+    scopeToPropertyDefNames(scope, nullptr, &props);
+
+    out << output::indent(indent) << "auto " << props << " =\n" <<
+           output::indent(indent + 1) << common::pluginNamespaceStr() <<
+           common::fieldNamespaceStr() << "createProps_" << m_type->getName() <<
+           "(\"" << getName() << "\");\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
 }
 
 

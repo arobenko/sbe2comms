@@ -122,6 +122,12 @@ std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::s
 std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value = std::string());
 std::pair<std::uintmax_t, bool> intBigUnsignedMaxValue(const std::string& value = std::string());
 std::uintmax_t defaultBigUnsignedNullValue();
+void scopeToPropertyDefNames(
+    const std::string& scope,
+    const std::string& name,
+    std::string* fieldType,
+    std::string* propsName);
+
 } // namespace common
 
 } // namespace sbe2comms

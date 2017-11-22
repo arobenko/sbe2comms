@@ -276,7 +276,7 @@ bool CompositeType::writePluginPropertiesImpl(
         }
 
         std::string memProps;
-        scopeToPropertyDefNames(subScope, varDataMem->getName(), nullptr, &memProps);
+        common::scopeToPropertyDefNames(subScope, varDataMem->getName(), nullptr, &memProps);
 
         out << output::indent(indent) << "auto " << props << " =\n" <<
                output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(" << memProps << ".asMap())\n" <<
@@ -299,7 +299,7 @@ bool CompositeType::writePluginPropertiesImpl(
         }
 
         std::string memProps;
-        scopeToPropertyDefNames(subScope, m->getName(), nullptr, &memProps);
+        common::scopeToPropertyDefNames(subScope, m->getName(), nullptr, &memProps);
         out << output::indent(indent) << props << ".add(" << memProps << ".asMap());\n\n";
     }
 

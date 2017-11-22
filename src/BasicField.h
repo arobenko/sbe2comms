@@ -41,6 +41,12 @@ protected:
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool usesBuiltInTypeImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptional) override;
 
 private:
     bool checkRequired() const;
@@ -58,6 +64,17 @@ private:
     void writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name);
+    void writeBuiltinPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult);
+    void writeSimpleAliasPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptional);
 
     const Type* m_type = nullptr;
     bool m_generatedPadding = false;

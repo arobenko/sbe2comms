@@ -66,6 +66,12 @@ public:
 
     bool write(std::ostream& out, unsigned indent = 0);
 
+    bool writePluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult = true);
+
     const XmlPropsMap& getProps() const
     {
         return m_props;
@@ -108,6 +114,12 @@ protected:
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool usesBuiltInTypeImpl() const = 0;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope);
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptional);
 
     void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);
     static void writeOptions(std::ostream& out, unsigned indent);
@@ -132,6 +144,10 @@ protected:
         return m_db;
     }
 
+    void scopeToPropertyDefNames(
+        const std::string& scope,
+        std::string* fieldType,
+        std::string* propsName);
 
 private:
     const std::string& getDefaultOptMode() const;
