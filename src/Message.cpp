@@ -538,6 +538,19 @@ void Message::writeReadFunc(std::ostream& out)
                    f->getSinceVersion() << ");\n";
         }
 
+        for (auto& f : m_fields) {
+            if (f->getKind() != Field::Kind::Group) {
+                continue;
+            }
+
+            out << output::indent(2) << "field_" << f->getName() << "()";
+            if (f->isCommsOptionalWrapped()) {
+                out << ".field()";
+            }
+
+            out << ".setVersion(Base::getVersion());\n";
+        }
+
         auto nonBasicFieldIter =
             std::find_if(
                 m_fields.begin(), m_fields.end(),

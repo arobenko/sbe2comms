@@ -91,6 +91,7 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
     }
 
     writeBundle(out, indent);
+    writeVersions(out, indent);
     writeHeader(out, indent, suffix);
 
     unsigned basicFieldCount =
@@ -104,7 +105,15 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
     assert(m_type != nullptr);
     auto extraOpts = m_type->getExtraOptInfos();
 
-    out << output::indent(indent) << "using " << getName() << " =\n" <<
+    std::string name;
+    if (suffix.empty()) {
+        name = common::renameKeyword(getName());
+    }
+    else {
+        name = getName() + suffix;
+    }
+
+    out << output::indent(indent) << "using " << name << " =\n" <<
            output::indent(indent + 1) << common::builtinNamespaceStr() << common::groupListStr() << "<\n" <<
            output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << ",\n" <<
@@ -123,6 +132,7 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
     }
     out << output::indent(indent + 2) << ">,\n" <<
            output::indent(indent + 2) << basicFieldCount << ",\n" <<
+           output::indent(indent + 2) << getName() << common::versionsSuffixStr() << ",\n" <<
            output::indent(indent + 2) << getFieldOptString() << '\n' <<
            output::indent(indent + 1) << ">;\n\n";
     return true;
@@ -354,6 +364,22 @@ void GroupField::writeBundle(std::ostream& out, unsigned indent)
 
     out << output::indent(indent + 1) << ");\n" <<
            output::indent(indent) << "};\n\n";
+}
+
+void GroupField::writeVersions(std::ostream& out, unsigned indent)
+{
+    out << output::indent(indent) << "/// \\brief Schema versions when every element of \\ref " << getName() << " list was introduced.\n" <<
+           output::indent(indent) << "using " << getName() << common::versionsSuffixStr() << " = \n" <<
+           output::indent(indent + 1) << "std::tuple<\n";
+    for (auto& m : m_members) {
+        out << output::indent(indent + 2) << "std::integral_constant<unsigned, " << m->getSinceVersion() << ">";
+        bool comma = (&m != &m_members.back());
+        if (comma) {
+            out << ',';
+        }
+        out << '\n';
+    }
+    out << output::indent(indent + 1) << ">;\n\n";
 }
 
 const std::string& GroupField::getDimensionType() const
