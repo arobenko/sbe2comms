@@ -46,6 +46,13 @@ Field::Kind GroupField::getKindImpl() const
     return Kind::Group;
 }
 
+unsigned GroupField::getSinceVersionImpl() const
+{
+    assert(!m_members.empty());
+    assert(m_members.front());
+    return m_members.front()->getSinceVersion();
+}
+
 bool GroupField::parseImpl()
 {
     if (!prepareMembers()) {
@@ -161,9 +168,9 @@ bool GroupField::prepareMembers()
     auto blockLength = getBlockLength();
     auto scope = getScope() + getName() + common::memembersSuffixStr() + "::";
     auto lastSinceVersion = 0U;
-    auto thisFieldSinceVersion = getSinceVersion();
+    unsigned thisFieldSinceVersion = 0U;
     auto addPaddingFunc =
-        [this, &padCount, &expOffset, &scope, &lastSinceVersion, thisFieldSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
+        [this, &padCount, &expOffset, &scope, &lastSinceVersion, &thisFieldSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
         {
             ++padCount;
             auto* padType = getDb().getPaddingType(padLen);
@@ -210,13 +217,16 @@ bool GroupField::prepareMembers()
             return false;
         }
 
-        mem->setContainingGroupVersion(thisFieldSinceVersion);
-
         std::string cName(reinterpret_cast<const char*>(c->name));
         if (!mem->parse()) {
             log::error() << "Failed to parse \"" << cName  << "\" member of \"" << getName() << "\" group." << std::endl;
             return false;
         }
+
+        if (m_members.empty()) {
+            thisFieldSinceVersion = mem->getSinceVersion();
+        }
+        mem->setContainingGroupVersion(thisFieldSinceVersion);
 
         if (!mem->doesExist()) {
             continue;
@@ -237,9 +247,8 @@ bool GroupField::prepareMembers()
         }
 
         auto sinceVersion = mem->getSinceVersion();
-        auto expMinSinceVersion = std::min(getSinceVersion(), lastSinceVersion);
-        if (sinceVersion < expMinSinceVersion) {
-            log::error() << "Unexpected \"sinceVersion\" attribue value of \"" << mem->getName() << "\", expected to be greater or equal to " << expMinSinceVersion << std::endl;
+        if (sinceVersion < lastSinceVersion) {
+            log::error() << "Unexpected \"sinceVersion\" attribue value of \"" << mem->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
             return false;
         }
         lastSinceVersion = sinceVersion;
@@ -291,8 +300,8 @@ bool GroupField::prepareMembers()
 
     if (rootBlock && (blockLength != 0) && (expOffset < blockLength)) {
         xmlNodePtr c = nullptr;
-        if (!m_fields.empty()) {
-            c = m_fields.back()->getNode();
+        if (!m_members.empty()) {
+            c = m_members.back()->getNode();
         }
         return addPaddingFunc(c, blockLength - expOffset);
     }

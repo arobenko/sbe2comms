@@ -381,9 +381,11 @@ bool writeGroupList(DB& db)
            output::indent(2) << "template <std::size_t TIdx, typename TField>\n" <<
            output::indent(2) << "void setVersionInternal(TField&, OtherFieldTag, NonOptionalFieldTag)\n" <<
            output::indent(2) << "{\n" <<
+           output::indent(3) << "using FirstElemVersionConstantType = typename std::tuple_element<0U, TVersions>::type;\n" <<
            output::indent(3) << "using VersionConstantType = typename std::tuple_element<TIdx, TVersions>::type;\n" <<
+           output::indent(3) << "static const unsigned FirstElemIntroducedVersion = FirstElemVersionConstantType::value;\n" <<
            output::indent(3) << "static const unsigned IntroducedVersion = VersionConstantType::value;\n" <<
-           output::indent(3) << "static_assert(0U == IntroducedVersion, \"Unexpected version.\");\n" <<
+           output::indent(3) << "static_assert(FirstElemIntroducedVersion == IntroducedVersion, \"Unexpected version.\");\n" <<
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "unsigned m_version = 0U;\n" <<
            output::indent(1) << "};\n\n" <<

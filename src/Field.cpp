@@ -42,17 +42,20 @@ bool Field::parse()
         return false;
     }
 
-    unsigned deprecated = prop::deprecated(m_props);
-    unsigned sinceVer = prop::sinceVersion(m_props);
-    if (deprecated <= sinceVer) {
-        log::warning() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
+    if (!parseImpl()) {
+        return false;
     }
 
     if (!getDefaultOptMode().empty()) {
         recordExtraHeader("\"comms/field/Optional.h\"");
     }
 
-    return parseImpl();
+    unsigned deprecated = prop::deprecated(m_props);
+    unsigned sinceVer = prop::sinceVersion(m_props);
+    if (deprecated <= sinceVer) {
+        log::warning() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
+    }
+    return true;
 }
 
 bool Field::doesExist() const
@@ -171,16 +174,6 @@ unsigned Field::getDeprecated() const
     return prop::deprecated(m_props);
 }
 
-unsigned Field::getSinceVersion() const
-{
-    assert(!m_props.empty());
-    auto val = prop::sinceVersion(m_props);
-    if (val == m_containingGroupVersion) {
-        return 0U;
-    }
-    return val;
-}
-
 const std::string& Field::getType() const
 {
     assert(!m_props.empty());
@@ -203,6 +196,12 @@ void Field::updateExtraHeaders(ExtraHeaders& headers)
 bool Field::isCommsOptionalWrapped() const
 {
     return !getDefaultOptMode().empty();
+}
+
+unsigned Field::getSinceVersionImpl() const
+{
+    assert(!m_props.empty());
+    return prop::sinceVersion(m_props);
 }
 
 bool Field::parseImpl()
@@ -292,7 +291,12 @@ void Field::scopeToPropertyDefNames(
 
 const std::string& Field::getDefaultOptMode() const
 {
-    if (m_db.getMinRemoteVersion() < getSinceVersion()) {
+    auto sinceVersion = getSinceVersion();
+    if (m_containingGroupVersion == sinceVersion) {
+        return common::emptyString();
+    }
+
+    if (m_db.getMinRemoteVersion() < sinceVersion) {
         static const std::string Mode("comms::field::OptionalMode::Exists");
         return Mode;
     }

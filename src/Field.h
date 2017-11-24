@@ -82,7 +82,10 @@ public:
     bool isOptional() const;
     bool isConstant() const;
     unsigned getDeprecated() const;
-    unsigned getSinceVersion() const;
+    unsigned getSinceVersion() const
+    {
+        return getSinceVersionImpl();
+    }
     const std::string& getType() const;
     unsigned getOffset() const;
     void updateExtraHeaders(ExtraHeaders& headers);
@@ -115,6 +118,7 @@ public:
 
 protected:
     virtual Kind getKindImpl() const = 0;
+    virtual unsigned getSinceVersionImpl() const;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool usesBuiltInTypeImpl() const = 0;
