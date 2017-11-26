@@ -254,7 +254,7 @@ bool Message::createFields()
 
         auto sinceVersion = fieldPtr->getSinceVersion();
         if (sinceVersion < lastSinceVersion) {
-            log::error() << "Unexpected \"sinceVersion\" attribue value of \"" << fieldPtr->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
+            log::error() << "Unexpected \"sinceVersion\" attribute value of \"" << fieldPtr->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
             return false;
         }
         lastSinceVersion = sinceVersion;

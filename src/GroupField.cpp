@@ -248,7 +248,7 @@ bool GroupField::prepareMembers()
 
         auto sinceVersion = mem->getSinceVersion();
         if (sinceVersion < lastSinceVersion) {
-            log::error() << "Unexpected \"sinceVersion\" attribue value of \"" << mem->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
+            log::error() << "Unexpected \"sinceVersion\" attribute value of \"" << mem->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
             return false;
         }
         lastSinceVersion = sinceVersion;
