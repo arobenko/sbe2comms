@@ -387,7 +387,8 @@ bool Message::writeMessageClass(std::ostream& out)
         out << output::indent(2) << "comms::option::ZeroFieldsImpl\n";
     }
     else {
-        out << output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>\n";
+        out << output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>,\n" <<
+               output::indent(2) << "comms::option::HasDoRefresh\n";
     }
     out <<
         output::indent(1) << ">\n"
@@ -396,6 +397,7 @@ bool Message::writeMessageClass(std::ostream& out)
     writeFieldsAccess(out);
     writeConstructors(out);
     writeReadFunc(out);
+    writeRefreshFunc(out);
     writePrivateMembers(out);
     out << "};\n\n";
 
@@ -529,27 +531,7 @@ void Message::writeReadFunc(std::ostream& out)
             break;
         }
 
-        for (auto& f : m_fields) {
-            if (!f->isCommsOptionalWrapped()) {
-                continue;
-            }
-
-            out << output::indent(2) << "updateOptionalFieldMode(field_" << f->getName() << "(), " <<
-                   f->getSinceVersion() << ");\n";
-        }
-
-        for (auto& f : m_fields) {
-            if (f->getKind() != Field::Kind::Group) {
-                continue;
-            }
-
-            out << output::indent(2) << "field_" << f->getName() << "()";
-            if (f->isCommsOptionalWrapped()) {
-                out << ".field()";
-            }
-
-            out << ".setVersion(Base::getVersion());\n";
-        }
+        out << output::indent(2) << "updateFieldsVersion();\n";
 
         auto nonBasicFieldIter =
             std::find_if(
@@ -564,7 +546,6 @@ void Message::writeReadFunc(std::ostream& out)
                    output::indent(2) << "return Base::doRead(iter, len - Base::getBlockLength());\n";
             break;
         }
-
 
         if (nonBasicFieldIter == m_fields.end()) {
             out << output::indent(2) << "auto iterTmp = iter;\n" <<
@@ -591,31 +572,62 @@ void Message::writeReadFunc(std::ostream& out)
     out << output::indent(1) << "}\n\n";
 }
 
-void Message::writePrivateMembers(std::ostream& out)
+void Message::writeRefreshFunc(std::ostream& out)
 {
-    bool needsFieldsModeUpdate =
-        std::any_of(
+    if (m_fields.empty()) {
+        return;
+    }
+
+    out << output::indent(1) << "/// \\brief Custom refresh functionality.\n" <<
+           output::indent(1) << "bool doRefresh()\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << common::messageBaseDefStr() <<
+           output::indent(2) << "bool updated = updateFieldsVersion();\n";
+
+    auto nonBasicFieldIter =
+        std::find_if(
             m_fields.begin(), m_fields.end(),
             [](FieldsList::const_reference f)
             {
-                return f->isCommsOptionalWrapped();
+                return (f->getKind() != Field::Kind::Basic);
             });
 
-    if (!needsFieldsModeUpdate) {
+    do {
+        if (nonBasicFieldIter == m_fields.begin()) {
+            out << output::indent(2) << "std::size_t currBlockLength = 0U;\n";
+            break;
+        }
+
+        if (nonBasicFieldIter == m_fields.end()) {
+            out << output::indent(2) << "std::size_t currBlockLength = Base::doLength();\n";
+            break;
+        }
+
+        auto& fieldName = (*nonBasicFieldIter)->getName();
+        out << output::indent(2) << "std::size_t currBlockLength = Base::template doLengthUntil<FieldIdx_" << fieldName << ">();\n";
+    } while (false);
+
+    out << output::indent(2) << "if (currBlockLength == Base::getBlockLength()) {\n" <<
+           output::indent(3) << "return updated;\n" <<
+           output::indent(2) << "}\n\n" <<
+           output::indent(2) << "Base::setBlockLength(currBlockLength);\n" <<
+           output::indent(2) << "return true;\n" <<
+           output::indent(1) << "}\n\n";
+}
+
+void Message::writePrivateMembers(std::ostream& out)
+{
+    if (m_fields.empty()) {
         return;
     }
 
     out << "private:\n" <<
-           output::indent(1) << "template <typename TField>\n" <<
-           output::indent(1) << "void updateOptionalFieldMode(TField& field, unsigned sinceVersion)\n" <<
+           output::indent(1) << "bool updateFieldsVersion()\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << common::messageBaseDefStr() <<
-           output::indent(2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
-           output::indent(2) << "if (Base::getVersion() < sinceVersion) {\n" <<
-           output::indent(3) << "mode = comms::field::OptionalMode::Missing;\n" <<
-           output::indent(2) << "}\n" <<
-           output::indent(2) << "field.setMode(mode);\n" <<
-           output::indent(1) << "}\n";
+           output::indent(2) << "return comms::util::tupleAccumulate(Base::fields(), false, " <<
+                                common::builtinNamespaceStr() << common::versionSetterStr() << "(Base::getVersion()));\n" <<
+           output::indent(1) << "}\n;";
 }
 
 void Message::writeExtraDefHeaders(std::ostream& out)
@@ -629,6 +641,11 @@ void Message::writeExtraDefHeaders(std::ostream& out)
 
     for (auto& f : m_fields) {
         f->updateExtraHeaders(extraHeaders);
+    }
+
+    if (!m_fields.empty()) {
+        extraHeaders.insert(common::localHeader(m_db.getProtocolNamespace(), common::builtinNamespaceNameStr(), common::versionSetterFileName()));
+        extraHeaders.insert("\"comms/util/Tuple.h\"");
     }
 
     common::writeExtraHeaders(out, extraHeaders);

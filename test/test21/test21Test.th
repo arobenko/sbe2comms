@@ -155,10 +155,11 @@ void Test21Suite::test4()
 
     auto msg = construct<TestMsg1>();
     msg.setVersion(1);
-    msg.setBlockLength(6);
-    msg.field_pad2_().setMissing();
-    msg.field_field3().setMissing();
-    msg.field_pad3_().setMissing();
+    msg.doRefresh();
+    TS_ASSERT_EQUALS(msg.getBlockLength(), 6U);
+    TS_ASSERT(msg.field_pad2_().isMissing());
+    TS_ASSERT(msg.field_field3().isMissing());
+    TS_ASSERT(msg.field_pad3_().isMissing());
     TS_ASSERT_EQUALS(msg.doLength(), 6U);
 
     TestFrame frame;

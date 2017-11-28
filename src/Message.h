@@ -57,6 +57,7 @@ private:
     bool writeMessageDef(const std::string& filename);
     void writeConstructors(std::ostream& out);
     void writeReadFunc(std::ostream& out);
+    void writeRefreshFunc(std::ostream& out);
     void writePrivateMembers(std::ostream& out);
     void writeExtraDefHeaders(std::ostream& out);
     bool writeProtocolDef();

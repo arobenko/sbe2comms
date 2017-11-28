@@ -221,14 +221,17 @@ void Test22Suite::test5()
 
     auto msg = construct<TestMsg1>();
     msg.setVersion(1);
-    msg.setBlockLength(12);
+    msg.doRefresh();
+    TS_ASSERT_EQUALS(msg.getBlockLength(), 12U);
+    TS_ASSERT(msg.field_field2().doesExist());
+    TS_ASSERT(msg.field_field3().doesExist());
+    TS_ASSERT(msg.field_field4().isMissing());
+    TS_ASSERT(msg.field_field5().isMissing());
     msg.field_field1().value() = 1234;
     msg.field_field2().field().value() = 1111;
     msg.field_field3().field().value().resize(1);
     msg.field_field3().field().value()[0].field_mem1().value() = 3333;
     msg.field_field3().field().value()[0].field_mem2().setMissing();
-    msg.field_field4().setMissing();
-    msg.field_field5().setMissing();
     TS_ASSERT_EQUALS(msg.doLength(), 20U);
 
     TestFrame frame;
