@@ -268,12 +268,6 @@ const std::string& elementSuffixStr()
     return Str;
 }
 
-const std::string& versionsSuffixStr()
-{
-    static const std::string Str("Versions");
-    return Str;
-}
-
 const std::string& extraOptionsTemplParamStr()
 {
     static const std::string Str("template <typename... TOpt>\n");

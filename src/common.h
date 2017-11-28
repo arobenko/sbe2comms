@@ -46,7 +46,6 @@ const std::string& emptyString();
 const std::string& renameKeyword(const std::string& value);
 const std::string& extraOptionsDocStr();
 const std::string& elementSuffixStr();
-const std::string& versionsSuffixStr();
 const std::string& extraOptionsTemplParamStr();
 const std::string& fieldBaseStr();
 const std::string& fieldBaseDefStr();

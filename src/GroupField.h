@@ -47,7 +47,6 @@ private:
     unsigned getBlockLength() const;
     bool writeMembers(std::ostream& out, unsigned indent);
     void writeBundle(std::ostream& out, unsigned indent);
-    void writeVersions(std::ostream& out, unsigned indent);
     const std::string& getDimensionType() const;
     bool writeMembersDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope);
 

@@ -49,13 +49,16 @@ void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& name)
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << common::renameKeyword(name) << " = \n" <<
+           "struct " << common::renameKeyword(name) << " : public\n" <<
            output::indent(1) << "comms::field::IntValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << type << ",\n" <<
            output::indent(2) << "TOpt...,\n" <<
            output::indent(2) << "comms::option::ValidBigUnsignedNumValueRange<0, " << common::num(maxVal.first) << ">\n" <<
-           output::indent(1) << ">;\n\n";
+           output::indent(1) << ">\n" <<
+           "{\n";
+    common::writeDefaultSetVersionFunc(out, 1);
+    out << "};\n\n";
 }
 
 void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
@@ -73,7 +76,7 @@ void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << common::renameKeyword(name) << " = \n" <<
+           "struct " << common::renameKeyword(name) << " : public\n" <<
            output::indent(1) << "comms::field::IntValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << type << ",\n" <<
@@ -84,7 +87,10 @@ void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
         out << output::indent(2) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">,\n";
     }
     out << output::indent(2) << "comms::option::ValidNumValueRange<" << common::num(minVal.first) << ", " << common::num(maxVal.first) << ">\n" <<
-           output::indent(1) << ">;\n\n";
+           output::indent(1) << ">\n" <<
+           "{\n";
+    common::writeDefaultSetVersionFunc(out, 1);
+    out << "};\n\n";
 }
 
 void writeBuiltInInt(std::ostream& out, const std::string& name)
@@ -127,12 +133,15 @@ void writeBuiltInFloat(std::ostream& out, const std::string& name)
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << refName << " = \n" <<
+           "struct " << refName << " : public\n" <<
            output::indent(1) << "comms::field::FloatValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << name << ",\n" <<
            output::indent(2) << "TOpt...\n" <<
-           output::indent(1) << ">;\n\n" <<
+           output::indent(1) << ">\n" <<
+           "{\n";
+    common::writeDefaultSetVersionFunc(out, 1);
+    out << "};\n\n"
            "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
 }
 
@@ -194,25 +203,17 @@ bool writeGroupList(DB& db)
            "#include \"VersionSetter.h\"\n\n"
            "namespace " << common::builtinNamespaceNameStr() << "\n"
            "{\n\n"
-           "// Forward declaration\n"
-           "template <typename T>\n"
-           "constexpr bool isGroupList();\n\n"
            "/// \\brief Generic list type to be used to defaine a \"group\" list.\n"
            "/// \\tparam TFieldBase Common base class of all the fields.\n"
            "/// \\tparam TElement Element of the list, expected to be a variant of \\b comms::field::Bundle.\n"
            "/// \\tparam TDimensionType Dimention type field with \"blockLength\" and \"numInGroup\" members.\n"
            "/// \\tparam TRootCount Number of root block fields in the element.\n"
-           "/// \\tparam TVersions Schema versions (\\b sinceVersion) for all the members of\n"
-           "///     the \\b TElement bundle when they where introduced. Expected to be\n"
-           "///     \\b std::tuple of \\b std::integral_constant. The size of the tuple is\n"
-           "///     expected to be the same as number elements storred in \\b TElement bundle.\n"
            "/// \\tparam TOpt Extra options for the list class.\n"
            "template <\n" <<
            output::indent(1) << "typename TFieldBase,\n" <<
            output::indent(1) << "typename TElement,\n" <<
            output::indent(1) << "typename TDimensionType,\n" <<
            output::indent(1) << "std::size_t TRootCount,\n" <<
-           output::indent(1) << "typename TVersions,\n" <<
            output::indent(1) << "typename... TOpt\n" <<
            ">\n"
            "struct " << common::groupListStr() << " : public\n" <<
@@ -254,7 +255,7 @@ bool writeGroupList(DB& db)
            output::indent(3) << common::fieldBaseDefStr() <<
            output::indent(3) << "Base::value().emplace_back();\n" <<
            output::indent(3) << "auto& lastElem = Base::value().back();\n" <<
-           output::indent(3) << "comms::util::tupleForEachWithTemplateParamIdx(lastElem.value(), VersionSetter(m_version));\n" <<
+           output::indent(3) << "comms::util::tupleAccumulate(lastElem.value(), false, VersionSetter(m_version));\n" <<
            output::indent(3) << "es = lastElem.template readUntil<TRootCount>(iterTmp, blockLength);\n" <<
            output::indent(3) << "if (es != comms::ErrorStatus::Success) {\n" <<
            output::indent(4) << "Base::value().pop_back();\n" <<
@@ -317,79 +318,20 @@ bool writeGroupList(DB& db)
            output::indent(1) << "{\n" <<
            output::indent(2) << "return TDimensionType::minLength();\n" <<
            output::indent(1) << "}\n\n" <<
-           output::indent(1) << "void setVersion(unsigned value)\n" <<
+           output::indent(1) << "bool setVersion(unsigned value)\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << "m_version = value;\n\n" <<
            output::indent(2) << common::fieldBaseDefStr() <<
            output::indent(2) << "auto& list = Base::value();\n" <<
+           output::indent(2) << "bool updated = false;\n" <<
            output::indent(2) << "for (auto& elem : list) {\n" <<
-           output::indent(3) << "comms::util::tupleForEachWithTemplateParamIdx(elem.value(), VersionSetter(m_version));\n" <<
+           output::indent(3) << "updated = comms::util::tupleAccumulate(elem.value(), updated, VersionSetter(m_version));\n" <<
            output::indent(2) << "}\n" <<
+           output::indent(2) << "return updated;\n" <<
            output::indent(1) << "}\n\n" <<
            "private:\n" <<
-           output::indent(1) << "struct NoFailOnInvalidTag{};\n" <<
-           output::indent(1) << "struct FailOnInvalidTag{};\n\n" <<
-           output::indent(1) << "struct VersionSetter\n" <<
-           output::indent(1) << "{\n" <<
-           output::indent(2) << "VersionSetter(unsigned version) : m_version(version) {}\n\n" <<
-           output::indent(2) << "template <std::size_t TIdx, typename TField>\n" <<
-           output::indent(2) <<"void operator()(TField& field)\n" <<
-           output::indent(2) << "{\n" <<
-           output::indent(3) << "using FieldType = typename std::decay<decltype(field)>::type;\n" <<
-           output::indent(3) << "using TypeTag =\n" <<
-           output::indent(4) << "typename std::conditional<\n" <<
-           output::indent(5) << "isGroupList<FieldType>(),\n" <<
-           output::indent(5) << "GroupListFieldTag,\n" <<
-           output::indent(5) << "OtherFieldTag\n" <<
-           output::indent(4) << ">::type;\n" <<
-           output::indent(3) << "using OptTag =\n" <<
-           output::indent(4) << "typename std::conditional<\n" <<
-           output::indent(5) << "comms::field::isOptional<FieldType>(),\n" <<
-           output::indent(5) << "OptionalFieldTag,\n" <<
-           output::indent(5) << "NonOptionalFieldTag\n" <<
-           output::indent(4) << ">::type;\n\n" <<
-           output::indent(3) << "setVersionInternal<TIdx>(field, TypeTag(), OptTag());\n" <<
-           output::indent(2) << "}\n"<<
-           output::indent(1) << "private:\n" <<
-           output::indent(2) << "struct GroupListFieldTag {};\n" <<
-           output::indent(2) << "struct OtherFieldTag {};\n" <<
-           output::indent(2) << "struct OptionalFieldTag {};\n" <<
-           output::indent(2) << "struct NonOptionalFieldTag {};\n\n" <<
-           output::indent(2) << "template <std::size_t TIdx, typename TField>\n" <<
-           output::indent(2) << "void setVersionInternal(TField& field, GroupListFieldTag, OptionalFieldTag)\n" <<
-           output::indent(2) << "{\n" <<
-           output::indent(3) << "field.field().setVersion(m_version);\n" <<
-           output::indent(3) << "setVersionInternal<TIdx>(field, OtherFieldTag(), OptionalFieldTag());\n" <<
-           output::indent(2) << "}\n\n" <<
-           output::indent(2) << "template <std::size_t TIdx, typename TField>\n" <<
-           output::indent(2) << "void setVersionInternal(TField& field, GroupListFieldTag, NonOptionalFieldTag)\n" <<
-           output::indent(2) << "{\n" <<
-           output::indent(3) << "field.setVersion(m_version);\n" <<
-           output::indent(3) << "setVersionInternal<TIdx>(field, OtherFieldTag(), NonOptionalFieldTag());\n" <<
-           output::indent(2) << "}\n\n" <<
-           output::indent(2) << "template <std::size_t TIdx, typename TField>\n" <<
-           output::indent(2) << "void setVersionInternal(TField& field, OtherFieldTag, OptionalFieldTag)\n" <<
-           output::indent(2) << "{\n" <<
-           output::indent(3) << "using VersionConstantType = typename std::tuple_element<TIdx, TVersions>::type;\n" <<
-           output::indent(3) << "static const unsigned IntroducedVersion = VersionConstantType::value;\n" <<
-           output::indent(3) << "static_assert(0U < IntroducedVersion, \"Unexpected version.\");\n" <<
-           output::indent(3) << "auto fieldMode = comms::field::OptionalMode::Exists;\n" <<
-           output::indent(3) << "if (m_version < IntroducedVersion) {\n" <<
-           output::indent(4) << "fieldMode = comms::field::OptionalMode::Missing;\n" <<
-           output::indent(3) << "}\n" <<
-           output::indent(3) << "field.setMode(fieldMode);\n" <<
-           output::indent(2) << "}\n\n" <<
-           output::indent(2) << "template <std::size_t TIdx, typename TField>\n" <<
-           output::indent(2) << "void setVersionInternal(TField&, OtherFieldTag, NonOptionalFieldTag)\n" <<
-           output::indent(2) << "{\n" <<
-           output::indent(3) << "using FirstElemVersionConstantType = typename std::tuple_element<0U, TVersions>::type;\n" <<
-           output::indent(3) << "using VersionConstantType = typename std::tuple_element<TIdx, TVersions>::type;\n" <<
-           output::indent(3) << "static const unsigned FirstElemIntroducedVersion = FirstElemVersionConstantType::value;\n" <<
-           output::indent(3) << "static const unsigned IntroducedVersion = VersionConstantType::value;\n" <<
-           output::indent(3) << "static_assert(FirstElemIntroducedVersion == IntroducedVersion, \"Unexpected version.\");\n" <<
-           output::indent(2) << "}\n\n" <<
-           output::indent(2) << "unsigned m_version = 0U;\n" <<
-           output::indent(1) << "};\n\n" <<
+           output::indent(1) << "struct NoFailOnInvalidTag {};\n" <<
+           output::indent(1) << "struct FailOnInvalidTag {};\n\n" <<
            output::indent(1) << "comms::ErrorStatus checkFailOnInvalid() const\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << common::fieldBaseDefStr() <<
@@ -413,37 +355,8 @@ bool writeGroupList(DB& db)
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "return comms::ErrorStatus::Success;\n" <<
            output::indent(1) << "}\n\n" <<
-           output::indent(1) << "static_assert(comms::util::isTuple<TVersions>(),\n" <<
-           output::indent(2) << "\"TVersions template parameter is expected to be std::tuple of std::integral_constant\");\n" <<
-           output::indent(1) << "static_assert(std::tuple_size<TVersions>::value == std::tuple_size<typename TElement::ValueType>::value,\n" <<
-           output::indent(2) << "\"Size of TVersions tuple must be equal to size of TElement::ValueType tuple.\");\n\n" <<
            output::indent(1) << "unsigned m_version = " << db.getSchemaVersion() << ";\n"
            "};\n\n"
-           "namespace details\n"
-           "{\n\n"
-           "template <typename T>\n"
-           "struct IsGroupList\n"
-           "{\n" <<
-           output::indent(1) << "static const bool Value = false;\n"
-           "};\n\n"
-           "template <\n" <<
-           output::indent(1) << "typename TFieldBase,\n" <<
-           output::indent(1) << "typename TElement,\n" <<
-           output::indent(1) << "typename TDimensionType,\n" <<
-           output::indent(1) << "std::size_t TRootCount,\n" <<
-           output::indent(1) << "typename TVersions,\n" <<
-           output::indent(1) << "typename... TOpt\n" <<
-           ">\n"
-           "struct IsGroupList<sbe2comms::groupList<TFieldBase, TElement, TDimensionType, TRootCount, TVersions, TOpt...> >\n"
-           "{\n" <<
-           output::indent(1) << "static const bool Value = true;\n"
-           "};\n\n"
-           "} // namespace details\n\n"
-           "template <typename T>\n"
-           "constexpr bool isGroupList()\n"
-           "{\n" <<
-           output::indent(1) << "return details::IsGroupList<T>::Value;\n" <<
-           "}\n\n"
            "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
     return out.good();
 }
@@ -546,13 +459,16 @@ bool writePad(DB& db)
            output::indent(1) << "std::size_t TLen,\n" <<
            output::indent(1) << "typename... TOpt\n" <<
            ">\n"
-           "using " << common::padStr() << " =\n" <<
+           "struct " << common::padStr() << " : public\n" <<
            output::indent(1) << "comms::field::ArrayList<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << "std::uint8_t,\n" <<
            output::indent(2) << "TOpt...,\n" <<
            output::indent(2) << "comms::option::SequenceFixedSize<TLen>\n" <<
-           output::indent(1) << ">;\n\n"
+           output::indent(1) << ">\n" <<
+           "{\n";
+    common::writeDefaultSetVersionFunc(out, 1);
+    out << "};\n\n"
            "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
     return out.good();
 }
