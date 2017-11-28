@@ -186,6 +186,7 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("import"),
         makePairFunc("inline"),
         makePairFunc("int"),
+        makePairFunc("length"),
         makePairFunc("long"),
         makePairFunc("module"),
         makePairFunc("mutable"),
@@ -477,6 +478,18 @@ const std::string& padStr()
     return Str;
 }
 
+const std::string& versionSetterStr()
+{
+    static const std::string Str("VersionSetter");
+    return Str;
+}
+
+const std::string& versionSetterFileName()
+{
+    static const std::string Str(versionSetterStr() + ".h");
+    return Str;
+}
+
 const std::string& fieldNameParamNameStr()
 {
     static const std::string Str("fieldName");
@@ -689,6 +702,17 @@ void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << fieldBaseDefStr() <<
            output::indent(indent + 1) << "Base::value() = Base::ValueType::" << enumNullValueStr() << ";\n" <<
+           output::indent(indent) << "}\n";
+}
+
+void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent)
+{
+    out << output::indent(indent) << "/// \\brief Update current message version.\n" <<
+           output::indent(indent) << "/// \\details Does nothing.\n" <<
+           output::indent(indent) << "/// \\return \\b false to indicate nothing has changed.\n" <<
+           output::indent(indent) << "static bool setVersion(unsigned)\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "return false;\n" <<
            output::indent(indent) << "}\n";
 }
 

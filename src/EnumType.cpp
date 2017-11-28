@@ -283,7 +283,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         };
 
     if (asType) {
-        out << output::indent(indent) << "using " << name << " = \n" <<
+        out << output::indent(indent) << "struct " << name << " : public\n" <<
                output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
                output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
                output::indent(indent + 2) << enumName << ",\n" <<
@@ -291,7 +291,10 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         writeDefaultValueFunc(indent + 2);
         writeRangesFunc(indent + 2);
         out << '\n' <<
-               output::indent(indent + 1) << ">;\n\n";
+               output::indent(indent + 1) << ">\n" <<
+               output::indent(indent) << "{\n";
+        common::writeDefaultSetVersionFunc(out, indent + 1);
+        out << output::indent(indent) << "};\n\n";
         return;
     }
 
@@ -337,6 +340,9 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         common::writeEnumNullCheckUpdateFuncs(out, indent + 1);
     }
 
+    out << '\n';
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+
     out << output::indent(indent) << "};\n\n";
 }
 
@@ -345,7 +351,7 @@ void EnumType::writeList(std::ostream& out, unsigned indent, unsigned count)
     writeHeader(out, indent, true);
     common::writeExtraOptionsTemplParam(out, indent);
 
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
@@ -355,7 +361,10 @@ void EnumType::writeList(std::ostream& out, unsigned indent, unsigned count)
                output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">";
     }
     out << '\n' <<
-           output::indent(indent + 1) << ">;\n\n";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "};\n\n";
 }
 
 const std::string& EnumType::getUnderlyingType() const

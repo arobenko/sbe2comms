@@ -206,6 +206,9 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     else {
         writeNonSeq(out, indent + 1);
     }
+
+    out << '\n';
+    common::writeDefaultSetVersionFunc(out, indent + 1);
     out << "};\n\n";
 }
 
@@ -214,7 +217,7 @@ void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
     writeHeader(out, indent, true);
     common::writeExtraOptionsTemplParam(out, indent);
 
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
@@ -224,7 +227,10 @@ void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
                output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">";
     }
     out << '\n' <<
-           output::indent(indent + 1) << ">;\n\n";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << "};\n\n";
 }
 
 bool SetType::readChoices()

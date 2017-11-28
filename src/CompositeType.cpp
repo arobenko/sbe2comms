@@ -508,8 +508,8 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
 
     auto allExtraOpts = getAllExtraOpts();
     assert(allExtraOpts.size() == DataEncIdx_numOfValues);
-    auto& lengthExtraOpt = allExtraOpts[DataEncIdx_length].front().second;
-    auto& dataExtraOpt = allExtraOpts[DataEncIdx_data].front().second;
+    auto& lengthExtraOpt = allExtraOpts[DataEncIdx_length].front().first;
+    auto& dataExtraOpt = allExtraOpts[DataEncIdx_data].front().first;
     writeHeader(out, indent, false);
     writeExtraOptsDoc(out, indent, allExtraOpts);
     common::writeExtraOptionsDoc(out, indent);

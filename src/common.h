@@ -82,6 +82,8 @@ const std::string& openFramingHeaderLayerFileName();
 const std::string& openFramingHeaderLayerStr();
 const std::string& openFramingHeaderFrameStr();
 const std::string& padStr();
+const std::string& versionSetterStr();
+const std::string& versionSetterFileName();
 const std::string& fieldNameParamNameStr();
 std::string num(std::intmax_t val);
 std::string num(std::uintmax_t val);
@@ -102,6 +104,7 @@ void writeFpOptConstructor(
     const std::string& customDefault = std::string());
 void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
 void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
+void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent);
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
 void writePluginNamespaceBegin(const std::string& ns, std::ostream& out);

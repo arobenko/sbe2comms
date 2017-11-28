@@ -191,6 +191,7 @@ bool writeGroupList(DB& db)
            "#include \"comms/field/Optional.h\"\n"
            "#include \"comms/options.h\"\n"
            "#include \"comms/util/Tuple.h\"\n\n"
+           "#include \"VersionSetter.h\"\n\n"
            "namespace " << common::builtinNamespaceNameStr() << "\n"
            "{\n\n"
            "// Forward declaration\n"
@@ -556,6 +557,43 @@ bool writePad(DB& db)
     return out.good();
 }
 
+bool writeVersionSetter(DB& db)
+{
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + common::versionSetterFileName());
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of helper class \\ref " << common::builtinNamespaceStr() << common::versionSetterStr() << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Helper class to update version of the fields in tuple.\n"
+           "/// \\details Expected to be used with \\b comms::util::tupleAccumulate() function.\n"
+           "struct " << common::versionSetterStr() << '\n' <<
+           "{\n" <<
+           output::indent(1) << common::versionSetterStr() << "(unsigned version) : m_version(version) {}\n\n" <<
+           output::indent(1) << "template <typename TField>\n" <<
+           output::indent(1) << "bool operator()(bool soFar, TField& field)\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "return field.setVersion(m_version) || soFar;\n" <<
+           output::indent(1) << "}\n\n"
+           "private:\n" <<
+           output::indent(1) << "unsigned m_version = 0U;\n"
+           "};\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    return out.good();
+}
 
 } // namespace
 
@@ -566,22 +604,29 @@ BuiltIn::BuiltIn(DB& db)
 
 bool BuiltIn::write()
 {
-    bool result = true;
     auto builtIns = m_db.getAllUsedBuiltInTypes();
     for (auto& t : builtIns) {
-        result = writeBuiltIn(m_db, t) && result;
+        if (!writeBuiltIn(m_db, t)) {
+            return false;
+        }
     }
 
-    if (m_db.isPaddingRecorded()) {
-        result = writePad(m_db) && result;
+    if (m_db.isPaddingRecorded() && (!writePad(m_db))) {
+        return false;
     }
 
-    if (m_db.isGroupListRecorded()) {
-        result = writeGroupList(m_db) && result;
+    if (m_db.isGroupListRecorded() && (!writeGroupList(m_db))) {
+        return false;
     }
 
-    result = writeOpenFrameHeader(m_db) && result;
-    return result;
+    if (!writeOpenFrameHeader(m_db)) {
+        return false;
+    }
+
+    if (!writeVersionSetter(m_db)) {
+        return false;
+    }
+    return true;
 }
 
 } // namespace sbe2comms

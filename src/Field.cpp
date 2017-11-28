@@ -127,11 +127,29 @@ bool Field::write(std::ostream& out, unsigned indent)
     }
 
     writeHeader(out, indent, common::emptyString());
-    out << output::indent(indent) << "using " << getName() << " =\n" <<
+    out << output::indent(indent) << "struct " << getName() << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Optional<\n" <<
            output::indent(indent + 2) << getName() << OptFieldSuffix << ",\n" <<
            output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
-           output::indent(indent + 1) << ">;\n\n";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "/// \\brief Update current version.\n" <<
+           output::indent(indent + 1) << "/// \\return \\b true if field's content has been updated.\n" <<
+           output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << common::fieldBaseDefStr() <<
+           output::indent(indent + 2) << "bool updated = Base::field().setVersion(value);\n" <<
+           output::indent(indent + 2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
+           output::indent(indent + 2) << "if (value < " << getSinceVersion() << "U) {\n" <<
+           output::indent(indent + 3) << "mode = comms::field::OptionalMode::Missing;\n" <<
+           output::indent(indent + 2) << "}\n\n" <<
+           output::indent(indent + 2) << "if (Base::getMode() != mode) {\n" <<
+           output::indent(indent + 3) << "Base::setMode(mode);\n" <<
+           output::indent(indent + 3) << "updated = true;\n" <<
+           output::indent(indent + 2) << "}\n\n" <<
+           output::indent(indent + 2) << "return updated;\n" <<
+           output::indent(indent + 1) << "}\n" <<
+           output::indent(indent) << "};\n\n";
     return true;
 }
 

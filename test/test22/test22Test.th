@@ -229,7 +229,7 @@ void Test22Suite::test5()
     msg.field_field3().field().value()[0].field_mem2().setMissing();
     msg.field_field4().setMissing();
     msg.field_field5().setMissing();
-    TS_ASSERT_EQUALS(msg.doLength(), 24U);
+    TS_ASSERT_EQUALS(msg.doLength(), 20U);
 
     TestFrame frame;
     auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
