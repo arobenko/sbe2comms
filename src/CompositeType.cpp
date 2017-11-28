@@ -165,7 +165,12 @@ bool CompositeType::parseImpl()
     for (auto& i : inc) {
         addExtraInclude(i);
     }
-    addExtraInclude("\"comms/field/Bundle.h\"");
+
+    if (isBundle()) {
+        addExtraInclude("\"comms/util/Tuple.h\"");
+        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::builtinNamespaceNameStr(), common::versionSetterFileName()));
+        addExtraInclude("\"comms/field/Bundle.h\"");
+    }
 
     return true;
 }
@@ -481,7 +486,16 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
         }
         out << '\n';
     }
-    out << output::indent(indent + 1) << ");\n";
+    out << output::indent(indent + 1) << ");\n\n" <<
+           output::indent(indent + 1) << "/// \\brief Update current message version.\n" <<
+           output::indent(indent + 1) << "/// \\details Calls setVersion() of every member.\n" <<
+           output::indent(indent + 1) << "/// \\return \\b true if any of the fields returns \\b true.\n" <<
+           output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << common::fieldBaseDefStr() <<
+           output::indent(indent + 2) << "return comms::util::tupleAccumulate(Base::value(), false, " << common::builtinNamespaceStr() << common::versionSetterStr() << "(value));\n" <<
+           output::indent(indent + 1) << "}\n";
+
     if (isBundleOptional()) {
         out << "\n" <<
                output::indent(indent + 1) << "/// \\brief Check the value of the first member is equivalent to \\b nullValue.\n" <<
@@ -495,7 +509,9 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
                output::indent(indent + 2) << "field_" << m_members[0]->getName() << "().setNull();\n" <<
                output::indent(indent + 1) << "}\n";
     }
-    out << output::indent(indent) << "};\n\n";
+
+    out << output::indent(indent) << "};\n";
+
     return true;
 }
 
