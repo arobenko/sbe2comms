@@ -119,6 +119,7 @@ public:
 protected:
     virtual Kind getKindImpl() const = 0;
     virtual unsigned getSinceVersionImpl() const;
+    virtual unsigned getReferencedTypeSinceVersionImpl() const;
     virtual bool parseImpl();
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool usesBuiltInTypeImpl() const = 0;

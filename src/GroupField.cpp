@@ -167,6 +167,8 @@ bool GroupField::prepareMembers()
     auto scope = getScope() + getName() + common::memembersSuffixStr() + "::";
     auto lastSinceVersion = 0U;
     unsigned thisFieldSinceVersion = 0U;
+    std::set<std::string> memNames;
+
     auto addPaddingFunc =
         [this, &padCount, &expOffset, &scope, &lastSinceVersion, &thisFieldSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
         {
@@ -225,6 +227,12 @@ bool GroupField::prepareMembers()
             thisFieldSinceVersion = mem->getSinceVersion();
         }
         mem->setContainingGroupVersion(thisFieldSinceVersion);
+
+        if (memNames.find(mem->getName()) != memNames.end()) {
+            log::error() << "Multiple member fields with the same name \"" << mem->getName() << "\" inside group \"" << getName() << "\"" << std::endl;
+            return false;
+        }
+
 
         if (!mem->doesExist()) {
             continue;
@@ -288,6 +296,7 @@ bool GroupField::prepareMembers()
             assert(mem->getKind() == Kind::Basic);
             expOffset += static_cast<const BasicField*>(mem.get())->getSerializationLength();
         }
+        memNames.insert(mem->getName());
         m_members.push_back(std::move(mem));
     }
 

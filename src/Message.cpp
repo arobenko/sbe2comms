@@ -184,6 +184,7 @@ bool Message::createFields()
     auto blockLength = prop::blockLength(m_props);
     auto scope = getName() + common::fieldsSuffixStr() + "::";
     unsigned lastSinceVersion = 0U;
+    std::set<std::string> fieldNames;
 
     auto addPaddingFunc =
         [this, &padCount, &expOffset, &scope, &lastSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
@@ -235,6 +236,11 @@ bool Message::createFields()
         std::string cName(reinterpret_cast<const char*>(c->name));
         if (!fieldPtr->parse()) {
             log::error() << "Failed to parse \"" << cName  << "\" field of \"" << getName() << "\" message." << std::endl;
+            return false;
+        }
+
+        if (fieldNames.find(fieldPtr->getName()) != fieldNames.end()) {
+            log::error() << "Multiple fields with the same name \"" << fieldPtr->getName() << "\"" << std::endl;
             return false;
         }
 
@@ -302,6 +308,7 @@ bool Message::createFields()
             expOffset += static_cast<const BasicField*>(fieldPtr.get())->getSerializationLength();
         }
 
+        fieldNames.insert(fieldPtr->getName());
         m_fields.push_back(std::move(fieldPtr));
     }
 

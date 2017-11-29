@@ -69,6 +69,12 @@ Field::Kind BasicField::getKindImpl() const
     return Kind::Basic;
 }
 
+unsigned BasicField::getReferencedTypeSinceVersionImpl() const
+{
+    assert(m_type != nullptr);
+    return m_type->getSinceVersion();
+}
+
 bool BasicField::parseImpl()
 {
     auto getTypeHeader =

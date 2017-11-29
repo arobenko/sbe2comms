@@ -105,20 +105,19 @@ bool EnumType::parseImpl()
     return true;
 }
 
-bool EnumType::writeImpl(std::ostream& out, unsigned indent)
+bool EnumType::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
 {
     auto count = getAdjustedLengthProp();
     if (count != 1U) {
-        writeSingle(out, indent, true);
+        writeSingle(out, indent, suffix, true);
     }
 
     if (count == 1U) {
-        writeSingle(out, indent);
+        writeSingle(out, indent, suffix);
         return true;
     }
 
-    writeList(out, indent, count);
-
+    writeList(out, indent, count, suffix);
     return true;
 }
 
@@ -190,7 +189,11 @@ bool EnumType::writePluginPropertiesImpl(
     return true;
 }
 
-void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
+void EnumType::writeSingle(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& suffix,
+    bool isElement)
 {
     auto& underlying = getUnderlyingType();
     assert(!underlying.empty());
@@ -223,15 +226,15 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         out << output::indent(indent) << "};\n\n";
     } while (false);
 
-    std::string name;
+    auto* suffixPtr = &suffix;
     if (isElement) {
         writeElementHeader(out, indent);
-        name = getName() + common::elementSuffixStr();
+        suffixPtr = &common::elementSuffixStr();
     }
     else {
-        writeHeader(out, indent, true);
-        name = getReferenceName();
+        writeHeader(out, indent, suffix, true);
     }
+    auto name = common::refName(getName(), *suffixPtr);
     common::writeExtraOptionsTemplParam(out, indent);
 
     auto ranges = getValidRanges();
@@ -346,15 +349,19 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     out << output::indent(indent) << "};\n\n";
 }
 
-void EnumType::writeList(std::ostream& out, unsigned indent, unsigned count)
+void EnumType::writeList(
+    std::ostream& out,
+    unsigned indent,
+    unsigned count,
+    const std::string& suffix)
 {
-    writeHeader(out, indent, true);
+    writeHeader(out, indent, suffix, true);
     common::writeExtraOptionsTemplParam(out, indent);
-
-    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+    auto name = common::refName(getName(), suffix);
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
+           output::indent(indent + 2) << common::refName(getName(), common::elementSuffixStr()) << "<>,\n" <<
            output::indent(indent + 2) << "TOpt...";
     if (count != 0U) {
         out << ",\n" <<

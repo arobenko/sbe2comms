@@ -64,16 +64,17 @@ bool RefType::parseImpl()
     return true;
 }
 
-bool RefType::writeImpl(std::ostream& out, unsigned indent)
+bool RefType::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
 {
+    static_cast<void>(suffix);
     assert(m_type != nullptr);
 
     if (isBundle()) {
-        writeBundle(out, indent);
+        writeBundle(out, indent, suffix);
         return true;
     }
 
-    writeHeader(out, indent, true);
+    writeHeader(out, indent, suffix, true);
     common::writeExtraOptionsTemplParam(out, indent);
     out << output::indent(indent) << "using " << getReferenceName() << " = " <<
            common::fieldNamespaceStr() << m_type->getReferenceName() << "<TOpt...>;\n\n";
@@ -169,9 +170,9 @@ bool RefType::isBundle() const
     return compType->isBundle();
 }
 
-void RefType::writeBundle(std::ostream& out, unsigned indent)
+void RefType::writeBundle(std::ostream& out, unsigned indent, const std::string& suffix)
 {
-    writeHeader(out, indent, false);
+    writeHeader(out, indent, suffix, false);
     auto allOpts = getExtraOptInfos();
     for (auto& o : allOpts) {
         out << output::indent(indent) << "/// \\tparam " << OptPrefix <<

@@ -59,7 +59,6 @@ public:
 
     const std::string& getName() const;
     const std::string& getReferenceName() const;
-
     const std::string& getDescription() const;
     bool isRequired() const;
     bool isOptional() const;
@@ -73,7 +72,7 @@ public:
     const std::string& getSemanticType() const;
     const std::string& getCharacterEncoding() const;
     const std::string& getEncodingType() const;
-    std::pair<std::string, bool> getFailOnInvalid() const;
+    unsigned getSinceVersion() const;
     void updateExtraIncludes(ExtraIncludes& extraIncludes);
 
     static Ptr create(DB& db, xmlNodePtr node);
@@ -93,11 +92,6 @@ public:
     bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
     {
         return writeDefaultOptionsImpl(out, indent, scope);
-    }
-
-    bool isWritten() const
-    {
-        return m_written;
     }
 
     const XmlPropsMap& getProps() const
@@ -135,6 +129,11 @@ public:
         m_extraOptions.push_back(std::forward<T>(opt));
     }
 
+    void setContainingCompositeVersion(unsigned version)
+    {
+        m_containingCompositeVersion = version;
+    }
+
 protected:
     xmlNodePtr getNode() const
     {
@@ -158,7 +157,7 @@ protected:
 
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
-    virtual bool writeImpl(std::ostream& out, unsigned indent) = 0;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope);
     virtual std::size_t getSerializationLengthImpl() const = 0;
     virtual bool hasFixedLengthImpl() const = 0;
@@ -169,8 +168,12 @@ protected:
         unsigned indent,
         const std::string& scope);
 
-    void writeBrief(std::ostream& out, unsigned indent);
-    void writeHeader(std::ostream& out, unsigned indent, bool extraOpts = true);
+    void writeBrief(std::ostream& out, unsigned indent, const std::string& suffix);
+    void writeHeader(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& suffix,
+        bool extraOpts = true);
     void writeElementBrief(std::ostream& out, unsigned indent);
     void writeElementHeader(std::ostream& out, unsigned indent);
     void writeExtraOptions(std::ostream& out, unsigned indent);
@@ -184,13 +187,14 @@ protected:
         std::string* fieldType,
         std::string* propsName);
 private:
+    const std::string& getDefaultOptMode() const;
+
     DB& m_db;
     xmlNodePtr m_node = nullptr;
     XmlPropsMap m_props;
-    bool m_written = false;
-    bool m_writingInProgress = false;
     ExtraIncludes m_extraIncludes;
     std::vector<std::string> m_extraOptions;
+    unsigned m_containingCompositeVersion = 0U;
 };
 
 using TypePtr = Type::Ptr;

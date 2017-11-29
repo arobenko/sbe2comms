@@ -97,6 +97,21 @@ bool Type::parse()
         return false;
     }
 
+    unsigned sinceVer = getSinceVersion();
+    if (sinceVer < m_containingCompositeVersion) {
+        log::error() << "Invalid \"sinceVersion\" attribute of \"" << getName() << "\", expected to be greater or equal to the version of containing composite." << std::endl;
+        return false;
+    }
+
+    if (!getDefaultOptMode().empty()) {
+        m_extraIncludes.insert("\"comms/field/Optional.h\"");
+    }
+
+    unsigned deprecated = prop::deprecated(m_props);
+    if (deprecated <= sinceVer) {
+        log::warning() << "The type \"" << getName() << "\" has been deprecated before introduced." << std::endl;
+    }
+
     m_extraIncludes.insert('\"' + common::fieldBaseFileName() + '\"');
     return parseImpl();
 }
@@ -201,26 +216,10 @@ const std::string& Type::getEncodingType() const
     return prop::encodingType(m_props);
 }
 
-std::pair<std::string, bool> Type::getFailOnInvalid() const
+unsigned Type::getSinceVersion() const
 {
     assert(!m_props.empty());
-    auto& str = prop::ccFailInvalid(m_props);
-    if (str.empty()) {
-        return std::make_pair(str, false);
-    }
-
-    static const std::map<std::string, std::string> Map = {
-        std::make_pair("default", std::string()),
-        std::make_pair("data", "comms::ErrorStatus::InvalidMsgData"),
-        std::make_pair("protocol", "comms::ErrorStatus::ProtocolError")
-    };
-
-    auto iter = Map.find(str);
-    if (iter == Map.end()) {
-        return std::make_pair(common::emptyString(), false);
-    }
-
-    return std::make_pair(iter->second, true);
+    return prop::sinceVersion(m_props);
 }
 
 void Type::updateExtraIncludes(ExtraIncludes& extraIncludes)
@@ -308,19 +307,20 @@ bool Type::writeProtocolDef()
 bool Type::write(std::ostream& out, unsigned indent)
 {
     assert(doesExist());
-    if (m_written) {
-        return true;
+
+    auto& optMode = getDefaultOptMode();
+    if (optMode.empty()) {
+        return writeImpl(out, indent, common::emptyString());
     }
 
-    if (m_writingInProgress) {
-        log::error() << "Recursive types dependencies discovered for \"" << getName() << "\" type." << std::endl;
+    bool result = writeImpl(out, indent, common::optFieldSuffixStr());
+    if (!result) {
         return false;
     }
 
-    m_writingInProgress = true;
-    m_written = writeImpl(out, indent);
-    m_writingInProgress = false;
-    return m_written;
+    writeHeader(out, indent, common::emptyString());
+    common::writeOptFieldDefinition(out, indent, getName(), optMode, getSinceVersion(), true);
+    return true;
 }
 
 bool Type::parseImpl()
@@ -374,14 +374,23 @@ bool Type::writePluginPropertiesImpl(
     return true;
 }
 
-void Type::writeBrief(std::ostream& out, unsigned indent)
+void Type::writeBrief(std::ostream& out, unsigned indent, const std::string& suffix)
 {
-    out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
+    if (suffix.empty()) {
+        out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
+    }
+    else {
+        out << output::indent(indent) << "/// \\brief Definition of inner field of the optional \\ref " << getReferenceName() << " field.\n";
+    }
 }
 
-void Type::writeHeader(std::ostream& out, unsigned indent, bool extraOpts)
+void Type::writeHeader(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& suffix,
+    bool extraOpts)
 {
-    writeBrief(out, indent);
+    writeBrief(out, indent, suffix);
     common::writeDetails(out, indent, prop::description(m_props));
     if (extraOpts) {
         common::writeExtraOptionsDoc(out, indent);
@@ -472,6 +481,21 @@ std::intmax_t Type::builtInIntNullValue(const std::string& type)
 void Type::scopeToPropertyDefNames(const std::string& scope, std::string* fieldType, std::string* propsName)
 {
     return common::scopeToPropertyDefNames(scope, getName(), fieldType, propsName);
+}
+
+const std::string& Type::getDefaultOptMode() const
+{
+    auto sinceVersion = getSinceVersion();
+    if (m_containingCompositeVersion == sinceVersion) {
+        return common::emptyString();
+    }
+
+    if (m_db.getMinRemoteVersion() < sinceVersion) {
+        static const std::string Mode("comms::field::OptionalMode::Exists");
+        return Mode;
+    }
+
+    return common::emptyString();
 }
 
 } // namespace sbe2comms

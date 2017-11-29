@@ -83,22 +83,22 @@ bool SetType::parseImpl()
     return true;
 }
 
-bool SetType::writeImpl(std::ostream& out, unsigned indent)
+bool SetType::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
 {
     auto serLen = getSerializationLengthImpl();
     assert(0U < serLen);
 
     auto count = getAdjustedLengthProp();
     if (count != 1U) {
-        writeSingle(out, indent, true);
+        writeSingle(out, indent, suffix, true);
     }
 
     if (count == 1U) {
-        writeSingle(out, indent);
+        writeSingle(out, indent, suffix);
         return true;
     }
 
-    writeList(out, indent, count);
+    writeList(out, indent, suffix, count);
 
     return true;
 }
@@ -167,7 +167,11 @@ bool SetType::writePluginPropertiesImpl(
     return true;
 }
 
-void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
+void SetType::writeSingle(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& suffix,
+    bool isElement)
 {
     auto name = getName();
     if (isElement) {
@@ -175,7 +179,7 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         name += common::elementSuffixStr();
     }
     else {
-        writeHeader(out, indent, true);
+        writeHeader(out, indent, suffix, true);
     }
     common::writeExtraOptionsTemplParam(out, indent);
 
@@ -212,9 +216,13 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     out << "};\n\n";
 }
 
-void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
+void SetType::writeList(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& suffix,
+    unsigned count)
 {
-    writeHeader(out, indent, true);
+    writeHeader(out, indent, suffix, true);
     common::writeExtraOptionsTemplParam(out, indent);
 
     out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<

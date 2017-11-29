@@ -42,7 +42,7 @@ public:
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
     virtual bool canBeExtendedAsOptionalImpl() const override;
@@ -58,8 +58,16 @@ private:
     using RangeInfosList = std::list<RangeInfo>;
 
     void writeEnumVal(std::ostream& out, unsigned indent);
-    void writeSingle(std::ostream& out, unsigned indent, bool isElement = false);
-    void writeList(std::ostream& out, unsigned indent, unsigned count);
+    void writeSingle(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& suffix,
+        bool isElement = false);
+    void writeList(
+        std::ostream& out,
+        unsigned indent,
+        unsigned count,
+        const std::string& suffix);
     const std::string& getUnderlyingType() const;
     bool readValues();
     RangeInfosList getValidRanges() const;

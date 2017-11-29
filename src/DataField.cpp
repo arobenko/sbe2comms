@@ -37,6 +37,12 @@ Field::Kind DataField::getKindImpl() const
     return Kind::Data;
 }
 
+unsigned DataField::getReferencedTypeSinceVersionImpl() const
+{
+    assert(m_type != nullptr);
+    return m_type->getSinceVersion();
+}
+
 bool DataField::parseImpl()
 {
     auto& type = getType();

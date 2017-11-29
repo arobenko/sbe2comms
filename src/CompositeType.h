@@ -53,7 +53,7 @@ public:
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
@@ -68,8 +68,8 @@ private:
 
     bool prepareMembers();
     bool writeMembers(std::ostream& out, unsigned indent);
-    bool writeBundle(std::ostream& out, unsigned indent);
-    bool writeData(std::ostream& out, unsigned indent);
+    bool writeBundle(std::ostream& out, unsigned indent, const std::string& suffix);
+    bool writeData(std::ostream& out, unsigned indent, const std::string& suffix);
     bool checkDataValid();
     AllExtraOptInfos getAllExtraOpts() const;
     void writeExtraOptsDoc(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos);

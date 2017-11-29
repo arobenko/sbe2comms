@@ -175,8 +175,12 @@ bool CompositeType::parseImpl()
     return true;
 }
 
-bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
+bool CompositeType::writeImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& suffix)
 {
+    static_cast<void>(suffix);
     assert(!m_members.empty());
 
     if (!checkDataValid()) {
@@ -188,10 +192,10 @@ bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
     }
 
     if (dataUseRecorded()) {
-        return writeData(out, indent);
+        return writeData(out, indent, suffix);
     }
 
-    return writeBundle(out, indent);
+    return writeBundle(out, indent, suffix);
 }
 
 bool CompositeType::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
@@ -432,7 +436,10 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent)
     return result;
 }
 
-bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
+bool CompositeType::writeBundle(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& suffix)
 {
     auto extraOpts = getAllExtraOpts();
     for (auto& o : extraOpts) {
@@ -444,7 +451,7 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
         }
     }
 
-    writeBrief(out, indent);
+    writeBrief(out, indent, suffix);
     common::writeDetails(out, indent, getDescription());
     writeExtraOptsDoc(out, indent, extraOpts);
     writeExtraOptsTemplParams(out, indent, extraOpts);
@@ -515,7 +522,10 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
     return true;
 }
 
-bool CompositeType::writeData(std::ostream& out, unsigned indent)
+bool CompositeType::writeData(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& suffix)
 {
     if (!isValidData()) {
         log::error() << "The members in \"" << getName() << "\" composite are not defined as expected to implement data fields." << std::endl;
@@ -526,7 +536,7 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
     assert(allExtraOpts.size() == DataEncIdx_numOfValues);
     auto& lengthExtraOpt = allExtraOpts[DataEncIdx_length].front().first;
     auto& dataExtraOpt = allExtraOpts[DataEncIdx_data].front().first;
-    writeHeader(out, indent, false);
+    writeHeader(out, indent, suffix, false);
     writeExtraOptsDoc(out, indent, allExtraOpts);
     common::writeExtraOptionsDoc(out, indent);
     writeExtraOptsTemplParams(out, indent, allExtraOpts, true);

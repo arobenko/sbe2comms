@@ -63,6 +63,7 @@ const std::string& pluginNamespaceNameStr();
 const std::string& pluginNamespaceStr();
 const std::string& memembersSuffixStr();
 const std::string& fieldsSuffixStr();
+const std::string& optFieldSuffixStr();
 const std::string& eqEmptyOptionStr();
 const std::string& optParamPrefixStr();
 const std::string& blockLengthStr();
@@ -89,6 +90,7 @@ std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
 std::string pathTo(const std::string& ns, const std::string& path);
 std::string localHeader(const std::string& ns, const std::string& localNs, const std::string& path);
+std::string refName(const std::string& name, const std::string& suffix);
 const std::string& primitiveTypeToStdInt(const std::string& type);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
@@ -104,6 +106,13 @@ void writeFpOptConstructor(
 void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
 void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
 void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent);
+void writeOptFieldDefinition(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& name,
+    const std::string& optMode,
+    unsigned sinceVersion,
+    bool isFieldTemplate = false);
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
 void writePluginNamespaceBegin(const std::string& ns, std::ostream& out);

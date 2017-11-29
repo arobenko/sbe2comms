@@ -55,6 +55,13 @@ bool Field::parse()
     if (deprecated <= sinceVer) {
         log::warning() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
     }
+
+    auto refTypeSinceVersion = getReferencedTypeSinceVersionImpl();
+    if (sinceVer < refTypeSinceVersion) {
+        log::error() << "The field \"" << getName() << "\" references type that has been introduced later." << std::endl;
+        return false;
+    }
+
     return true;
 }
 
@@ -120,36 +127,13 @@ bool Field::write(std::ostream& out, unsigned indent)
         return writeImpl(out, indent, common::emptyString());
     }
 
-    static const std::string OptFieldSuffix("Field");
-    bool result = writeImpl(out, indent, OptFieldSuffix);
+    bool result = writeImpl(out, indent, common::optFieldSuffixStr());
     if (!result) {
         return false;
     }
 
     writeHeader(out, indent, common::emptyString());
-    out << output::indent(indent) << "struct " << getName() << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::Optional<\n" <<
-           output::indent(indent + 2) << getName() << OptFieldSuffix << ",\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << "/// \\brief Update current version.\n" <<
-           output::indent(indent + 1) << "/// \\return \\b true if field's content has been updated.\n" <<
-           output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
-           output::indent(indent + 1) << "{\n" <<
-           output::indent(indent + 2) << common::fieldBaseDefStr() <<
-           output::indent(indent + 2) << "bool updated = Base::field().setVersion(value);\n" <<
-           output::indent(indent + 2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
-           output::indent(indent + 2) << "if (value < " << getSinceVersion() << "U) {\n" <<
-           output::indent(indent + 3) << "mode = comms::field::OptionalMode::Missing;\n" <<
-           output::indent(indent + 2) << "}\n\n" <<
-           output::indent(indent + 2) << "if (Base::getMode() != mode) {\n" <<
-           output::indent(indent + 3) << "Base::setMode(mode);\n" <<
-           output::indent(indent + 3) << "updated = true;\n" <<
-           output::indent(indent + 2) << "}\n\n" <<
-           output::indent(indent + 2) << "return updated;\n" <<
-           output::indent(indent + 1) << "}\n" <<
-           output::indent(indent) << "};\n\n";
+    common::writeOptFieldDefinition(out, indent, getName(), optMode, getSinceVersion());
     return true;
 }
 
@@ -220,6 +204,11 @@ unsigned Field::getSinceVersionImpl() const
 {
     assert(!m_props.empty());
     return prop::sinceVersion(m_props);
+}
+
+unsigned Field::getReferencedTypeSinceVersionImpl() const
+{
+    return 0U;
 }
 
 bool Field::parseImpl()
@@ -314,12 +303,17 @@ const std::string& Field::getDefaultOptMode() const
         return common::emptyString();
     }
 
-    if (m_db.getMinRemoteVersion() < sinceVersion) {
-        static const std::string Mode("comms::field::OptionalMode::Exists");
-        return Mode;
+    if (sinceVersion <= m_db.getMinRemoteVersion()) {
+        return common::emptyString();
     }
 
-    return common::emptyString();
+    auto refTypeSinceVersion = getReferencedTypeSinceVersionImpl();
+    if (sinceVersion <= refTypeSinceVersion) {
+        return common::emptyString();
+    }
+
+    static const std::string Mode("comms::field::OptionalMode::Exists");
+    return Mode;
 }
 
 } // namespace sbe2comms
