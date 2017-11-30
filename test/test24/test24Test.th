@@ -47,8 +47,8 @@ private:
     {
         TMsg msg;
         static_assert(msg.doMinLength() == 0U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 2U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 2U);
+        static_assert(msg.doMaxLength() == 4U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 4U);
         TS_ASSERT(msg.doValid());
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 
@@ -57,6 +57,7 @@ private:
 
         msg.field_field1().field().setBitValue_bit0(true);
         msg.field_field2().field().setBitValue_bit5(true);
+        msg.field_field3().field().setBitValue_bit10(true);
         return msg;
     }
 
@@ -74,6 +75,8 @@ private:
         TS_ASSERT_EQUALS(mineMsg.field_field1().field().getBitValue_bit5(), origMsg.field1().bit5());
         TS_ASSERT_EQUALS(mineMsg.field_field2().field().getBitValue_bit0(), origMsg.field2().bit0());
         TS_ASSERT_EQUALS(mineMsg.field_field2().field().getBitValue_bit5(), origMsg.field2().bit5());
+        TS_ASSERT_EQUALS(mineMsg.field_field3().field().getBitValue_bit0(), origMsg.field3().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field3().field().getBitValue_bit10(), origMsg.field3().bit10());
 
         TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength());
     }
@@ -157,6 +160,7 @@ void Test24Suite::test4()
     TS_ASSERT_EQUALS(msg.doLength(), 1U);
     TS_ASSERT(msg.field_field1().doesExist());
     TS_ASSERT(msg.field_field2().isMissing());
+    TS_ASSERT(msg.field_field3().isMissing());
 
     TestFrame frame;
     auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);

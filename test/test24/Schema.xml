@@ -16,9 +16,14 @@
             <choice name="bit0">0</choice>
             <choice name="bit5" sinceVersion="2">5</choice>
         </set>
+        <set name="Set2" encodingType="uint16">
+            <choice name="bit0">0</choice>
+            <choice name="bit10" sinceVersion="2">10</choice>
+        </set>
     </types>
     <message name="Msg1" id="100" description="TestMessage">
         <field name="field1" id="10" type="Set1" sinceVersion="1"/>
         <field name="field2" id="11" type="Set1" sinceVersion="2"/>
+        <field name="field3" id="12" type="Set2" sinceVersion="3"/>
     </message>
 </messageSchema>
