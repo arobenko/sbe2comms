@@ -133,6 +133,8 @@ public:
     {
         m_containingCompositeVersion = version;
     }
+    
+    bool isCommsOptionalWrapped() const;
 
 protected:
     xmlNodePtr getNode() const

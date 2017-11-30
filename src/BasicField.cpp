@@ -427,8 +427,13 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
     }
 
     auto& ns = getNamespaceForType(getDb(), m_type->getName());
+    auto* typeSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        typeSuffixPtr = &common::optFieldSuffixStr();
+    }
+    auto typeRefName = common::refName(m_type->getName(), *typeSuffixPtr);
 
-    out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<\n";
+    out << output::indent(indent) << "using " << name << " = " << ns << typeRefName << "<\n";
 
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
     if (builtIn) {

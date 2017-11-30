@@ -29,6 +29,7 @@ public:
     void test1();
     void test2();
     void test3();
+    void test4();
 
 private:
 
@@ -51,7 +52,7 @@ private:
         TS_ASSERT(msg.doValid());
         TS_ASSERT(msg.field_field1().doesExist());
         TS_ASSERT(msg.field_field2().doesExist());
-        TS_ASSERT(msg.field_field2().field().doesExist());
+        TS_ASSERT(msg.field_field2().doesExist());
 
 //        TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 //        TS_ASSERT_EQUALS(msg.field_field1().value(), mine::field::Enum1Val::Val1);
@@ -72,7 +73,7 @@ private:
 //        TS_ASSERT(msg.field_field10().isNull());
 
         msg.field_field1().field().value() = mine::field::Enum1Val::Val2;
-        msg.field_field2().field().field().value() = mine::field::Enum1Val::Val2;
+        msg.field_field2().field().value() = mine::field::Enum1Val::Val2;
 //        msg.field_field2().value() = (mine::field::Enum2Val)4;
 //        TS_ASSERT(!msg.doValid());
 //        msg.field_field2().value() = mine::field::Enum2Val::Val3;
@@ -96,7 +97,8 @@ private:
     void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
     {
         TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
-//        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field1().value(), (unsigned)origMsg.field1());
+        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field1().field().value(), (unsigned)origMsg.field1());
+        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field2().field().value(), (unsigned)origMsg.field2());
 //        TS_ASSERT_EQUALS((int)mineMsg.field_field2().value(), (int)origMsg.field2());
 //        TS_ASSERT_EQUALS((char)mineMsg.field_field3().value(), (char)origMsg.field3());
 //        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field4().value(), (unsigned)origMsg.field4());
@@ -178,4 +180,29 @@ void Test23Suite::test3()
     TS_ASSERT_EQUALS(buf, otherBuf);
 }
 
+void Test23Suite::test4()
+{
+    using TestMessage = test::common::MineMessageFull;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+    msg.setVersion(1);
+    msg.doRefresh();
+    TS_ASSERT_EQUALS(msg.getBlockLength(), 1U);
+    TS_ASSERT_EQUALS(msg.doLength(), 1U);
+    TS_ASSERT(msg.field_field1().doesExist());
+    TS_ASSERT(msg.field_field2().isMissing());
+
+    msg.field_field1().field().value() = mine::field::Enum1Val::Val2;
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
+
+//    TS_TRACE(buf);
+    TS_ASSERT(!buf.empty());
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    test::common::verifyMine(msg, *msg2);
+}
 

@@ -323,6 +323,11 @@ bool Type::write(std::ostream& out, unsigned indent)
     return true;
 }
 
+bool Type::isCommsOptionalWrapped() const
+{
+    return !getDefaultOptMode().empty();
+}
+
 bool Type::parseImpl()
 {
     return true;

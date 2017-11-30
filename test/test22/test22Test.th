@@ -193,13 +193,15 @@ void Test22Suite::test4()
 
     auto msg = construct<TestMsg1>();
     msg.setVersion(0);
-    msg.setBlockLength(2);
+    msg.doRefresh();
+    TS_ASSERT_EQUALS(msg.getBlockLength(), 2U);
+    TS_ASSERT(msg.field_pad1_().isMissing());
+    TS_ASSERT(msg.field_field2().isMissing());
+    TS_ASSERT(msg.field_field3().isMissing());
+    TS_ASSERT(msg.field_field4().isMissing());
+    TS_ASSERT(msg.field_field5().isMissing());
+
     msg.field_field1().value() = 1234;
-    msg.field_pad1_().setMissing();
-    msg.field_field2().setMissing();
-    msg.field_field3().setMissing();
-    msg.field_field4().setMissing();
-    msg.field_field5().setMissing();
     TS_ASSERT_EQUALS(msg.doLength(), 2U);
 
     TestFrame frame;
