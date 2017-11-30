@@ -47,12 +47,15 @@ private:
     {
         TMsg msg;
         static_assert(msg.doMinLength() == 0U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 2U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 2U);
+        static_assert(msg.doMaxLength() == 4U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 4U);
         TS_ASSERT(msg.doValid());
         TS_ASSERT(msg.field_field1().doesExist());
         TS_ASSERT(msg.field_field2().doesExist());
-        TS_ASSERT(msg.field_field2().doesExist());
+        TS_ASSERT(msg.field_field3().doesExist());
+        TS_ASSERT_EQUALS(msg.field_field3().field().value(), mine::field::Enum1Val::Val2);
+        TS_ASSERT(msg.field_field4().doesExist());
+        TS_ASSERT(msg.field_field5().doesExist());
 
 //        TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 //        TS_ASSERT_EQUALS(msg.field_field1().value(), mine::field::Enum1Val::Val1);
@@ -74,6 +77,8 @@ private:
 
         msg.field_field1().field().value() = mine::field::Enum1Val::Val2;
         msg.field_field2().field().value() = mine::field::Enum1Val::Val2;
+        msg.field_field4().field().value() = mine::field::Enum1Val::Val2;
+        msg.field_field5().field().value() = mine::field::Enum2Val::Val2;
 //        msg.field_field2().value() = (mine::field::Enum2Val)4;
 //        TS_ASSERT(!msg.doValid());
 //        msg.field_field2().value() = mine::field::Enum2Val::Val3;
@@ -96,9 +101,12 @@ private:
     template <typename TMine, typename TOrig>
     void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
     {
-        TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
+        //TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
         TS_ASSERT_EQUALS((unsigned)mineMsg.field_field1().field().value(), (unsigned)origMsg.field1());
         TS_ASSERT_EQUALS((unsigned)mineMsg.field_field2().field().value(), (unsigned)origMsg.field2());
+        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field3().field().value(), (unsigned)origMsg.field3());
+        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field4().field().value(), (unsigned)origMsg.field4());
+        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field5().field().value(), (unsigned)origMsg.field5());
 //        TS_ASSERT_EQUALS((int)mineMsg.field_field2().value(), (int)origMsg.field2());
 //        TS_ASSERT_EQUALS((char)mineMsg.field_field3().value(), (char)origMsg.field3());
 //        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field4().value(), (unsigned)origMsg.field4());
@@ -193,6 +201,9 @@ void Test23Suite::test4()
     TS_ASSERT_EQUALS(msg.doLength(), 1U);
     TS_ASSERT(msg.field_field1().doesExist());
     TS_ASSERT(msg.field_field2().isMissing());
+    TS_ASSERT(msg.field_field3().isMissing());
+    TS_ASSERT(msg.field_field4().isMissing());
+    TS_ASSERT(msg.field_field5().isMissing());
 
     msg.field_field1().field().value() = mine::field::Enum1Val::Val2;
 

@@ -16,9 +16,16 @@
             <validValue name="Val1">0</validValue>
             <validValue name="Val2">1</validValue>
         </enum>
+        <enum name="Enum2" encodingType="uint8" sinceVersion="2">
+            <validValue name="Val1">0</validValue>
+            <validValue name="Val2">5</validValue>
+        </enum>
     </types>
     <message name="Msg1" id="1" description="TestMessage">
         <field name="field1" id="10" type="Enum1" sinceVersion="1"/>
         <field name="field2" id="11" type="Enum1" sinceVersion="2"/>
+        <field name="field3" id="12" type="Enum1" sinceVersion="2" presence="constant" valueRef="Enum1.Val2"/>
+        <field name="field4" id="13" type="Enum1" sinceVersion="2" presence="optional"/>
+        <field name="field5" id="14" type="Enum2" sinceVersion="2" presence="optional"/>
     </message>
 </messageSchema>

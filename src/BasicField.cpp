@@ -457,7 +457,12 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
     std::string enumType(valueRef.begin(), sep.begin());
     enumType += common::enumValSuffixStr();
     std::string valueStr(sep.end(), valueRef.end());
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
     bool builtIn =
             (!getDb().isIntroducedType(m_type->getName())) &&
             (getDb().isRecordedBuiltInType(m_type->getName()));
@@ -595,7 +600,11 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
     auto* enumType = static_cast<const EnumType*>(m_type);
     std::intmax_t nullValue = enumType->getDefultNullValue();
     auto nullValueStr = common::num(nullValue);
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldRefSuffixPtr = &common::emptyString();
+    if ((m_type->isCommsOptionalWrapped()) && isCommsOptionalWrapped()) {
+        fieldRefSuffixPtr = &common::optFieldSuffixStr();
+    }
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldRefSuffixPtr);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
            output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
