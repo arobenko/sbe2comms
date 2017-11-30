@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test24"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian"
+               version="5">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <set name="Set1" encodingType="uint8" sinceVersion="1">
+            <choice name="bit0">0</choice>
+            <choice name="bit5" sinceVersion="2">5</choice>
+        </set>
+    </types>
+    <message name="Msg1" id="100" description="TestMessage">
+        <field name="field1" id="10" type="Set1" sinceVersion="1"/>
+        <field name="field2" id="11" type="Set1" sinceVersion="2"/>
+    </message>
+</messageSchema>

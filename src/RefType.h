@@ -32,7 +32,7 @@ public:
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped) override;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
@@ -45,7 +45,7 @@ protected:
 private:
     Type* getReferenceType();
     bool isBundle() const;
-    void writeBundle(std::ostream& out, unsigned indent, const std::string& suffix);
+    void writeBundle(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
 
     Type* m_type = nullptr;
 };

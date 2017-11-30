@@ -310,15 +310,15 @@ bool Type::write(std::ostream& out, unsigned indent)
 
     auto& optMode = getDefaultOptMode();
     if (optMode.empty()) {
-        return writeImpl(out, indent, common::emptyString());
+        return writeImpl(out, indent, false);
     }
 
-    bool result = writeImpl(out, indent, common::optFieldSuffixStr());
+    bool result = writeImpl(out, indent, true);
     if (!result) {
         return false;
     }
 
-    writeHeader(out, indent, common::emptyString());
+    writeHeader(out, indent, false);
     common::writeOptFieldDefinition(out, indent, getName(), optMode, getSinceVersion(), true);
     return true;
 }
@@ -379,9 +379,9 @@ bool Type::writePluginPropertiesImpl(
     return true;
 }
 
-void Type::writeBrief(std::ostream& out, unsigned indent, const std::string& suffix)
+void Type::writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
-    if (suffix.empty()) {
+    if (!commsOptionalWrapped) {
         out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
     }
     else {
@@ -392,10 +392,10 @@ void Type::writeBrief(std::ostream& out, unsigned indent, const std::string& suf
 void Type::writeHeader(
     std::ostream& out,
     unsigned indent,
-    const std::string& suffix,
+    bool commsOptionalWrapped,
     bool extraOpts)
 {
-    writeBrief(out, indent, suffix);
+    writeBrief(out, indent, commsOptionalWrapped);
     common::writeDetails(out, indent, prop::description(m_props));
     if (extraOpts) {
         common::writeExtraOptionsDoc(out, indent);

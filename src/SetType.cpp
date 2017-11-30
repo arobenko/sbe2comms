@@ -83,22 +83,22 @@ bool SetType::parseImpl()
     return true;
 }
 
-bool SetType::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
+bool SetType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     auto serLen = getSerializationLengthImpl();
     assert(0U < serLen);
 
     auto count = getAdjustedLengthProp();
     if (count != 1U) {
-        writeSingle(out, indent, suffix, true);
+        writeSingle(out, indent, commsOptionalWrapped, true);
     }
 
     if (count == 1U) {
-        writeSingle(out, indent, suffix);
+        writeSingle(out, indent, commsOptionalWrapped);
         return true;
     }
 
-    writeList(out, indent, suffix, count);
+    writeList(out, indent, commsOptionalWrapped, count);
 
     return true;
 }
@@ -170,19 +170,23 @@ bool SetType::writePluginPropertiesImpl(
 void SetType::writeSingle(
     std::ostream& out,
     unsigned indent,
-    const std::string& suffix,
+    bool commsOptionalWrapped,
     bool isElement)
 {
-    auto name = getName();
+    auto suffix = common::emptyString();
     if (isElement) {
+        suffix = common::elementSuffixStr();;
         writeElementHeader(out, indent);
-        name += common::elementSuffixStr();
     }
     else {
-        writeHeader(out, indent, suffix, true);
+        if (commsOptionalWrapped) {
+            suffix = common::optFieldSuffixStr();
+        }
+        writeHeader(out, indent, commsOptionalWrapped, true);
     }
     common::writeExtraOptionsTemplParam(out, indent);
 
+    auto name = common::refName(getName(), suffix);
     auto len = getSerializationLengthImpl();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::BitmaskValue<\n" <<
@@ -219,13 +223,17 @@ void SetType::writeSingle(
 void SetType::writeList(
     std::ostream& out,
     unsigned indent,
-    const std::string& suffix,
+    bool commsOptionalWrapped,
     unsigned count)
 {
-    writeHeader(out, indent, suffix, true);
+    writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
+    auto suffix = common::emptyString();
+    if (commsOptionalWrapped) {
+        suffix = common::optFieldSuffixStr();
+    }
 
-    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+    out << output::indent(indent) << "struct " << common::refName(getName(), suffix) << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<

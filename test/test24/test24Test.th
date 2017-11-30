@@ -23,7 +23,7 @@
 #include "orig/Msg1.h"
 #include "common.h"
 
-class Test23Suite : public CxxTest::TestSuite
+class Test24Suite : public CxxTest::TestSuite
 {
 public:
     void test1();
@@ -47,22 +47,16 @@ private:
     {
         TMsg msg;
         static_assert(msg.doMinLength() == 0U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 4U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 4U);
-        TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
+        static_assert(msg.doMaxLength() == 2U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 2U);
         TS_ASSERT(msg.doValid());
+        TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
 
         TS_ASSERT(msg.field_field1().doesExist());
         TS_ASSERT(msg.field_field2().doesExist());
-        TS_ASSERT(msg.field_field3().doesExist());
-        TS_ASSERT_EQUALS(msg.field_field3().field().value(), mine::field::Enum1Val::Val2);
-        TS_ASSERT(msg.field_field4().doesExist());
-        TS_ASSERT(msg.field_field5().doesExist());
 
-        msg.field_field1().field().value() = mine::field::Enum1Val::Val2;
-        msg.field_field2().field().value() = mine::field::Enum1Val::Val2;
-        msg.field_field4().field().value() = mine::field::Enum1Val::Val2;
-        msg.field_field5().field().value() = mine::field::Enum2Val::Val2;
+        msg.field_field1().field().setBitValue_bit0(true);
+        msg.field_field2().field().setBitValue_bit5(true);
         return msg;
     }
 
@@ -75,18 +69,17 @@ private:
     template <typename TMine, typename TOrig>
     void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
     {
-        //TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
-        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field1().field().value(), (unsigned)origMsg.field1());
-        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field2().field().value(), (unsigned)origMsg.field2());
-        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field3().field().value(), (unsigned)origMsg.field3());
-        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field4().field().value(), (unsigned)origMsg.field4());
-        TS_ASSERT_EQUALS((unsigned)mineMsg.field_field5().field().value(), (unsigned)origMsg.field5());
+        TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().field().getBitValue_bit0(), origMsg.field1().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().field().getBitValue_bit5(), origMsg.field1().bit5());
+        TS_ASSERT_EQUALS(mineMsg.field_field2().field().getBitValue_bit0(), origMsg.field2().bit0());
+        TS_ASSERT_EQUALS(mineMsg.field_field2().field().getBitValue_bit5(), origMsg.field2().bit5());
 
         TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength());
     }
 };
 
-void Test23Suite::test1()
+void Test24Suite::test1()
 {
     using TestMessage = test::common::MineMessageFull;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -108,7 +101,7 @@ void Test23Suite::test1()
     verifyOrig(msg, origMsg);
 }
 
-void Test23Suite::test2()
+void Test24Suite::test2()
 {
     using TestMessage = test::common::MineMessageFullOutput;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -128,7 +121,7 @@ void Test23Suite::test2()
     verifyOrig(msg, origMsg);
 }
 
-void Test23Suite::test3()
+void Test24Suite::test3()
 {
     using TestMessage = test::common::MineMessageEmpty;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -151,7 +144,7 @@ void Test23Suite::test3()
     TS_ASSERT_EQUALS(buf, otherBuf);
 }
 
-void Test23Suite::test4()
+void Test24Suite::test4()
 {
     using TestMessage = test::common::MineMessageFull;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -164,11 +157,6 @@ void Test23Suite::test4()
     TS_ASSERT_EQUALS(msg.doLength(), 1U);
     TS_ASSERT(msg.field_field1().doesExist());
     TS_ASSERT(msg.field_field2().isMissing());
-    TS_ASSERT(msg.field_field3().isMissing());
-    TS_ASSERT(msg.field_field4().isMissing());
-    TS_ASSERT(msg.field_field5().isMissing());
-
-    msg.field_field1().field().value() = mine::field::Enum1Val::Val2;
 
     TestFrame frame;
     auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
@@ -181,6 +169,7 @@ void Test23Suite::test4()
 
     auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
     TS_ASSERT_EQUALS(msg.doLength(), origMsg.encodedLength());
-    TS_ASSERT_EQUALS((unsigned)msg.field_field1().field().value(), (unsigned)origMsg.field1());
+    TS_ASSERT_EQUALS(msg.field_field1().field().getBitValue_bit0(), origMsg.field1().bit0());
+    TS_ASSERT_EQUALS(msg.field_field1().field().getBitValue_bit5(), origMsg.field1().bit5());
 }
 

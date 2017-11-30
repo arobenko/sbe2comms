@@ -178,9 +178,8 @@ bool CompositeType::parseImpl()
 bool CompositeType::writeImpl(
     std::ostream& out,
     unsigned indent,
-    const std::string& suffix)
+    bool commsOptionalWrapped)
 {
-    static_cast<void>(suffix);
     assert(!m_members.empty());
 
     if (!checkDataValid()) {
@@ -192,10 +191,10 @@ bool CompositeType::writeImpl(
     }
 
     if (dataUseRecorded()) {
-        return writeData(out, indent, suffix);
+        return writeData(out, indent, commsOptionalWrapped);
     }
 
-    return writeBundle(out, indent, suffix);
+    return writeBundle(out, indent, commsOptionalWrapped);
 }
 
 bool CompositeType::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
@@ -439,7 +438,7 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent)
 bool CompositeType::writeBundle(
     std::ostream& out,
     unsigned indent,
-    const std::string& suffix)
+    bool commsOptionalWrapped)
 {
     auto extraOpts = getAllExtraOpts();
     for (auto& o : extraOpts) {
@@ -451,7 +450,7 @@ bool CompositeType::writeBundle(
         }
     }
 
-    writeBrief(out, indent, suffix);
+    writeBrief(out, indent, commsOptionalWrapped);
     common::writeDetails(out, indent, getDescription());
     writeExtraOptsDoc(out, indent, extraOpts);
     writeExtraOptsTemplParams(out, indent, extraOpts);
@@ -525,7 +524,7 @@ bool CompositeType::writeBundle(
 bool CompositeType::writeData(
     std::ostream& out,
     unsigned indent,
-    const std::string& suffix)
+    bool commsOptionalWrapped)
 {
     if (!isValidData()) {
         log::error() << "The members in \"" << getName() << "\" composite are not defined as expected to implement data fields." << std::endl;
@@ -536,7 +535,7 @@ bool CompositeType::writeData(
     assert(allExtraOpts.size() == DataEncIdx_numOfValues);
     auto& lengthExtraOpt = allExtraOpts[DataEncIdx_length].front().first;
     auto& dataExtraOpt = allExtraOpts[DataEncIdx_data].front().first;
-    writeHeader(out, indent, suffix, false);
+    writeHeader(out, indent, commsOptionalWrapped, false);
     writeExtraOptsDoc(out, indent, allExtraOpts);
     common::writeExtraOptionsDoc(out, indent);
     writeExtraOptsTemplParams(out, indent, allExtraOpts, true);

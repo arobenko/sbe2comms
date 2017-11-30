@@ -42,7 +42,7 @@ public:
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
     virtual bool canBeExtendedAsOptionalImpl() const override;
@@ -61,13 +61,13 @@ private:
     void writeSingle(
         std::ostream& out,
         unsigned indent,
-        const std::string& suffix,
+        bool commsOptionalWrapped,
         bool isElement = false);
     void writeList(
         std::ostream& out,
         unsigned indent,
         unsigned count,
-        const std::string& suffix);
+        bool commsOptionalWrapped);
     const std::string& getUnderlyingType() const;
     bool readValues();
     RangeInfosList getValidRanges() const;

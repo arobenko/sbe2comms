@@ -33,7 +33,7 @@ public:
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
     virtual bool writePluginPropertiesImpl(
@@ -47,12 +47,12 @@ private:
     void writeSingle(
         std::ostream& out,
         unsigned indent,
-        const std::string& suffix,
+        bool commsOptionalWrapped,
         bool isElement = false);
     void writeList(
         std::ostream& out,
         unsigned indent,
-        const std::string& suffix,
+        bool commsOptionalWrapped,
         unsigned count);
     bool readChoices();
     void writeSeq(std::ostream& out, unsigned indent);

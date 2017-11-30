@@ -140,7 +140,7 @@ bool BasicType::parseImpl()
     return true;
 }
 
-bool BasicType::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
+bool BasicType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     auto len = getLengthProp();
     if ((len != 1) && (!isString()) && (!isRawData())) {
@@ -150,7 +150,7 @@ bool BasicType::writeImpl(std::ostream& out, unsigned indent, const std::string&
         out << ";\n\n";
     }
 
-    writeHeader(out, indent, suffix);
+    writeHeader(out, indent, commsOptionalWrapped);
     common::writeExtraOptionsTemplParam(out, indent);
     bool result = false;
     do {

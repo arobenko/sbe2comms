@@ -105,19 +105,19 @@ bool EnumType::parseImpl()
     return true;
 }
 
-bool EnumType::writeImpl(std::ostream& out, unsigned indent, const std::string& suffix)
+bool EnumType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     auto count = getAdjustedLengthProp();
     if (count != 1U) {
-        writeSingle(out, indent, suffix, true);
+        writeSingle(out, indent, commsOptionalWrapped, true);
     }
 
     if (count == 1U) {
-        writeSingle(out, indent, suffix);
+        writeSingle(out, indent, commsOptionalWrapped);
         return true;
     }
 
-    writeList(out, indent, count, suffix);
+    writeList(out, indent, count, commsOptionalWrapped);
     return true;
 }
 
@@ -192,7 +192,7 @@ bool EnumType::writePluginPropertiesImpl(
 void EnumType::writeSingle(
     std::ostream& out,
     unsigned indent,
-    const std::string& suffix,
+    bool commsOptionalWrapped,
     bool isElement)
 {
     auto& underlying = getUnderlyingType();
@@ -226,13 +226,16 @@ void EnumType::writeSingle(
         out << output::indent(indent) << "};\n\n";
     } while (false);
 
-    auto* suffixPtr = &suffix;
+    auto* suffixPtr = &common::emptyString();
     if (isElement) {
         writeElementHeader(out, indent);
         suffixPtr = &common::elementSuffixStr();
     }
     else {
-        writeHeader(out, indent, suffix, true);
+        if (commsOptionalWrapped) {
+            suffixPtr = &common::optFieldSuffixStr();
+        }
+        writeHeader(out, indent, commsOptionalWrapped, true);
     }
     auto name = common::refName(getName(), *suffixPtr);
     common::writeExtraOptionsTemplParam(out, indent);
@@ -353,10 +356,14 @@ void EnumType::writeList(
     std::ostream& out,
     unsigned indent,
     unsigned count,
-    const std::string& suffix)
+    bool commsOptionalWrapped)
 {
-    writeHeader(out, indent, suffix, true);
+    writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
+    std::string suffix = common::emptyString();
+    if (commsOptionalWrapped) {
+        suffix = common::optFieldSuffixStr();
+    }
     auto name = common::refName(getName(), suffix);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<

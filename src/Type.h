@@ -159,7 +159,7 @@ protected:
 
     virtual Kind getKindImpl() const = 0;
     virtual bool parseImpl();
-    virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped) = 0;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope);
     virtual std::size_t getSerializationLengthImpl() const = 0;
     virtual bool hasFixedLengthImpl() const = 0;
@@ -170,11 +170,11 @@ protected:
         unsigned indent,
         const std::string& scope);
 
-    void writeBrief(std::ostream& out, unsigned indent, const std::string& suffix);
+    void writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
     void writeHeader(
         std::ostream& out,
         unsigned indent,
-        const std::string& suffix,
+        bool commsOptionalWrapped,
         bool extraOpts = true);
     void writeElementBrief(std::ostream& out, unsigned indent);
     void writeElementHeader(std::ostream& out, unsigned indent);
