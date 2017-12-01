@@ -47,49 +47,25 @@ private:
     {
         TMsg msg;
         static_assert(msg.doMinLength() == 0U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 72U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 72U);
+        static_assert(msg.doMaxLength() == 24U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 24U);
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
         TS_ASSERT(msg.doValid());
 
         TS_ASSERT(msg.field_field1().doesExist());
         TS_ASSERT(msg.field_field2().doesExist());
         TS_ASSERT(msg.field_field3().doesExist());
-        TS_ASSERT(msg.field_field4().doesExist());
-        TS_ASSERT(msg.field_field5().doesExist());
-        TS_ASSERT(msg.field_field6().doesExist());
-        TS_ASSERT(msg.field_field7().doesExist());
-        TS_ASSERT(msg.field_field8().doesExist());
-        TS_ASSERT(msg.field_field9().doesExist());
-        TS_ASSERT(msg.field_field10().doesExist());
-        TS_ASSERT(msg.field_field11().doesExist());
-        TS_ASSERT(msg.field_field12().doesExist());
 
-        TS_ASSERT(msg.field_field1().field().isNull());
-        TS_ASSERT(msg.field_field2().field().isNull());
-        TS_ASSERT(msg.field_field3().field().isNull());
-        TS_ASSERT(msg.field_field4().field().isNull());
-        TS_ASSERT(msg.field_field5().field().isNull());
-        TS_ASSERT(msg.field_field6().field().isNull());
-        TS_ASSERT(msg.field_field7().field().isNull());
-        TS_ASSERT(msg.field_field8().field().isNull());
-        TS_ASSERT(msg.field_field9().field().isNull());
-        TS_ASSERT(msg.field_field10().field().isNull());
-        TS_ASSERT(msg.field_field11().field().isNull());
-        TS_ASSERT(msg.field_field12().field().isNull());
+        test::common::resizeList(msg.field_field1().field());
+        test::common::resizeList(msg.field_field2().field());
+        test::common::resizeList(msg.field_field3().field());
 
-        msg.field_field1().field().value() = 1;
-        msg.field_field2().field().value() = 2;
-        msg.field_field3().field().value() = 3;
-        msg.field_field4().field().value() = 4;
-        msg.field_field5().field().value() = 5;
-        msg.field_field6().field().value() = 6;
-        msg.field_field7().field().value() = 7;
-        msg.field_field8().field().value() = 8;
-        msg.field_field9().field().value() = 9;
-        msg.field_field10().field().value() = 10;
-        msg.field_field11().field().value() = 11;
-        msg.field_field12().field().value() = 12;
+        msg.field_field1().field().value()[0].value() = 1;
+        msg.field_field1().field().value()[1].value() = 2;
+        msg.field_field2().field().value()[0].value() = 3;
+        msg.field_field2().field().value()[1].value() = 4;
+        msg.field_field3().field().value()[0].value() = 5;
+        msg.field_field3().field().value()[1].value() = 6;
         return msg;
     }
 
@@ -103,18 +79,12 @@ private:
     void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
     {
         TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
-        TS_ASSERT_EQUALS(mineMsg.field_field1().field().value(), origMsg.field1());
-        TS_ASSERT_EQUALS(mineMsg.field_field2().field().value(), origMsg.field2());
-        TS_ASSERT_EQUALS(mineMsg.field_field3().field().value(), origMsg.field3());
-        TS_ASSERT_EQUALS(mineMsg.field_field4().field().value(), origMsg.field4());
-        TS_ASSERT_EQUALS(mineMsg.field_field5().field().value(), origMsg.field5());
-        TS_ASSERT_EQUALS(mineMsg.field_field6().field().value(), origMsg.field6());
-        TS_ASSERT_EQUALS(mineMsg.field_field7().field().value(), origMsg.field7());
-        TS_ASSERT_EQUALS(mineMsg.field_field8().field().value(), origMsg.field8());
-        TS_ASSERT_EQUALS(mineMsg.field_field9().field().value(), origMsg.field9());
-        TS_ASSERT_EQUALS(mineMsg.field_field10().field().value(), origMsg.field10());
-        TS_ASSERT_EQUALS(mineMsg.field_field11().field().value(), origMsg.field11());
-        TS_ASSERT_EQUALS(mineMsg.field_field12().field().value(), origMsg.field12());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().field().value()[0].value(), origMsg.field1(0));
+        TS_ASSERT_EQUALS(mineMsg.field_field1().field().value()[1].value(), origMsg.field1(1));
+        TS_ASSERT_EQUALS(mineMsg.field_field2().field().value()[0].value(), origMsg.field2(0));
+        TS_ASSERT_EQUALS(mineMsg.field_field2().field().value()[1].value(), origMsg.field2(1));
+        TS_ASSERT_EQUALS(mineMsg.field_field3().field().value()[0].value(), origMsg.field3(0));
+        TS_ASSERT_EQUALS(mineMsg.field_field3().field().value()[1].value(), origMsg.field3(1));
 
         TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength());
     }
@@ -194,21 +164,11 @@ void Test26Suite::test4()
     auto msg = construct<TestMsg1>();
     msg.setVersion(1);
     msg.doRefresh();
-    TS_ASSERT_EQUALS(msg.getBlockLength(), 36U);
-    TS_ASSERT_EQUALS(msg.doLength(), 36U);
+    TS_ASSERT_EQUALS(msg.getBlockLength(), 16U);
+    TS_ASSERT_EQUALS(msg.doLength(), 16U);
     TS_ASSERT(msg.field_field1().doesExist());
     TS_ASSERT(msg.field_field2().doesExist());
-    TS_ASSERT(msg.field_field3().doesExist());
-    TS_ASSERT(msg.field_field4().doesExist());
-    TS_ASSERT(msg.field_field5().doesExist());
-    TS_ASSERT(msg.field_field6().doesExist());
-
-    TS_ASSERT(msg.field_field7().isMissing());
-    TS_ASSERT(msg.field_field8().isMissing());
-    TS_ASSERT(msg.field_field9().isMissing());
-    TS_ASSERT(msg.field_field10().isMissing());
-    TS_ASSERT(msg.field_field11().isMissing());
-    TS_ASSERT(msg.field_field12().isMissing());
+    TS_ASSERT(msg.field_field3().isMissing());
 
     TestFrame frame;
     auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
@@ -221,12 +181,12 @@ void Test26Suite::test4()
 
     auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
     TS_ASSERT_EQUALS(msg.doLength(), origMsg.encodedLength());
-    TS_ASSERT_EQUALS(msg.field_field1().field().value(), origMsg.field1());
-    TS_ASSERT_EQUALS(msg.field_field2().field().value(), origMsg.field2());
-    TS_ASSERT_EQUALS(msg.field_field3().field().value(), origMsg.field3());
-    TS_ASSERT_EQUALS(msg.field_field4().field().value(), origMsg.field4());
-    TS_ASSERT_EQUALS(msg.field_field5().field().value(), origMsg.field5());
-    TS_ASSERT_EQUALS(msg.field_field6().field().value(), origMsg.field6());
-    TS_ASSERT_EQUALS(origMsg.field7(), std::numeric_limits<std::uint32_t>::max());
+    TS_ASSERT_EQUALS(msg.field_field1().field().value()[0].value(), origMsg.field1(0));
+    TS_ASSERT_EQUALS(msg.field_field1().field().value()[1].value(), origMsg.field1(1));
+    TS_ASSERT_EQUALS(msg.field_field2().field().value()[0].value(), origMsg.field2(0));
+    TS_ASSERT_EQUALS(msg.field_field2().field().value()[1].value(), origMsg.field2(1));
+
+    TS_ASSERT_EQUALS(origMsg.field3(0), std::numeric_limits<std::uint32_t>::max());
+    TS_ASSERT_EQUALS(origMsg.field3(1), std::numeric_limits<std::uint32_t>::max());
 }
 
