@@ -211,6 +211,11 @@ unsigned Field::getReferencedTypeSinceVersionImpl() const
     return 0U;
 }
 
+bool Field::isForcedCommsOptionalImpl() const
+{
+    return false;
+}
+
 bool Field::parseImpl()
 {
     return true;
@@ -308,7 +313,7 @@ const std::string& Field::getDefaultOptMode() const
     }
 
     auto refTypeSinceVersion = getReferencedTypeSinceVersionImpl();
-    if (sinceVersion <= refTypeSinceVersion) {
+    if ((sinceVersion <= refTypeSinceVersion) && (!isForcedCommsOptionalImpl())) {
         return common::emptyString();
     }
 

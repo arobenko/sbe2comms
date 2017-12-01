@@ -75,6 +75,11 @@ unsigned BasicField::getReferencedTypeSinceVersionImpl() const
     return m_type->getSinceVersion();
 }
 
+bool BasicField::isForcedCommsOptionalImpl() const
+{
+    return (!isSimpleAlias()) && (!isConstant());
+}
+
 bool BasicField::parseImpl()
 {
     auto getTypeHeader =
