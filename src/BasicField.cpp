@@ -393,8 +393,14 @@ void BasicField::writePaddingAlias(std::ostream& out, unsigned indent, const std
 void BasicField::writeCompositeAlias(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
-    auto& ns = getNamespaceForType(getDb(), m_type->getName());
-    out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<\n";
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
+
+    out << output::indent(indent) << "using " << name << " = " << fieldRefName << "<\n";
     auto typeOpts = m_type->getExtraOptInfos();
     for (auto& o : typeOpts) {
         out << output::indent(indent + 1) << common::optParamPrefixStr();
@@ -514,7 +520,12 @@ void BasicField::writeOptionalBasicBigUnsignedInt(std::ostream& out, unsigned in
     assert(basicType->isIntType());
     std::uintmax_t nullValue = common::defaultBigUnsignedNullValue();
     auto nullValueStr = common::num(nullValue);
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
@@ -545,7 +556,12 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
         return;
     }
     auto nullValueStr = common::num(basicType->getDefultIntNullValue());
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
@@ -571,7 +587,12 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
     assert(m_type->getKind() == Type::Kind::Basic);
     auto* basicType = static_cast<const BasicType*>(m_type);
     assert(basicType->isFpType());
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());

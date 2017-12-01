@@ -45,11 +45,13 @@ private:
     bool writeSimpleType(
         std::ostream& out,
         unsigned indent,
+        bool commsOptionalWrapped,
         bool isElement = false);
 
     bool writeSimpleBigUnsignedInt(
         std::ostream& out,
         unsigned indent,
+        bool commsOptionalWrapped,
         bool isElement,
         std::uintmax_t minVal,
         std::uintmax_t maxVal);
@@ -58,45 +60,57 @@ private:
         std::ostream& out,
         unsigned indent,
         const std::string& intType,
+        bool commsOptionalWrapped,
         bool isElement);
 
     bool writeSimpleFloat(
         std::ostream& out,
         unsigned indent,
         const std::string& fpType,
+        bool commsOptionalWrapped,
         bool isElement);
 
     bool writeVarLength(
         std::ostream& out,
-        unsigned indent);
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeVarLengthString(
         std::ostream& out,
-        unsigned indent);
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeVarLengthArray(
         std::ostream& out,
-        unsigned indent);
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeVarLengthRawDataArray(
         std::ostream& out,
         unsigned indent,
-        const std::string& primType);
+        const std::string& primType,
+        bool commsOptionalWrapped);
 
-    bool writeFixedLength(std::ostream& out,
-        unsigned indent);
+    bool writeFixedLength(
+        std::ostream& out,
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeFixedLengthString(
         std::ostream& out,
-        unsigned indent);
+        unsigned indent,
+        bool commsOptionalWrapped);
 
-    bool writeFixedLengthArray(std::ostream& out,
-        unsigned indent);
+    bool writeFixedLengthArray(
+        std::ostream& out,
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeFixedLengthRawDataArray(
         std::ostream& out,
         unsigned indent,
-        const std::string& primType);
+        const std::string& primType,
+        bool commsOptionalWrapped);
 
     bool isString() const;
 

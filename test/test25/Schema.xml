@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test24"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian"
+               version="5">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <type name="UInt32_1" primitiveType="uint32" />
+        <type name="UInt32_2" primitiveType="uint32" sinceVersion="1" />
+        <type name="UInt64_1" primitiveType="uint64"/>
+        <type name="UInt64_2" primitiveType="uint64" sinceVersion="1"/>
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="10" type="uint32" sinceVersion="1"/>
+        <field name="field2" id="11" type="UInt32_1" sinceVersion="1"/>
+        <field name="field3" id="12" type="UInt32_2" sinceVersion="1"/>
+        <field name="field4" id="13" type="uint64" sinceVersion="1"/>
+        <field name="field5" id="14" type="UInt64_1" sinceVersion="1"/>
+        <field name="field6" id="15" type="UInt64_2" sinceVersion="1"/>
+        <field name="field7" id="16" type="uint32" sinceVersion="2"/>
+        <field name="field8" id="17" type="UInt32_1" sinceVersion="2"/>
+        <field name="field9" id="18" type="UInt32_2" sinceVersion="2"/>
+        <field name="field10" id="19" type="uint64" sinceVersion="2"/>
+        <field name="field11" id="20" type="UInt64_1" sinceVersion="2"/>
+        <field name="field12" id="21" type="UInt64_2" sinceVersion="2"/>
+    </message>
+</messageSchema>

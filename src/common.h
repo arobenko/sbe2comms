@@ -139,6 +139,7 @@ void scopeToPropertyDefNames(
     const std::string& name,
     std::string* fieldType,
     std::string* propsName);
+const std::string& getNameSuffix(bool commsOptionalWrapped, bool isElement);
 
 } // namespace common
 

@@ -1029,6 +1029,19 @@ void scopeToPropertyDefNames(
 
 }
 
+const std::string& getNameSuffix(bool commsOptionalWrapped, bool isElement)
+{
+    if (isElement) {
+        return elementSuffixStr();
+    }
+
+    if (commsOptionalWrapped) {
+        return optFieldSuffixStr();
+    }
+
+    return emptyString();
+}
+
 } // namespace common
 
 } // namespace sbe2comms
