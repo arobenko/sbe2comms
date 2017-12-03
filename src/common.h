@@ -137,9 +137,9 @@ std::uintmax_t defaultBigUnsignedNullValue();
 void scopeToPropertyDefNames(
     const std::string& scope,
     const std::string& name,
+    bool commsOptionalWrapped,
     std::string* fieldType,
     std::string* propsName);
-const std::string& getNameSuffix(bool commsOptionalWrapped, bool isElement);
 
 } // namespace common
 

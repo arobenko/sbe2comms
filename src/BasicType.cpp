@@ -276,7 +276,7 @@ bool BasicType::writeSimpleBigUnsignedInt(
                    output::indent(ind) << ">";
         };
 
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, isElement);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
     std::string name = common::refName(getName(), suffix);
 
     if (isRequired()) {
@@ -457,7 +457,7 @@ bool BasicType::writeSimpleInt(
                    output::indent(ind) << ">";
         };
 
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, isElement);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
     std::string name = common::refName(getName(), suffix);
 
     if (isRequired()) {
@@ -545,7 +545,7 @@ bool BasicType::writeSimpleFloat(
     bool commsOptionalWrapped,
     bool isElement)
 {
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, isElement);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
     std::string name = common::refName(getName(), suffix);
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
@@ -628,7 +628,7 @@ bool BasicType::writeVarLengthString(
     unsigned indent,
     bool commsOptionalWrapped)
 {
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
@@ -657,7 +657,7 @@ bool BasicType::writeVarLengthArray(
         return writeVarLengthRawDataArray(out, indent, primType, commsOptionalWrapped);
     }
 
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
@@ -680,7 +680,7 @@ bool BasicType::writeVarLengthRawDataArray(
     const std::string& primType,
     bool commsOptionalWrapped)
 {
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
@@ -715,7 +715,7 @@ bool BasicType::writeFixedLengthString(
     unsigned indent,
     bool commsOptionalWrapped)
 {
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
     if (!isConstString()) {
@@ -782,7 +782,7 @@ bool BasicType::writeFixedLengthArray(
         return writeFixedLengthRawDataArray(out, indent, primType, commsOptionalWrapped);
     }
 
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
     unsigned len = getLengthProp();
@@ -809,7 +809,7 @@ bool BasicType::writeFixedLengthRawDataArray(
     const std::string& primType,
     bool commsOptionalWrapped)
 {
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
     unsigned len = getLengthProp();

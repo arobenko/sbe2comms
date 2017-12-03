@@ -284,7 +284,7 @@ bool CompositeType::writePluginPropertiesImpl(
         }
 
         std::string memProps;
-        common::scopeToPropertyDefNames(subScope, varDataMem->getName(), nullptr, &memProps);
+        common::scopeToPropertyDefNames(subScope, varDataMem->getName(), isCommsOptionalWrapped(), nullptr, &memProps);
 
         out << output::indent(indent) << "auto " << props << " =\n" <<
                output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(" << memProps << ".asMap())\n" <<
@@ -307,7 +307,7 @@ bool CompositeType::writePluginPropertiesImpl(
         }
 
         std::string memProps;
-        common::scopeToPropertyDefNames(subScope, m->getName(), nullptr, &memProps);
+        common::scopeToPropertyDefNames(subScope, m->getName(), isCommsOptionalWrapped(), nullptr, &memProps);
         out << output::indent(indent) << props << ".add(" << memProps << ".asMap());\n\n";
     }
 
@@ -462,7 +462,7 @@ bool CompositeType::writeBundle(
     common::writeDetails(out, indent, getDescription());
     writeExtraOptsDoc(out, indent, extraOpts);
     writeExtraOptsTemplParams(out, indent, extraOpts);
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
@@ -551,7 +551,7 @@ bool CompositeType::writeData(
     writeExtraOptsTemplParams(out, indent, allExtraOpts, true);
     auto& lenMem = *m_members[DataEncIdx_length];
     auto& dataMem = *m_members[DataEncIdx_data];
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<

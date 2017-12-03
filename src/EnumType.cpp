@@ -170,8 +170,13 @@ bool EnumType::writePluginPropertiesImpl(
     if (!scope.empty()) {
         nameStr = '\"' + getName() + '\"';
     }
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
     out << output::indent(indent) << "using " << fieldType << " = " <<
-           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
            "<>;\n" <<
            output::indent(indent) << "auto " << props << " = \n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
@@ -182,7 +187,7 @@ bool EnumType::writePluginPropertiesImpl(
     }
     out << ";\n\n";
 
-    if (scope.empty()) {
+    if (scope.empty() && (!commsOptionalWrapped)) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
     }
 
@@ -232,7 +237,7 @@ void EnumType::writeSingle(
     else {
         writeHeader(out, indent, commsOptionalWrapped, true);
     }
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, isElement);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
     auto name = common::refName(getName(), suffix);
     common::writeExtraOptionsTemplParam(out, indent);
 
@@ -356,7 +361,7 @@ void EnumType::writeList(
 {
     writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<

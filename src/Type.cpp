@@ -323,6 +323,33 @@ bool Type::write(std::ostream& out, unsigned indent)
     return true;
 }
 
+bool Type::writePluginProperties(std::ostream& out, unsigned indent, const std::string& scope)
+{
+    bool result = writePluginPropertiesImpl(out, indent, scope);
+    if ((!result) || (!isCommsOptionalWrapped())) {
+        return result;
+    }
+
+    std::string fieldProps;
+    common::scopeToPropertyDefNames(scope, getName(), true, nullptr, &fieldProps);
+
+    std::string type;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), false, &type, &props);
+
+    out << output::indent(indent) << "using " << type << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getReferenceName()) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << type << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << getName() << ")\n" <<
+           output::indent(indent + 2) << ".uncheckable()\n" <<
+           output::indent(indent + 2) << ".field(" << fieldProps << ".asMap());\n" <<
+           output::indent(indent) << "return " << props << ";\n";
+
+    return true;
+}
+
 bool Type::isCommsOptionalWrapped() const
 {
     return !getDefaultOptMode().empty();
@@ -485,7 +512,20 @@ std::intmax_t Type::builtInIntNullValue(const std::string& type)
 
 void Type::scopeToPropertyDefNames(const std::string& scope, std::string* fieldType, std::string* propsName)
 {
-    return common::scopeToPropertyDefNames(scope, getName(), fieldType, propsName);
+    return common::scopeToPropertyDefNames(scope, getName(), isCommsOptionalWrapped(), fieldType, propsName);
+}
+
+const std::string& Type::getNameSuffix(bool commsOptionalWrapped, bool isElement)
+{
+    if (isElement) {
+        return common::elementSuffixStr();
+    }
+
+    if (commsOptionalWrapped) {
+        return common::optFieldSuffixStr();
+    }
+
+    return common::emptyString();
 }
 
 const std::string& Type::getDefaultOptMode() const

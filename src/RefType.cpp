@@ -76,7 +76,7 @@ bool RefType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWr
     writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
 
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
     auto typeSuffix = getTypeRefSuffix(commsOptionalWrapped);
     auto typeName = common::refName(m_type->getName(), typeSuffix);
@@ -180,7 +180,7 @@ bool RefType::isBundle() const
 void RefType::writeBundle(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     writeHeader(out, indent, commsOptionalWrapped, false);
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
     auto typeSuffix = getTypeRefSuffix(commsOptionalWrapped);
     auto typeName = common::refName(m_type->getName(), typeSuffix);

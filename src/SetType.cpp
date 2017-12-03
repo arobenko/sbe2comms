@@ -148,8 +148,13 @@ bool SetType::writePluginPropertiesImpl(
     if (!scope.empty()) {
         nameStr = '\"' + getName() + '\"';
     }
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
     out << output::indent(indent) << "using " << fieldType << " = " <<
-           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
            "<>;\n" <<
            output::indent(indent) << "auto " << props << " = \n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
@@ -160,7 +165,7 @@ bool SetType::writePluginPropertiesImpl(
     }
     out << ";\n\n";
 
-    if (scope.empty()) {
+    if (scope.empty() && (!commsOptionalWrapped)) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
     }
 
@@ -181,7 +186,7 @@ void SetType::writeSingle(
     }
     common::writeExtraOptionsTemplParam(out, indent);
 
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, isElement);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
     auto name = common::refName(getName(), suffix);
     auto len = getSerializationLengthImpl();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
@@ -224,7 +229,7 @@ void SetType::writeList(
 {
     writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
-    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     out << output::indent(indent) << "struct " << common::refName(getName(), suffix) << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<

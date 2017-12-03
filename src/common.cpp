@@ -1014,6 +1014,7 @@ std::uintmax_t defaultBigUnsignedNullValue()
 void scopeToPropertyDefNames(
     const std::string& scope,
     const std::string& name,
+    bool commsOptionalWrapped,
     std::string* fieldType,
     std::string* propsName)
 {
@@ -1021,25 +1022,18 @@ void scopeToPropertyDefNames(
     ba::replace_all(scopeNameStr, "<>", "");
     if (fieldType != nullptr) {
         *fieldType = "Field_" + scopeNameStr + name;
+        if (commsOptionalWrapped) {
+            *fieldType += optFieldSuffixStr();
+        }
     }
 
     if (propsName != nullptr) {
         *propsName = "props_" + scopeNameStr + name;
+        if (commsOptionalWrapped) {
+            *propsName += optFieldSuffixStr();
+        }
     }
 
-}
-
-const std::string& getNameSuffix(bool commsOptionalWrapped, bool isElement)
-{
-    if (isElement) {
-        return elementSuffixStr();
-    }
-
-    if (commsOptionalWrapped) {
-        return optFieldSuffixStr();
-    }
-
-    return emptyString();
 }
 
 } // namespace common

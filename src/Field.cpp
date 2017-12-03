@@ -298,7 +298,7 @@ void Field::scopeToPropertyDefNames(
     std::string* fieldType,
     std::string* propsName)
 {
-    return common::scopeToPropertyDefNames(scope, getName(), fieldType, propsName);
+    return common::scopeToPropertyDefNames(scope, getName(), isCommsOptionalWrapped(), fieldType, propsName);
 }
 
 const std::string& Field::getDefaultOptMode() const

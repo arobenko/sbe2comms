@@ -84,10 +84,7 @@ public:
 
     bool writeProtocolDef();
     bool write(std::ostream& out, unsigned indent = 0);
-    bool writePluginProperties(std::ostream& out, unsigned indent, const std::string& scope = std::string())
-    {
-        return writePluginPropertiesImpl(out, indent, scope);
-    }
+    bool writePluginProperties(std::ostream& out, unsigned indent, const std::string& scope = std::string());
 
     bool writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
     {
@@ -188,6 +185,7 @@ protected:
         const std::string& scope,
         std::string* fieldType,
         std::string* propsName);
+    static const std::string& getNameSuffix(bool commsOptionalWrapped, bool isElement);
 private:
     const std::string& getDefaultOptMode() const;
 
