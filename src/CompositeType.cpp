@@ -553,14 +553,17 @@ bool CompositeType::writeData(
     auto& dataMem = *m_members[DataEncIdx_data];
     auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
-    out << output::indent(indent) << "using " << name << " = \n" <<
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<
            output::indent(indent + 2) << "comms::option::SequenceSerLengthFieldPrefix<\n" <<
            output::indent(indent + 3) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << '<' << OptPrefix << lengthExtraOpt << ">\n" <<
            output::indent(indent + 2) << ">,\n" <<
            output::indent(indent + 2) << OptPrefix << dataExtraOpt << ",\n" <<
            output::indent(indent + 2) << "TOpt\n" <<
-           output::indent(indent + 1) << ">;\n\n";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "};\n\n";
 
     return true;
 }

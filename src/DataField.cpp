@@ -79,16 +79,16 @@ bool DataField::writeImpl(std::ostream& out, unsigned indent, const std::string&
 {
     assert(m_type != nullptr);
     writeHeader(out, indent, suffix);
-    std::string name;
-    if (suffix.empty()) {
-        name = getReferenceName();
+    std::string name = common::refName(getName(), suffix);
+
+    auto* typeSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        typeSuffixPtr = &common::optFieldSuffixStr();
     }
-    else {
-        name = getName() + suffix;
-    }
+    auto typeRefName = common::refName(m_type->getName(), *typeSuffixPtr);
 
     out << output::indent(indent) << "using " << name << " = \n" <<
-           output::indent(indent + 1) << common::fieldNamespaceStr() << m_type->getReferenceName() << "<\n";
+           output::indent(indent + 1) << common::fieldNamespaceStr() << typeRefName << "<\n";
     auto extraOpts = m_type->getExtraOptInfos();
     for (auto& o : extraOpts) {
         out << output::indent(indent + 2) << common::optParamPrefixStr();
