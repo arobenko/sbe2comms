@@ -46,6 +46,7 @@ private:
     Type* getReferenceType();
     bool isBundle() const;
     void writeBundle(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
+    const std::string& getTypeRefSuffix(bool commsOptionalWrapped);
 
     Type* m_type = nullptr;
 };

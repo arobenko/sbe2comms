@@ -173,19 +173,15 @@ void SetType::writeSingle(
     bool commsOptionalWrapped,
     bool isElement)
 {
-    auto suffix = common::emptyString();
     if (isElement) {
-        suffix = common::elementSuffixStr();;
         writeElementHeader(out, indent);
     }
     else {
-        if (commsOptionalWrapped) {
-            suffix = common::optFieldSuffixStr();
-        }
         writeHeader(out, indent, commsOptionalWrapped, true);
     }
     common::writeExtraOptionsTemplParam(out, indent);
 
+    auto& suffix = common::getNameSuffix(commsOptionalWrapped, isElement);
     auto name = common::refName(getName(), suffix);
     auto len = getSerializationLengthImpl();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
@@ -228,11 +224,7 @@ void SetType::writeList(
 {
     writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
-    auto suffix = common::emptyString();
-    if (commsOptionalWrapped) {
-        suffix = common::optFieldSuffixStr();
-    }
-
+    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
     out << output::indent(indent) << "struct " << common::refName(getName(), suffix) << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<

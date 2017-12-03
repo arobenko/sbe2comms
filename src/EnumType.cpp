@@ -226,18 +226,14 @@ void EnumType::writeSingle(
         out << output::indent(indent) << "};\n\n";
     } while (false);
 
-    auto* suffixPtr = &common::emptyString();
     if (isElement) {
         writeElementHeader(out, indent);
-        suffixPtr = &common::elementSuffixStr();
     }
     else {
-        if (commsOptionalWrapped) {
-            suffixPtr = &common::optFieldSuffixStr();
-        }
         writeHeader(out, indent, commsOptionalWrapped, true);
     }
-    auto name = common::refName(getName(), *suffixPtr);
+    auto& suffix = common::getNameSuffix(commsOptionalWrapped, isElement);
+    auto name = common::refName(getName(), suffix);
     common::writeExtraOptionsTemplParam(out, indent);
 
     auto ranges = getValidRanges();
@@ -360,10 +356,7 @@ void EnumType::writeList(
 {
     writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
-    std::string suffix = common::emptyString();
-    if (commsOptionalWrapped) {
-        suffix = common::optFieldSuffixStr();
-    }
+    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<

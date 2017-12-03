@@ -23,7 +23,7 @@
 #include "orig/Msg1.h"
 #include "common.h"
 
-class Test27Suite : public CxxTest::TestSuite
+class Test28Suite : public CxxTest::TestSuite
 {
 public:
     void test1();
@@ -47,25 +47,35 @@ private:
     {
         TMsg msg;
         static_assert(msg.doMinLength() == 0U, "Invalid min length");
-        static_assert(msg.doMaxLength() == 24U, "Invalid max length");
-        TS_ASSERT_EQUALS(msg.doLength(), 24U);
+        static_assert(msg.doMaxLength() == 36U, "Invalid max length");
+        TS_ASSERT_EQUALS(msg.doLength(), 36U);
+        TS_ASSERT_EQUALS(msg.getBlockLength(), 36U);
         TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
         TS_ASSERT(msg.doValid());
 
         TS_ASSERT(msg.field_field1().doesExist());
         TS_ASSERT(msg.field_field2().doesExist());
-        TS_ASSERT(msg.field_field3().doesExist());
 
-        test::common::resizeList(msg.field_field1().field());
-        test::common::resizeList(msg.field_field2().field());
-        test::common::resizeList(msg.field_field3().field());
+        msg.field_field1().field().field_mem1().value() = 1;
+        msg.field_field1().field().field_mem2().value() = 2;
+        msg.field_field1().field().field_mem3().field_mem1().value() = 3;
+        msg.field_field1().field().field_mem3().field_mem2().field().value() = 4;
+        msg.field_field1().field().field_mem4().field().value() = 5;
+        msg.field_field1().field().field_mem5().field().value() = 6;
+        msg.field_field1().field().field_mem6().field().value() = 7;
+        msg.field_field1().field().field_mem7().field().field_mem1().value() = 8;
+        msg.field_field1().field().field_mem7().field().field_mem2().field().value() = 9;
 
-        msg.field_field1().field().value()[0].value() = 1;
-        msg.field_field1().field().value()[1].value() = 2;
-        msg.field_field2().field().value()[0].value() = 3;
-        msg.field_field2().field().value()[1].value() = 4;
-        msg.field_field3().field().value()[0].value() = 5;
-        msg.field_field3().field().value()[1].value() = 6;
+        msg.field_field2().field().field_mem1().value() = 11;
+        msg.field_field2().field().field_mem2().value() = 12;
+        msg.field_field2().field().field_mem3().field_mem1().value() = 13;
+        msg.field_field2().field().field_mem3().field_mem2().field().value() = 14;
+        msg.field_field2().field().field_mem4().field().value() = 15;
+        msg.field_field2().field().field_mem5().field().value() = 16;
+        msg.field_field2().field().field_mem6().field().value() = 17;
+        msg.field_field2().field().field_mem7().field().field_mem1().value() = 18;
+        msg.field_field2().field().field_mem7().field().field_mem2().field().value() = 19;
+
         return msg;
     }
 
@@ -78,19 +88,45 @@ private:
     template <typename TMine, typename TOrig>
     void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
     {
+        auto& mineField1 = mineMsg.field_field1().field();
+        auto& mineField1_mem3 = mineField1.field_mem3();
+        auto& mineField1_mem7 = mineField1.field_mem7().field();
+        auto& origField1 = origMsg.field1();
+        auto& origField1_mem3 = origField1.mem3();
+        auto& origField1_mem7 = origField1.mem7();
+        auto& mineField2 = mineMsg.field_field2().field();
+        auto& mineField2_mem3 = mineField2.field_mem3();
+        auto& mineField2_mem7 = mineField2.field_mem7().field();
+        auto& origField2 = origMsg.field2();
+        auto& origField2_mem3 = origField2.mem3();
+        auto& origField2_mem7 = origField2.mem7();
+
         TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
-        TS_ASSERT_EQUALS(mineMsg.field_field1().field().value()[0].value(), origMsg.field1(0));
-        TS_ASSERT_EQUALS(mineMsg.field_field1().field().value()[1].value(), origMsg.field1(1));
-        TS_ASSERT_EQUALS(mineMsg.field_field2().field().value()[0].value(), origMsg.field2(0));
-        TS_ASSERT_EQUALS(mineMsg.field_field2().field().value()[1].value(), origMsg.field2(1));
-        TS_ASSERT_EQUALS(mineMsg.field_field3().field().value()[0].value(), origMsg.field3(0));
-        TS_ASSERT_EQUALS(mineMsg.field_field3().field().value()[1].value(), origMsg.field3(1));
+        TS_ASSERT_EQUALS(mineField1.field_mem1().value(), origField1.mem1());
+        TS_ASSERT_EQUALS(mineField1.field_mem2().value(), origField1.mem2());
+        TS_ASSERT_EQUALS(mineField1_mem3.field_mem1().value(), origField1_mem3.mem1());
+        TS_ASSERT_EQUALS(mineField1_mem3.field_mem2().field().value(), origField1_mem3.mem2());
+        TS_ASSERT_EQUALS(mineField1.field_mem4().field().value(), origField1.mem4());
+        TS_ASSERT_EQUALS(mineField1.field_mem5().field().value(), origField1.mem5());
+        TS_ASSERT_EQUALS(mineField1.field_mem6().field().value(), origField1.mem6());
+        TS_ASSERT_EQUALS(mineField1_mem7.field_mem1().value(), origField1_mem7.mem1());
+        TS_ASSERT_EQUALS(mineField1_mem7.field_mem2().field().value(), origField1_mem7.mem2());
+
+        TS_ASSERT_EQUALS(mineField2.field_mem1().value(), origField2.mem1());
+        TS_ASSERT_EQUALS(mineField2.field_mem2().value(), origField2.mem2());
+        TS_ASSERT_EQUALS(mineField2_mem3.field_mem1().value(), origField2_mem3.mem1());
+        TS_ASSERT_EQUALS(mineField2_mem3.field_mem2().field().value(), origField2_mem3.mem2());
+        TS_ASSERT_EQUALS(mineField2.field_mem4().field().value(), origField2.mem4());
+        TS_ASSERT_EQUALS(mineField2.field_mem5().field().value(), origField2.mem5());
+        TS_ASSERT_EQUALS(mineField2.field_mem6().field().value(), origField2.mem6());
+        TS_ASSERT_EQUALS(mineField2_mem7.field_mem1().value(), origField2_mem7.mem1());
+        TS_ASSERT_EQUALS(mineField2_mem7.field_mem2().field().value(), origField2_mem7.mem2());
 
         TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength());
     }
 };
 
-void Test27Suite::test1()
+void Test28Suite::test1()
 {
     using TestMessage = test::common::MineMessageFull;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -112,7 +148,7 @@ void Test27Suite::test1()
     verifyOrig(msg, origMsg);
 }
 
-void Test27Suite::test2()
+void Test28Suite::test2()
 {
     using TestMessage = test::common::MineMessageFullOutput;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -132,7 +168,7 @@ void Test27Suite::test2()
     verifyOrig(msg, origMsg);
 }
 
-void Test27Suite::test3()
+void Test28Suite::test3()
 {
     using TestMessage = test::common::MineMessageEmpty;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -155,7 +191,7 @@ void Test27Suite::test3()
     TS_ASSERT_EQUALS(buf, otherBuf);
 }
 
-void Test27Suite::test4()
+void Test28Suite::test4()
 {
     using TestMessage = test::common::MineMessageFull;
     using TestMsg1 = MineMsg1<TestMessage>;
@@ -164,11 +200,15 @@ void Test27Suite::test4()
     auto msg = construct<TestMsg1>();
     msg.setVersion(1);
     msg.doRefresh();
-    TS_ASSERT_EQUALS(msg.getBlockLength(), 16U);
-    TS_ASSERT_EQUALS(msg.doLength(), 16U);
+    TS_ASSERT_EQUALS(msg.getBlockLength(), 6U);
+    TS_ASSERT_EQUALS(msg.doLength(), 6U);
     TS_ASSERT(msg.field_field1().doesExist());
-    TS_ASSERT(msg.field_field2().doesExist());
-    TS_ASSERT(msg.field_field3().isMissing());
+    TS_ASSERT(msg.field_field1().field().field_mem3().field_mem2().isMissing());
+    TS_ASSERT(msg.field_field1().field().field_mem4().isMissing());
+    TS_ASSERT(msg.field_field1().field().field_mem5().isMissing());
+    TS_ASSERT(msg.field_field1().field().field_mem6().isMissing());
+    TS_ASSERT(msg.field_field1().field().field_mem7().isMissing());
+    TS_ASSERT(msg.field_field2().isMissing());
 
     TestFrame frame;
     auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
@@ -178,15 +218,5 @@ void Test27Suite::test4()
     auto msg2 = test::common::readMsg(buf, frame);
     TS_ASSERT(msg2);
     test::common::verifyMine(msg, *msg2);
-
-    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
-    TS_ASSERT_EQUALS(msg.doLength(), origMsg.encodedLength());
-    TS_ASSERT_EQUALS(msg.field_field1().field().value()[0].value(), origMsg.field1(0));
-    TS_ASSERT_EQUALS(msg.field_field1().field().value()[1].value(), origMsg.field1(1));
-    TS_ASSERT_EQUALS(msg.field_field2().field().value()[0].value(), origMsg.field2(0));
-    TS_ASSERT_EQUALS(msg.field_field2().field().value()[1].value(), origMsg.field2(1));
-
-    TS_ASSERT_EQUALS(origMsg.field3(0), std::numeric_limits<std::uint32_t>::max());
-    TS_ASSERT_EQUALS(origMsg.field3(1), std::numeric_limits<std::uint32_t>::max());
 }
 

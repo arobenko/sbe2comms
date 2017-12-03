@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test28"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian"
+               version="5">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <composite name="Comp1" sinceVersion="1">
+            <type name="mem1" primitiveType="uint16" sinceVersion="1"/>
+            <ref name="mem2" type="UInt16_1" sinceVersion="1"/>
+            <ref name="mem3" type="Comp2" sinceVersion="1"/>
+            <type name="mem4" primitiveType="uint16" sinceVersion="2"/>
+            <ref name="mem5" type="UInt16_1" sinceVersion="2"/>
+            <ref name="mem6" type="UInt16_2" sinceVersion="2"/>
+            <ref name="mem7" type="Comp2" sinceVersion="3"/>
+        </composite>        
+        <composite name="Comp2" sinceVersion="1">
+            <type name="mem1" primitiveType="uint16" sinceVersion="1"/>
+            <type name="mem2" primitiveType="uint16" sinceVersion="2"/>
+        </composite>        
+        <type name="UInt16_1" primitiveType="uint16" />
+        <type name="UInt16_2" primitiveType="uint16" sinceVersion="2" />
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <field name="field1" id="11" type="Comp1" sinceVersion="1"/>
+        <field name="field2" id="12" type="Comp1" sinceVersion="2"/>
+    </message>
+</messageSchema>

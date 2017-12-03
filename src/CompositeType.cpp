@@ -325,6 +325,7 @@ bool CompositeType::prepareMembers()
     m_members.reserve(children.size());
     unsigned expOffset = 0U;
     unsigned padCount = 0;
+    auto thisSinceVersion = getSinceVersion();
     for (auto* c : children) {
         auto mem = Type::create(getDb(), c);
         if (!mem) {
@@ -341,6 +342,13 @@ bool CompositeType::prepareMembers()
         if (!mem->doesExist()) {
             continue;
         }
+
+        if (mem->getSinceVersion() < thisSinceVersion) {
+            log::error() << "Member \"" << mem->getName() << "\" of composite \"" << getName() << "\" has wrong sinceVersion information." << std::endl;
+            return false;
+        }
+
+        mem->setContainingCompositeVersion(thisSinceVersion);
 
         do {
             auto offset = mem->getOffset();
@@ -454,7 +462,9 @@ bool CompositeType::writeBundle(
     common::writeDetails(out, indent, getDescription());
     writeExtraOptsDoc(out, indent, extraOpts);
     writeExtraOptsTemplParams(out, indent, extraOpts);
-    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::memembersSuffixStr() << "::All<\n";
@@ -541,7 +551,9 @@ bool CompositeType::writeData(
     writeExtraOptsTemplParams(out, indent, allExtraOpts, true);
     auto& lenMem = *m_members[DataEncIdx_length];
     auto& dataMem = *m_members[DataEncIdx_data];
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    auto& suffix = common::getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+    out << output::indent(indent) << "using " << name << " = \n" <<
            output::indent(indent + 1) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<
            output::indent(indent + 2) << "comms::option::SequenceSerLengthFieldPrefix<\n" <<
            output::indent(indent + 3) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << '<' << OptPrefix << lengthExtraOpt << ">\n" <<
