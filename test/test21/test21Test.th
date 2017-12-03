@@ -176,7 +176,6 @@ void Test21Suite::test4()
     TS_ASSERT_EQUALS(msg.doLength(), origMsg.encodedLength())
     TS_ASSERT_EQUALS(msg.field_field1().value(), origMsg.field1());
     TS_ASSERT_EQUALS(msg.field_field2().field().value(), origMsg.field2());
-    TS_ASSERT_EQUALS(origMsg.field3(), std::numeric_limits<std::int16_t>::min());
-//    verifyOrig(msg, origMsg);
+    TS_ASSERT(!origMsg.field3InActingVersion());
 }
 

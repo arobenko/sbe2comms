@@ -214,6 +214,6 @@ void Test25Suite::test4()
     TS_ASSERT_EQUALS(msg.field_field4().field().value(), origMsg.field4());
     TS_ASSERT_EQUALS(msg.field_field5().field().value(), origMsg.field5());
     TS_ASSERT_EQUALS(msg.field_field6().field().value(), origMsg.field6());
-    TS_ASSERT_EQUALS(origMsg.field7(), std::numeric_limits<std::uint32_t>::max());
+    TS_ASSERT(!origMsg.field7InActingVersion());
 }
 
