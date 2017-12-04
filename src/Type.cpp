@@ -337,12 +337,17 @@ bool Type::writePluginProperties(std::ostream& out, unsigned indent, const std::
     std::string props;
     common::scopeToPropertyDefNames(scope, getName(), false, &type, &props);
 
+    auto nameStr = '\"' + getName() + '\"';
+    if (!scope.empty()) {
+        nameStr = common::fieldNameParamNameStr();
+    }
+
     out << output::indent(indent) << "using " << type << " = " <<
            common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getReferenceName()) <<
            "<>;\n" <<
            output::indent(indent) << "auto " << props << " = \n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << type << ">()\n" <<
-           output::indent(indent + 2) << ".name(" << getName() << ")\n" <<
+           output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
            output::indent(indent + 2) << ".uncheckable()\n" <<
            output::indent(indent + 2) << ".field(" << fieldProps << ".asMap());\n" <<
            output::indent(indent) << "return " << props << ";\n";
@@ -387,8 +392,13 @@ bool Type::writePluginPropertiesImpl(
     std::string fieldType;
     std::string props;
     scopeToPropertyDefNames(scope, &fieldType, &props);
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
     out << output::indent(indent) << "using " << fieldType << " = " <<
-           common::scopeFor(m_db.getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           common::scopeFor(m_db.getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
            "<>;\n" <<
            output::indent(indent) << "auto " << props << " = \n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">().name(";
@@ -400,7 +410,7 @@ bool Type::writePluginPropertiesImpl(
     }
     out << ");\n\n";
 
-    if (scope.empty()) {
+    if (scope.empty() && (!commsOptionalWrapped)) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
     }
     return true;

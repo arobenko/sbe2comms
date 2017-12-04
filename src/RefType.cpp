@@ -128,23 +128,23 @@ bool RefType::writePluginPropertiesImpl(
 {
     std::string fieldType;
     std::string props;
-    scopeToPropertyDefNames(scope, &fieldType, &props);
-    auto nameStr = '\"' + getName() + '\"';
-    if (scope.empty()) {
-        nameStr = common::fieldNameParamNameStr();
-    }
+
+    log::info() << scope << getName() << ": wrapped=" << isCommsOptionalWrapped() << "; typeWrapped=" << m_type->isCommsOptionalWrapped() << std::endl;
+    bool commsOptionalWrapped = isCommsOptionalWrapped() && (!m_type->isCommsOptionalWrapped());
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
 
     assert(m_type != nullptr);
     auto refPropsStr = "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
+    if ((!isCommsOptionalWrapped()) && (m_type->isCommsOptionalWrapped())) {
+        refPropsStr = "comms_champion::property::field::Optional(" + refPropsStr + ").field()";
+    }
+
     out << output::indent(indent) << "using " << fieldType << " = " <<
            common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
            "<>;\n" <<
            output::indent(indent) << fieldType << ' ' << props << "(" << refPropsStr << ");\n\n";
 
-    if (scope.empty()) {
-        out << output::indent(indent) << "return " << props << ".asMap();\n";
-    }
-
+    assert(!scope.empty());
     return true;
 }
 

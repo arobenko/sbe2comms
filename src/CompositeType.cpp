@@ -264,8 +264,12 @@ bool CompositeType::writePluginPropertiesImpl(
     std::string props;
     scopeToPropertyDefNames(scope, &fieldType, &props);
 
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
     out << output::indent(indent) << "using " << fieldType << " = " <<
-           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
            "<>;\n";
 
     auto subScope = scope + getName() + common::memembersSuffixStr() + "::";
@@ -284,13 +288,13 @@ bool CompositeType::writePluginPropertiesImpl(
         }
 
         std::string memProps;
-        common::scopeToPropertyDefNames(subScope, varDataMem->getName(), isCommsOptionalWrapped(), nullptr, &memProps);
+        common::scopeToPropertyDefNames(subScope, varDataMem->getName(), commsOptionalWrapped, nullptr, &memProps);
 
         out << output::indent(indent) << "auto " << props << " =\n" <<
                output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(" << memProps << ".asMap())\n" <<
                output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
 
-        if (scope.empty()) {
+        if (scope.empty() && (!commsOptionalWrapped)) {
             out << output::indent(indent) << "return " << props << ".asMap();\n";
         }
 
@@ -307,11 +311,11 @@ bool CompositeType::writePluginPropertiesImpl(
         }
 
         std::string memProps;
-        common::scopeToPropertyDefNames(subScope, m->getName(), isCommsOptionalWrapped(), nullptr, &memProps);
+        common::scopeToPropertyDefNames(subScope, m->getName(), m->isCommsOptionalWrapped(), nullptr, &memProps);
         out << output::indent(indent) << props << ".add(" << memProps << ".asMap());\n\n";
     }
 
-    if (scope.empty()) {
+    if (scope.empty() && (!commsOptionalWrapped)) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
     }
 
