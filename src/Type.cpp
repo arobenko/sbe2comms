@@ -350,7 +350,7 @@ bool Type::writePluginProperties(std::ostream& out, unsigned indent, const std::
            output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
            output::indent(indent + 2) << ".uncheckable()\n" <<
            output::indent(indent + 2) << ".field(" << fieldProps << ".asMap());\n" <<
-           output::indent(indent) << "return " << props << ";\n";
+           output::indent(indent) << "return " << props << ".asMap();\n";
 
     return true;
 }

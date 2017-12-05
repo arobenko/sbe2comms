@@ -75,9 +75,13 @@ public:
 
     unsigned getSchemaId() const;
 
+    const std::string& getPackageName() const;
+
     const std::string& getMessageHeaderType() const;
 
     unsigned getMinRemoteVersion() const;
+
+    const std::string& getCommsChampionTag() const;
 
     const std::string& getEndian() const;
 
@@ -126,6 +130,7 @@ private:
     bool processNamespace(const ProgramOptions& options);
     bool processForcedSchemaVersion(const ProgramOptions& options);
     bool processMinRemoteVersion(const ProgramOptions& options);
+    bool processCommsChampionTag(const ProgramOptions& options);
     bool processMessageSchema();
 
     XmlDocPtr m_doc;
@@ -141,8 +146,9 @@ private:
     std::string m_rootDir;
     std::string m_endian;
     std::string m_namespace;
-    unsigned m_schemaVersion;
-    unsigned m_minRemoteVersion;
+    unsigned m_schemaVersion = 0U;
+    unsigned m_minRemoteVersion = 0U;
+    std::string m_commsChampionTag;
 };
 
 } // namespace sbe2comms

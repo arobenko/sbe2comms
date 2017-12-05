@@ -153,8 +153,12 @@ bool CompositeType::parseImpl()
         return false;
     }
 
-    if ((isMessageHeader()) && (!checkMessageHeader())) {
-        return false;
+    if (isMessageHeader()) {
+        if (!checkMessageHeader()) {
+            return false;
+        }
+
+        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::emptyString(), common::msgIdFileName()));
     }
     
     ExtraIncludes inc;
@@ -281,17 +285,9 @@ bool CompositeType::writePluginPropertiesImpl(
     if (!isBundle()) {
         assert(dataUseRecorded());
         assert(DataEncIdx_numOfValues <= m_members.size());
-        auto& varDataMem = m_members[DataEncIdx_data];
-
-        if (!varDataMem->writePluginProperties(out, indent, subScope)) {
-            return false;
-        }
-
-        std::string memProps;
-        common::scopeToPropertyDefNames(subScope, varDataMem->getName(), commsOptionalWrapped, nullptr, &memProps);
 
         out << output::indent(indent) << "auto " << props << " =\n" <<
-               output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(" << memProps << ".asMap())\n" <<
+               output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
                output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
 
         if (scope.empty() && (!commsOptionalWrapped)) {

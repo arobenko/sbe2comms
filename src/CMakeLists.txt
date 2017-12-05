@@ -40,6 +40,7 @@ set (
     "prop.cpp"
     "output.cpp"
     "log.cpp"
+    "Cmake.cpp"
 )
 
 add_executable(${PROJECT_NAME} ${src})

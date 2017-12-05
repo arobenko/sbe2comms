@@ -147,6 +147,12 @@ unsigned DB::getSchemaId() const
     return m_messageSchema->id();
 }
 
+const std::string& DB::getPackageName() const
+{
+    assert(m_messageSchema);
+    return m_messageSchema->package();
+}
+
 const std::string& DB::getMessageHeaderType() const
 {
     assert(m_messageSchema);
@@ -156,6 +162,11 @@ const std::string& DB::getMessageHeaderType() const
 unsigned DB::getMinRemoteVersion() const
 {
     return m_minRemoteVersion;
+}
+
+const std::string& DB::getCommsChampionTag() const
+{
+    return m_commsChampionTag;
 }
 
 const std::string& DB::getEndian() const
@@ -465,6 +476,15 @@ bool DB::processForcedSchemaVersion(const ProgramOptions& options)
 bool DB::processMinRemoteVersion(const ProgramOptions& options)
 {
     m_minRemoteVersion = std::min(options.getMinRemoteVersion(), m_schemaVersion);
+    return true;
+}
+
+bool DB::processCommsChampionTag(const ProgramOptions& options)
+{
+    m_commsChampionTag = options.getCommsChampionTag();
+    if (m_commsChampionTag.empty()) {
+        return false;
+    }
     return true;
 }
 

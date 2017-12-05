@@ -18,29 +18,23 @@
 #pragma once
 
 #include <string>
-#include <iosfwd>
-#include <boost/program_options.hpp>
 
 namespace sbe2comms
 {
 
-class ProgramOptions
+class DB;
+class Cmake
 {
 public:
-    void parse(int argc, const char* argv[]);
-    static void printHelp(std::ostream& out);
+    Cmake(DB& db);
+    bool write();
 
-    bool helpRequested() const;
-    std::string getFile() const;
-    std::string getOutputDirectory() const;
-    bool hasNamespaceOverride() const;
-    std::string getNamespace() const;
-    bool hasForcedSchemaVersion() const;
-    unsigned getForcedSchemaVersion() const;
-    unsigned getMinRemoteVersion() const;
-    std::string getCommsChampionTag() const;
 private:
-    boost::program_options::variables_map m_vm;
+    bool writeMain();
+    bool writePlugin();
+
+    DB& m_db;
+    std::string m_name;
 };
 
 } // namespace sbe2comms

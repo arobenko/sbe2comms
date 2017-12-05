@@ -502,6 +502,12 @@ const std::string& fieldNameParamNameStr()
     return Str;
 }
 
+const std::string& cmakeListsFileName()
+{
+    static const std::string Str("CMakeLists.txt");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     if (std::numeric_limits<std::int32_t>::max() < val) {

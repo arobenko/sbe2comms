@@ -129,20 +129,19 @@ bool RefType::writePluginPropertiesImpl(
     std::string fieldType;
     std::string props;
 
-    log::info() << scope << getName() << ": wrapped=" << isCommsOptionalWrapped() << "; typeWrapped=" << m_type->isCommsOptionalWrapped() << std::endl;
-    bool commsOptionalWrapped = isCommsOptionalWrapped() && (!m_type->isCommsOptionalWrapped());
-    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
+    scopeToPropertyDefNames(scope, &fieldType, &props);
 
     assert(m_type != nullptr);
     auto refPropsStr = "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
-    if ((!isCommsOptionalWrapped()) && (m_type->isCommsOptionalWrapped())) {
+    if (m_type->isCommsOptionalWrapped()) {
         refPropsStr = "comms_champion::property::field::Optional(" + refPropsStr + ").field()";
     }
 
     out << output::indent(indent) << "using " << fieldType << " = " <<
            common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
            "<>;\n" <<
-           output::indent(indent) << fieldType << ' ' << props << "(" << refPropsStr << ");\n\n";
+           output::indent(indent) << "comms_champion::property::field::ForField<" << fieldType << "> " << props << "(\n" <<
+           output::indent(indent + 1) << refPropsStr << ");\n\n";
 
     assert(!scope.empty());
     return true;

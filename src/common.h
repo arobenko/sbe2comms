@@ -85,6 +85,7 @@ const std::string& padStr();
 const std::string& versionSetterStr();
 const std::string& versionSetterFileName();
 const std::string& fieldNameParamNameStr();
+const std::string& cmakeListsFileName();
 std::string num(std::intmax_t val);
 std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
