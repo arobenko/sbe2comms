@@ -151,7 +151,57 @@ bool GroupField::usesBuiltInTypeImpl() const
 bool GroupField::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
 {
     return writeMembersDefaultOptions(out, indent, scope) &&
-           Base::writeDefaultOptionsImpl(out, indent, scope);
+            Base::writeDefaultOptionsImpl(out, indent, scope);
+}
+
+bool GroupField::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptionalWrapped)
+{
+    std::string fieldType;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
+
+    auto bundleName = common::refName(getName(), common::elementSuffixStr());
+    auto bundleType = fieldType + '_' + common::elementSuffixStr();
+    auto bundleProps = props + '_' + common::elementSuffixStr();
+    auto subScope = scope + getName() + common::memembersSuffixStr() + "::";
+
+    out << output::indent(indent) << "using " << bundleType << " = " << scope << bundleName << ";\n" <<
+           output::indent(indent) << "comms_champion::property::field::ForField<" << bundleType << "> " << bundleProps << ";\n\n";
+
+    for (auto& m : m_members) {
+        if (!m->writePluginProperties(out, indent, subScope, false)) {
+            return false;
+        }
+
+        std::string mProps;
+        common::scopeToPropertyDefNames(subScope, m->getName(), m->isCommsOptionalWrapped(), nullptr, &mProps);
+        out << output::indent(indent) << bundleProps << ".add(" << mProps << ");\n\n";
+    }
+
+    auto* suffixPtr = &common::emptyString();
+    if (commsOptionalWrapped) {
+        suffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto name = common::refName(getName(), *suffixPtr);
+
+    out << output::indent(indent) << "using " << fieldType << " = " << scope << name << ";\n";
+
+    out << output::indent(indent) << "auto " << props << " =\n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".add(" << bundleProps << ".asMap())\n" <<
+           output::indent(indent + 2) << ".asMap();\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return true;
 }
 
 bool GroupField::prepareMembers()

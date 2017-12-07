@@ -217,7 +217,7 @@ bool BasicField::usesBuiltInTypeImpl() const
     return m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName());
 }
 
-Field::PluginPropsResult BasicField::writePluginPropertiesImpl(
+bool BasicField::writePluginPropertiesImpl(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -244,7 +244,7 @@ Field::PluginPropsResult BasicField::writePluginPropertiesImpl(
 
     log::error() << "Unexpected condition for field " << getName() << std::endl;
     assert(!"Not implemented");
-    return PluginPropsResult::Invalid;
+    return false;
 }
 
 bool BasicField::checkRequired() const
@@ -648,7 +648,7 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
     out << output::indent(indent) << "};\n\n";
 }
 
-Field::PluginPropsResult BasicField::writeBuiltinPluginProperties(
+bool BasicField::writeBuiltinPluginProperties(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
@@ -667,16 +667,18 @@ Field::PluginPropsResult BasicField::writeBuiltinPluginProperties(
     common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
     out << output::indent(indent) << "using " << fieldType << " = " << scope + name << ";\n" <<
            output::indent(indent) << "auto " << props << " = \n" <<
-           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType <<
-           ">().name(" << '\"' << getName() << "\");\n\n";
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << '\"' << getName() << "\")\n" <<
+           output::indent(indent + 2) << ".asMap();\n\n";
 
     if (returnResult) {
-        out << output::indent(indent) << "return " << props << ".asMap();\n";
+        out << output::indent(indent) << "return " << props << ";\n";
     }
-    return PluginPropsResult::PropsObj;
+
+    return true;
 }
 
-Field::PluginPropsResult BasicField::writeSimpleAliasPluginProperties(
+bool BasicField::writeSimpleAliasPluginProperties(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -702,10 +704,10 @@ Field::PluginPropsResult BasicField::writeSimpleAliasPluginProperties(
         out << output::indent(indent) << "return " << props << ";\n";
     }
 
-    return PluginPropsResult::VariantMap;
+    return true;
 }
 
-Field::PluginPropsResult BasicField::writeConstantPluginProperties(
+bool BasicField::writeConstantPluginProperties(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -737,16 +739,17 @@ Field::PluginPropsResult BasicField::writeConstantPluginProperties(
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
            output::indent(indent + 3) << typePropsStr << ")\n" <<
            output::indent(indent + 2) << ".serialisedHidden()\n" <<
-           output::indent(indent + 2) << ".readOnly();\n\n";
+           output::indent(indent + 2) << ".readOnly()\n" <<
+           output::indent(indent + 2) << ".asMap();\n\n";
 
     if (returnResult) {
-        out << output::indent(indent) << "return " << props << ".asMap();\n";
+        out << output::indent(indent) << "return " << props << ";\n";
     }
 
-    return PluginPropsResult::PropsObj;
+    return true;
 }
 
-Field::PluginPropsResult BasicField::writeOptionalPluginProperties(
+bool BasicField::writeOptionalPluginProperties(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -786,13 +789,14 @@ Field::PluginPropsResult BasicField::writeOptionalPluginProperties(
     out << output::indent(indent) << "auto " << props << " =\n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
            output::indent(indent + 3) << typePropsStr << ")\n" <<
-           output::indent(indent + 2) << ".add(\"" << common::enumNullValueStr() << "\", " << nullValueStr << ");\n\n";
+           output::indent(indent + 2) << ".add(\"" << common::enumNullValueStr() << "\", " << nullValueStr << ")\n" <<
+           output::indent(indent + 2) << ".asMap();\n\n";
 
     if (returnResult) {
-        out << output::indent(indent) << "return " << props << ".asMap();\n";
+        out << output::indent(indent) << "return " << props << ";\n";
     }
 
-    return PluginPropsResult::PropsObj;
+    return true;
 }
 
 

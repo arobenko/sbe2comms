@@ -107,7 +107,7 @@ bool DataField::usesBuiltInTypeImpl() const
     return false;
 }
 
-Field::PluginPropsResult DataField::writePluginPropertiesImpl(
+bool DataField::writePluginPropertiesImpl(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -133,7 +133,7 @@ Field::PluginPropsResult DataField::writePluginPropertiesImpl(
         out << output::indent(indent) << "return " << props << ";\n";
     }
 
-    return PluginPropsResult::VariantMap;
+    return true;
 }
 
 } // namespace sbe2comms

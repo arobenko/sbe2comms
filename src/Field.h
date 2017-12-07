@@ -117,12 +117,6 @@ public:
     }
 
 protected:
-    enum class PluginPropsResult
-    {
-        Invalid,
-        VariantMap,
-        PropsObj
-    };
 
     virtual Kind getKindImpl() const = 0;
     virtual unsigned getSinceVersionImpl() const;
@@ -132,12 +126,12 @@ protected:
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) = 0;
     virtual bool usesBuiltInTypeImpl() const = 0;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope);
-    virtual PluginPropsResult writePluginPropertiesImpl(
+    virtual bool writePluginPropertiesImpl(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
         bool returnResult,
-        bool commsOptionalWrapped);
+        bool commsOptionalWrapped) = 0;
 
     void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);
     static void writeOptions(std::ostream& out, unsigned indent);

@@ -35,12 +35,12 @@ protected:
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool usesBuiltInTypeImpl() const override;
-    virtual PluginPropsResult writePluginPropertiesImpl(
+    virtual bool writePluginPropertiesImpl(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
         bool returnResult,
-        bool commsOptionalWrapped);
+        bool commsOptionalWrapped) override;
 
 private:
     const Type* m_type = nullptr;

@@ -61,7 +61,7 @@ protected:
     virtual bool writePluginPropertiesImpl(
         std::ostream& out,
         unsigned indent,
-        const std::string& scope);
+        const std::string& scope) override;
 
 private:
     using AllExtraOptInfos = std::vector<ExtraOptInfosList>;
