@@ -118,9 +118,9 @@ bool CompositeType::isValidData() const
         {
             return t.getKind() == Kind::Basic &&
                    t.getLengthProp() == 1U &&
-                   t.isRequired();
+                   t.isRequired() &&
+                   (!t.isCommsOptionalWrapped());
         };
-    static_cast<void>(verifyLengthFunc);
 
     auto verifyDataFunc =
         [](const Type& t) -> bool
@@ -129,7 +129,6 @@ bool CompositeType::isValidData() const
                    t.getLengthProp() == 0U &&
                    t.isRequired();
         };
-    static_cast<void>(verifyDataFunc);
 
     return
         ((m_members.size() == DataEncIdx_numOfValues) &&

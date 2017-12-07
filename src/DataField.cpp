@@ -107,4 +107,33 @@ bool DataField::usesBuiltInTypeImpl() const
     return false;
 }
 
+Field::PluginPropsResult DataField::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptionalWrapped)
+{
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, nullptr, &props);
+
+    std::string typePropsStr =
+        common::pluginNamespaceStr() +
+        common::fieldNamespaceStr() +
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
+
+    if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
+        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
+    }
+
+    out << output::indent(indent) << "auto " << props << " =\n" <<
+           output::indent(indent + 1) << typePropsStr << ";\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return PluginPropsResult::VariantMap;
+}
+
 } // namespace sbe2comms
