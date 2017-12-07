@@ -33,7 +33,7 @@ namespace sbe2comms
 
 bool AllMessages::write()
 {
-    return writeProtocolDef();
+    return writeProtocolDef() && writePluginDef();
 }
 
 bool AllMessages::writeProtocolDef()
@@ -89,5 +89,51 @@ bool AllMessages::writeProtocolDef()
     common::writeProtocolNamespaceEnd(ns, out);
     return true;
 }
+
+bool AllMessages::writePluginDef()
+{
+    if (!common::createPluginDefDir(m_db.getRootPath())) {
+        return false;
+    }
+
+    auto relPath = common::pluginNamespaceNameStr() + '/' + common::allMessagesFileName();
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "#pragma once\n\n"
+           "#include <tuple>\n\n";
+
+    for (auto& m : m_db.getMessagesById()) {
+        out << "#include " << common::localHeader(common::pluginNamespaceNameStr(), common::messageNamespaceNameStr(), m.second->first + ".h") << '\n';
+    }
+
+    out << '\n';
+    auto& ns = m_db.getProtocolNamespace();
+    common::writePluginNamespaceBegin(ns, out);
+    out << "using " << common::allMessagesStr() << " =\n" <<
+           output::indent(1) << "std::tuple<\n";
+
+    auto& msgs = m_db.getMessagesById();
+    auto count = 0U;
+    for (auto& m : msgs) {
+        out << output::indent(2) << common::pluginNamespaceStr() << common::messageNamespaceStr() << m.second->first;
+        ++count;
+        if (count < msgs.size()) {
+            out << ',';
+        }
+        out << '\n';
+    }
+
+    out << output::indent(1) << ">;\n\n";
+
+    common::writePluginNamespaceEnd(ns, out);
+    return true;
+}
+
 
 } // namespace sbe2comms
