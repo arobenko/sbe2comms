@@ -43,7 +43,7 @@ protected:
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool usesBuiltInTypeImpl() const override;
-    virtual bool writePluginPropertiesImpl(
+    virtual PluginPropsResult writePluginPropertiesImpl(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
@@ -66,25 +66,25 @@ private:
     void writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name);
-    void writeBuiltinPluginProperties(
+    PluginPropsResult writeBuiltinPluginProperties(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
         bool returnResult,
         bool commsOptionalWrapped);
-    void writeSimpleAliasPluginProperties(
+    PluginPropsResult writeSimpleAliasPluginProperties(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
         bool returnResult,
         bool commsOptionalWrapped);
-    void writeConstantPluginProperties(
+    PluginPropsResult writeConstantPluginProperties(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
         bool returnResult,
         bool commsOptionalWrapped);
-    void writeOptionalPluginProperties(
+    PluginPropsResult writeOptionalPluginProperties(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,

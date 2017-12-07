@@ -217,7 +217,7 @@ bool BasicField::usesBuiltInTypeImpl() const
     return m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName());
 }
 
-bool BasicField::writePluginPropertiesImpl(
+Field::PluginPropsResult BasicField::writePluginPropertiesImpl(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -226,29 +226,25 @@ bool BasicField::writePluginPropertiesImpl(
 {
     assert(m_type != nullptr);
     if (m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName())) {
-        writeBuiltinPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
-        return true;
+        return writeBuiltinPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
     }
 
     if (isSimpleAlias()) {
-        writeSimpleAliasPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
-        return true;
+        return writeSimpleAliasPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
     }
 
     if (isConstant()) {
-        writeConstantPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
-        return true;
+        return writeConstantPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
     }
 
     if (isOptional()) {
-        writeOptionalPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
-        return true;
+        return writeOptionalPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
     }
 
 
     log::error() << "Unexpected condition for field " << getName() << std::endl;
     assert(!"Not implemented");
-    return false;
+    return PluginPropsResult::Invalid;
 }
 
 bool BasicField::checkRequired() const
@@ -652,7 +648,7 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
     out << output::indent(indent) << "};\n\n";
 }
 
-void BasicField::writeBuiltinPluginProperties(
+Field::PluginPropsResult BasicField::writeBuiltinPluginProperties(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
@@ -677,9 +673,10 @@ void BasicField::writeBuiltinPluginProperties(
     if (returnResult) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
     }
+    return PluginPropsResult::PropsObj;
 }
 
-void BasicField::writeSimpleAliasPluginProperties(
+Field::PluginPropsResult BasicField::writeSimpleAliasPluginProperties(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -695,7 +692,7 @@ void BasicField::writeSimpleAliasPluginProperties(
         "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
 
     if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
-        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field().asMap()";
+        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
     }
 
     out << output::indent(indent) << "auto " << props << " =\n" <<
@@ -704,9 +701,11 @@ void BasicField::writeSimpleAliasPluginProperties(
     if (returnResult) {
         out << output::indent(indent) << "return " << props << ";\n";
     }
+
+    return PluginPropsResult::VariantMap;
 }
 
-void BasicField::writeConstantPluginProperties(
+Field::PluginPropsResult BasicField::writeConstantPluginProperties(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -731,7 +730,7 @@ void BasicField::writeConstantPluginProperties(
         "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
 
     if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
-        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field().asMap()";
+        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
     }
 
     out << output::indent(indent) << "auto " << props << " =\n" <<
@@ -743,9 +742,11 @@ void BasicField::writeConstantPluginProperties(
     if (returnResult) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
     }
+
+    return PluginPropsResult::PropsObj;
 }
 
-void BasicField::writeOptionalPluginProperties(
+Field::PluginPropsResult BasicField::writeOptionalPluginProperties(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -754,8 +755,7 @@ void BasicField::writeOptionalPluginProperties(
 {
     assert(m_type != nullptr);
     if (m_type->getKind() != Type::Kind::Enum) {
-        writeSimpleAliasPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
-        return;
+        return writeSimpleAliasPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
     }
 
     std::string fieldType;
@@ -776,7 +776,7 @@ void BasicField::writeOptionalPluginProperties(
         "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
 
     if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
-        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field().asMap()";
+        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
     }
 
     auto* enumType = static_cast<const EnumType*>(m_type);
@@ -786,11 +786,13 @@ void BasicField::writeOptionalPluginProperties(
     out << output::indent(indent) << "auto " << props << " =\n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
            output::indent(indent + 3) << typePropsStr << ")\n" <<
-           output::indent(indent + 2) << ".add(" << common::enumNullValueStr() << ", " << nullValueStr << ");\n\n";
+           output::indent(indent + 2) << ".add(\"" << common::enumNullValueStr() << "\", " << nullValueStr << ");\n\n";
 
     if (returnResult) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
     }
+
+    return PluginPropsResult::PropsObj;
 }
 
 

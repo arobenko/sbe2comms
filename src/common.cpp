@@ -232,6 +232,7 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("unsigned"),
         makePairFunc("using"),
         makePairFunc("valid"),
+        makePairFunc("value"),
         makePairFunc("virtual"),
         makePairFunc("void"),
         makePairFunc("volatile"),

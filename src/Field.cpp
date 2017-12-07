@@ -152,6 +152,7 @@ bool Field::writePluginProperties(
 
         if (isForcedCommsOptionalImpl()) {
             wrapProps = true;
+            break;
         }
 
         wrapProps = (getReferencedTypeSinceVersionImpl() <= m_db.getMinRemoteVersion());
@@ -159,7 +160,8 @@ bool Field::writePluginProperties(
 
     bool fieldsReturnResult = returnResult && (!wrapProps);
 
-    if (!writePluginPropertiesImpl(out, indent, scope, fieldsReturnResult, wrapProps)) {
+    auto result = writePluginPropertiesImpl(out, indent, scope, fieldsReturnResult, wrapProps);
+    if (result == PluginPropsResult::Invalid) {
         return false;
     }
 
@@ -176,15 +178,19 @@ bool Field::writePluginProperties(
     common::scopeToPropertyDefNames(scope, getName(), false, &type, &props);
 
     auto nameStr = '\"' + getName() + '\"';
+    std::string propsSuffix;
+    if (result == PluginPropsResult::PropsObj) {
+        propsSuffix = ".asMap()";
+    }
 
     out << output::indent(indent) << "using " << type << " = " <<
-           common::scopeFor(getDb().getProtocolNamespace(), common::messageNamespaceStr() + scope + getReferenceName()) <<
+           scope + getReferenceName() <<
            ";\n" <<
            output::indent(indent) << "auto " << props << " = \n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << type << ">()\n" <<
            output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
            output::indent(indent + 2) << ".uncheckable()\n" <<
-           output::indent(indent + 2) << ".field(" << fieldProps << ".asMap());\n";
+           output::indent(indent + 2) << ".field(" << fieldProps << propsSuffix << ");\n";
 
     if (returnResult) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
@@ -274,7 +280,7 @@ bool Field::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const st
     return true;
 }
 
-bool Field::writePluginPropertiesImpl(
+Field::PluginPropsResult Field::writePluginPropertiesImpl(
     std::ostream& out,
     unsigned indent,
     const std::string& scope,
@@ -282,13 +288,15 @@ bool Field::writePluginPropertiesImpl(
     bool commsOptionalWrapped)
 {
     // TODO: remove
-    static_cast<void>(out);
-    static_cast<void>(indent);
-    static_cast<void>(scope);
-    static_cast<void>(returnResult);
-    static_cast<void>(commsOptionalWrapped);
-    out << output::indent(indent) << "return QVariantMap();\n";
-    return true;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, nullptr, &props);
+    out << output::indent(indent) << "auto " << props << " = QVariantMap();\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return PluginPropsResult::VariantMap;
 }
 
 
