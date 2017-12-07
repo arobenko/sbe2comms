@@ -130,7 +130,7 @@ protected:
         unsigned indent,
         const std::string& scope,
         bool returnResult,
-        bool commsOptional);
+        bool commsOptionalWrapped);
 
     void writeHeader(std::ostream& out, unsigned indent, const std::string& suffix);
     static void writeOptions(std::ostream& out, unsigned indent);

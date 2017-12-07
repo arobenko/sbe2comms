@@ -126,7 +126,11 @@ bool MsgInterface::writePluginHeader()
     common::writePluginNamespaceBegin(m_db.getProtocolNamespace(), out);
 
     auto protMsgScope = common::scopeFor(ns, common::msgInterfaceStr());
-    out << "using Message = comms_champion::MessageBase<" << protMsgScope << ", TOptions...>;\n\n";
+    out << "template <typename... TOptions>\n"
+           "class MessageT : public comms_champion::MessageBase<" << protMsgScope << "T, TOptions...>\n"
+           "{\n"
+           "};\n\n"
+           "using Message = MessageT<>;\n\n";
     common::writePluginNamespaceEnd(m_db.getProtocolNamespace(), out);
     return true;
 }

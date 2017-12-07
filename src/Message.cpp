@@ -692,14 +692,14 @@ bool Message::writePluginHeader()
         return false;
     }
 
+    auto& protNs = m_db.getProtocolNamespace();
     out << "#pragma once\n\n"
            "#include \"comms_champion/comms_champion.h\"\n"
            "#include \"cc_plugin/" << common::msgInterfaceFileName() << "\"\n"
-           "#include " << common::localHeader(ns, common::messageNamespaceNameStr(), getName() + ".h") << "\n\n";
+           "#include " << common::localHeader(protNs, common::messageNamespaceNameStr(), getName() + ".h") << "\n\n";
 
     openPluginNamespaces(out, m_db);
 
-    auto& protNs = m_db.getProtocolNamespace();
     auto protMsgScope = common::scopeFor(protNs, common::messageNamespaceStr() + getName());
     auto pluginInterfaceScope = common::scopeFor(protNs, common::pluginNamespaceStr() + common::msgInterfaceStr());
 

@@ -48,7 +48,7 @@ protected:
         unsigned indent,
         const std::string& scope,
         bool returnResult,
-        bool commsOptional) override;
+        bool commsOptionalWrapped) override;
 
 private:
     bool checkRequired() const;
@@ -70,13 +70,26 @@ private:
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
-        bool returnResult);
+        bool returnResult,
+        bool commsOptionalWrapped);
     void writeSimpleAliasPluginProperties(
         std::ostream& out,
         unsigned indent,
         const std::string& scope,
         bool returnResult,
-        bool commsOptional);
+        bool commsOptionalWrapped);
+    void writeConstantPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped);
+    void writeOptionalPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped);
 
     const Type* m_type = nullptr;
     bool m_generatedPadding = false;

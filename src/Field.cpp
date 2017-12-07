@@ -143,7 +143,53 @@ bool Field::writePluginProperties(
     const std::string& scope,
     bool returnResult)
 {
-    return writePluginPropertiesImpl(out, indent, scope, returnResult, !getDefaultOptMode().empty());
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    bool wrapProps = commsOptionalWrapped;
+    do {
+        if (!commsOptionalWrapped) {
+            break;
+        }
+
+        if (isForcedCommsOptionalImpl()) {
+            wrapProps = true;
+        }
+
+        wrapProps = (getReferencedTypeSinceVersionImpl() <= m_db.getMinRemoteVersion());
+    } while (false);
+
+    bool fieldsReturnResult = returnResult && (!wrapProps);
+
+    if (!writePluginPropertiesImpl(out, indent, scope, fieldsReturnResult, wrapProps)) {
+        return false;
+    }
+
+    if (!wrapProps) {
+        return true;
+    }
+
+    assert(commsOptionalWrapped);
+    std::string fieldProps;
+    common::scopeToPropertyDefNames(scope, getName(), true, nullptr, &fieldProps);
+
+    std::string type;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), false, &type, &props);
+
+    auto nameStr = '\"' + getName() + '\"';
+
+    out << output::indent(indent) << "using " << type << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::messageNamespaceStr() + scope + getReferenceName()) <<
+           ";\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << type << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
+           output::indent(indent + 2) << ".uncheckable()\n" <<
+           output::indent(indent + 2) << ".field(" << fieldProps << ".asMap());\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+    return true;
 }
 
 bool Field::hasPresence() const
@@ -228,19 +274,20 @@ bool Field::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const st
     return true;
 }
 
-bool Field::writePluginPropertiesImpl(std::ostream& out,
+bool Field::writePluginPropertiesImpl(
+    std::ostream& out,
     unsigned indent,
     const std::string& scope,
     bool returnResult,
-    bool commsOptional)
+    bool commsOptionalWrapped)
 {
     // TODO: remove
     static_cast<void>(out);
     static_cast<void>(indent);
     static_cast<void>(scope);
     static_cast<void>(returnResult);
-    static_cast<void>(commsOptional);
-    out << output::indent(indent) << "// TODO\n";
+    static_cast<void>(commsOptionalWrapped);
+    out << output::indent(indent) << "return QVariantMap();\n";
     return true;
 }
 

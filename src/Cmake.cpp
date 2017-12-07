@@ -247,8 +247,13 @@ bool Cmake::writePlugin()
            "function (cc_plugin_all_messages)\n" <<
            output::indent(1) << "set (name \"${ALL_MESSAGES_LIB}\")\n\n" <<
            output::indent(1) << "set (src\n" <<
-           output::indent(2) << common::fieldDefFileName() << '\n' <<
-           output::indent(1) << ")\n\n" <<
+           output::indent(2) << common::fieldDefFileName() << '\n';
+    auto& msgs = m_db.getMessagesById();
+    for (auto& m : msgs) {
+        assert(m.second != m_db.getMessages().end());
+        out << output::indent(2) << common::messageDirName() << '/' << m.second->first << ".cpp\n";
+    }
+    out << output::indent(1) << ")\n\n" <<
            output::indent(1) << "add_library (${name} STATIC ${src})\n" <<
            output::indent(1) << "target_link_libraries (${name} ${CC_PLUGIN_LIBRARIES})\n" <<
            output::indent(1) << "qt5_use_modules(${name} Core)\n"
