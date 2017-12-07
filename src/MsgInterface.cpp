@@ -119,19 +119,17 @@ bool MsgInterface::writePluginHeader()
         return false;
     }
 
+    auto& protNs = m_db.getProtocolNamespace();
     out << "#pragma once\n\n"
            "#include \"comms_champion/comms_champion.h\"\n"
-           "#include " << common::localHeader(ns, std::string(), common::msgInterfaceFileName()) << "\n\n";
+           "#include " << common::localHeader(protNs, std::string(), common::msgInterfaceFileName()) << "\n\n";
 
-    common::writePluginNamespaceBegin(m_db.getProtocolNamespace(), out);
+    common::writePluginNamespaceBegin(protNs, out);
 
-    auto protMsgScope = common::scopeFor(ns, common::msgInterfaceStr());
+    auto protMsgScope = common::scopeFor(protNs, common::msgInterfaceStr());
     out << "template <typename... TOptions>\n"
-           "class MessageT : public comms_champion::MessageBase<" << protMsgScope << "T, TOptions...>\n"
-           "{\n"
-           "};\n\n"
-           "using Message = MessageT<>;\n\n";
-    common::writePluginNamespaceEnd(m_db.getProtocolNamespace(), out);
+           "using " <<  common::msgInterfaceStr() << " = comms_champion::MessageBase<" << protMsgScope << ", TOptions...>;\n\n";
+    common::writePluginNamespaceEnd(protNs, out);
     return true;
 }
 

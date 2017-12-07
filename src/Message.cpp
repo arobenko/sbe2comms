@@ -705,7 +705,7 @@ bool Message::writePluginHeader()
 
     out << "class " << getReferenceName() << " : public\n" <<
            output::indent(1) << "comms_champion::ProtocolMessageBase<\n" <<
-           output::indent(2) << protMsgScope << '<' << pluginInterfaceScope << ">,\n" <<
+           output::indent(2) << protMsgScope << '<' << pluginInterfaceScope << "<> >,\n" <<
            output::indent(2) << getReferenceName() << ">\n" <<
            "{\n"
            "protected:\n" <<
@@ -744,7 +744,7 @@ bool Message::writePluginSrc()
            "{\n\n";
 
     static const std::string createFieldPropsFuncPrefix("createFieldProps_");
-    auto relScope = common::messageNamespaceStr() + getName() + common::memembersSuffixStr() + "<>::";
+    auto relScope = common::messageNamespaceStr() + getName() + common::fieldsSuffixStr() + "<>::";
     auto scope = common::scopeFor(m_db.getProtocolNamespace(), relScope);
     for (auto& f : m_fields) {
         out << "QVariantMap " << createFieldPropsFuncPrefix << f->getName() << "()\n"
