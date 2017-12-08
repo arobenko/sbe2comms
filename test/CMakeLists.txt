@@ -35,7 +35,8 @@ function (test_func name)
         OUTPUT ${mine_output_dir}.tmp
         DEPENDS ${schema_file} ${PROJECT_NAME}
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${mine_output_dir}.tmp
-        COMMAND $<TARGET_FILE:${PROJECT_NAME}> -o ${mine_output_dir}.tmp -n "mine" ${schema_file}
+        COMMAND $<TARGET_FILE:${PROJECT_NAME}> -o ${mine_output_dir}.tmp -n "mine"
+            --sofh-name=openFramingHeader ${schema_file}
     )
 
     set (orig_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${name}/orig)

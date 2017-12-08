@@ -72,7 +72,7 @@ Type::Type(DB& db, xmlNodePtr node)
   : m_db(db),
     m_node(node)
 {
-    m_props = xmlParseNodeProps(m_node, getDb().getDoc());
+    updateNodeProperties();
 }
 
 Type::~Type() noexcept = default;
@@ -360,6 +360,11 @@ bool Type::isCommsOptionalWrapped() const
     return !getDefaultOptMode().empty();
 }
 
+void Type::updateNodeProperties()
+{
+    m_props = xmlParseNodeProps(m_node, getDb().getDoc());
+}
+
 bool Type::parseImpl()
 {
     return true;
@@ -536,6 +541,16 @@ const std::string& Type::getNameSuffix(bool commsOptionalWrapped, bool isElement
     }
 
     return common::emptyString();
+}
+
+const std::string& Type::getFieldBaseString() const
+{
+    if (m_forcedBigEndianBase) {
+        static const std::string Str("comms::Field<comms::option::BigEndian>");
+        return Str;
+    }
+
+    return common::fieldBaseStr();
 }
 
 const std::string& Type::getDefaultOptMode() const

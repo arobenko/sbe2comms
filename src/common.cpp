@@ -425,6 +425,18 @@ const std::string& versionStr()
     return Str;
 }
 
+const std::string& messageLengthStr()
+{
+    static const std::string Str("messageLength");
+    return Str;
+}
+
+const std::string& encodingTypeStr()
+{
+    static const std::string Str("encodingType");
+    return Str;
+}
+
 const std::string& msgIdEnumName()
 {
     static const std::string Str("MsgId");

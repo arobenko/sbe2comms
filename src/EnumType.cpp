@@ -292,7 +292,7 @@ void EnumType::writeSingle(
     if (asType) {
         out << output::indent(indent) << "struct " << name << " : public\n" <<
                output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
-               output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+               output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
                output::indent(indent + 2) << enumName << ",\n" <<
                output::indent(indent + 2) << "TOpt...";
         writeDefaultValueFunc(indent + 2);
@@ -307,7 +307,7 @@ void EnumType::writeSingle(
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << enumName << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeDefaultValueFunc(indent + 2);
@@ -365,7 +365,7 @@ void EnumType::writeList(
     auto name = common::refName(getName(), suffix);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << common::refName(getName(), common::elementSuffixStr()) << "<>,\n" <<
            output::indent(indent + 2) << "TOpt...";
     if (count != 0U) {

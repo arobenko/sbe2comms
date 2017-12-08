@@ -52,6 +52,11 @@ public:
     Type(DB& db, xmlNodePtr node);
     virtual ~Type() noexcept;
 
+    xmlNodePtr getNode() const
+    {
+        return m_node;
+    }
+
     bool parse();
     bool doesExist();
 
@@ -130,14 +135,17 @@ public:
     {
         m_containingCompositeVersion = version;
     }
+
+    void setForcedBigEndianBase()
+    {
+        m_forcedBigEndianBase = true;
+    }
     
     bool isCommsOptionalWrapped() const;
 
+    void updateNodeProperties();
+
 protected:
-    xmlNodePtr getNode() const
-    {
-        return m_node;
-    }
 
     DB& getDb()
     {
@@ -186,6 +194,7 @@ protected:
         std::string* fieldType,
         std::string* propsName);
     static const std::string& getNameSuffix(bool commsOptionalWrapped, bool isElement);
+    const std::string& getFieldBaseString() const;
 private:
     const std::string& getDefaultOptMode() const;
 
@@ -195,6 +204,7 @@ private:
     ExtraIncludes m_extraIncludes;
     std::vector<std::string> m_extraOptions;
     unsigned m_containingCompositeVersion = 0U;
+    bool m_forcedBigEndianBase = false;
 };
 
 using TypePtr = Type::Ptr;

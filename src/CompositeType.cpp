@@ -141,6 +141,11 @@ bool CompositeType::isBundle() const
     return !dataUseRecorded();
 }
 
+bool CompositeType::isOpenFramingHeader() const
+{
+    return (getName() == getDb().getSimpleOpenFramingHeaderTypeName());
+}
+
 CompositeType::Kind CompositeType::getKindImpl() const
 {
     return Kind::Composite;
@@ -158,6 +163,10 @@ bool CompositeType::parseImpl()
         }
 
         addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::emptyString(), common::msgIdFileName()));
+    }
+
+    if ((isOpenFramingHeader()) && (!checkOpenFramingHeader())) {
+        return false;
     }
     
     ExtraIncludes inc;
@@ -465,7 +474,7 @@ bool CompositeType::writeBundle(
     auto name = common::refName(getName(), suffix);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << getName() << common::memembersSuffixStr() << "::All<\n";
     for (auto& o : extraOpts) {
         for (auto& internalO : o) {
@@ -741,5 +750,148 @@ bool CompositeType::checkMessageHeader()
     asEnumType(*templateIdTypePtr).setMessageId();
     return true;
 }
+
+bool CompositeType::checkOpenFramingHeader()
+{
+    assert(isOpenFramingHeader());
+    if (m_members.size() != 2U) {
+        log::error() << "Simple Open Framing Header \"" << getName() << "\" is expected to have only 2 member types." << std::endl;
+        return false;
+    }
+
+    auto checkNameFunc =
+        [this](const std::string& name)
+        {
+            bool result =
+                std::any_of(
+                    m_members.begin(), m_members.end(),
+                    [&name](Members::const_reference m)
+                    {
+                        return m->getName() == name;
+                    });
+            if (!result) {
+                log::error() << "Simple Open Framing Header composite \"" << getName() << "\" doesn't have member called \"" << name << "\"." << std::endl;
+            }
+            return result;
+        };
+
+    if ((!checkNameFunc(common::messageLengthStr())) ||
+        (!checkNameFunc(common::encodingTypeStr()))) {
+        return false;
+    }
+
+    for (auto& m : m_members) {
+        if (m->getKind() != Type::Kind::Basic) {
+            log::warning() << "The member \"" << m->getName() << "\" of Simple Open Framing Header composite \"" << getName() << "\" " <<
+                            "is not of basic type";
+            return false;
+        }
+
+        if (m->getLengthProp() != 1) {
+            log::error() << "The member \"" << m->getName() << "\" of Simple Open Framing Header composite \"" << getName() << "\" " <<
+                            "must have length property equal to 1.";
+            return false;
+        }
+
+        if (!asBasicType(m.get())->isIntType()) {
+            return false;
+        }
+    }
+
+    auto findMemberFunc =
+        [this](const std::string& name)
+        {
+            return std::find_if(
+                m_members.begin(), m_members.end(),
+                [&name](Members::const_reference m)
+                {
+                    return m->getName() == name;
+                });
+
+        };
+
+    auto messageLengthIter = findMemberFunc(common::messageLengthStr());
+    assert(messageLengthIter != m_members.end());
+    auto& messageLengthTypePtr = *messageLengthIter;
+    assert(messageLengthTypePtr);
+
+    auto encTypeIter = findMemberFunc(common::encodingTypeStr());
+    assert(encTypeIter != m_members.end());
+    auto& encTypeTypePtr = *encTypeIter;
+    assert(encTypeTypePtr);
+
+    auto encTypeLength = encTypeTypePtr->getSerializationLength();
+    if (encTypeLength != 2U) {
+        log::error() << "The member \"" << common::encodingTypeStr() << "\" of Simple Open Framing Header composite \"" <<
+                        getName() << "\" is expected to have 2 bytes serialization length." << std::endl;
+        return false;
+    }
+
+
+    auto extraSerLength =
+        messageLengthTypePtr->getSerializationLength() +
+        encTypeLength;
+
+    messageLengthTypePtr->addExtraOption("comms::option::NumValueSerOffset<" + common::num(extraSerLength) + '>');
+
+    std::uintmax_t sync = 0x5be0;
+    if (ba::ends_with(getDb().getEndian(), "LittleEndian")) {
+        sync = 0xeb50;
+    }
+
+    auto syncStr = common::num(sync);
+
+    auto& encTypeProps = encTypeTypePtr->getProps();
+    auto& minValueStr = prop::minValue(encTypeProps);
+    auto& maxValueStr = prop::maxValue(encTypeProps);
+
+    do {
+        if (minValueStr.empty()) {
+            xmlSetMinValueProp(encTypeTypePtr->getNode(), syncStr);
+            break;
+        }
+
+        unsigned minValue = 0U;
+        try {
+            minValue = static_cast<unsigned>(std::stoul(minValueStr));
+        }
+        catch (...) {
+            // do nothing;
+        }
+
+        if (minValue != sync) {
+            log::error() << "Invalid minValue attribute of \"" << encTypeTypePtr->getName() << "\" member of Simple Open Frame Header." << std::endl;
+            return false;
+        }
+
+    } while (false);
+
+    do {
+        if (maxValueStr.empty()) {
+            xmlSetMaxValueProp(encTypeTypePtr->getNode(), syncStr);
+            break;
+        }
+
+        unsigned maxValue = 0U;
+        try {
+            maxValue = static_cast<unsigned>(std::stoul(maxValueStr));
+        }
+        catch (...) {
+            // do nothing;
+        }
+
+        if (maxValue != sync) {
+            log::error() << "Invalid maxValue attribute of \"" << encTypeTypePtr->getName() << "\" member of Simple Open Frame Header." << std::endl;
+            return false;
+        }
+
+    } while (false);
+
+    encTypeTypePtr->updateNodeProperties();
+    encTypeTypePtr->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
+
+    return true;
+}
+
 
 } // namespace sbe2comms

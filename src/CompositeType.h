@@ -50,6 +50,8 @@ public:
         return m_members;
     }
 
+    bool isOpenFramingHeader() const;
+
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
@@ -80,6 +82,7 @@ private:
         bool hasExtraOptions = false);
     bool isMessageHeader() const;
     bool checkMessageHeader();
+    bool checkOpenFramingHeader();
 
     Members m_members;
     bool m_dataUse = false;

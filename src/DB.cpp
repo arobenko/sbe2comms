@@ -122,6 +122,8 @@ bool DB::parseSchema(const ProgramOptions& options)
         }
     }
 
+    checkOpenFramingHeader();
+
     return true;
 }
 
@@ -157,6 +159,11 @@ const std::string& DB::getMessageHeaderType() const
 {
     assert(m_messageSchema);
     return m_messageSchema->headerType();
+}
+
+const std::string& DB::getSimpleOpenFramingHeaderTypeName() const
+{
+    return m_openFramingHeaderName;
 }
 
 unsigned DB::getMinRemoteVersion() const
@@ -416,7 +423,10 @@ bool DB::processOptions(const ProgramOptions& options)
     return
         processOutputDirectory(options) &&
         processNamespace(options) &&
-        processForcedSchemaVersion(options);
+        processForcedSchemaVersion(options) &&
+        processMinRemoteVersion(options) &&
+        processCommsChampionTag(options) &&
+        processOpenFramingHeader(options);
 }
 
 bool DB::processOutputDirectory(const ProgramOptions& options)
@@ -488,6 +498,12 @@ bool DB::processCommsChampionTag(const ProgramOptions& options)
     return true;
 }
 
+bool DB::processOpenFramingHeader(const ProgramOptions& options)
+{
+    m_openFramingHeaderName = options.getOpenFramingHeaderName();
+    return true;
+}
+
 bool DB::processMessageSchema()
 {
     assert(m_messageSchema);
@@ -501,6 +517,19 @@ bool DB::processMessageSchema()
         m_endian = "comms::option::LittleEndian";
     }
     return true;
+}
+
+void DB::checkOpenFramingHeader()
+{
+    auto& name = getSimpleOpenFramingHeaderTypeName();
+    if (name.empty()) {
+        return;
+    }
+
+    auto* type = findType(name);
+    if (type == nullptr) {
+        log::warning() << "The Simple Open Framing Header \"" << name << "\" composite type does NOT exist, ignoring..." << std::endl;
+    }
 }
 
 } // namespace sbe2comms

@@ -72,6 +72,8 @@ const std::string& groupListStr();
 const std::string& templateIdStr();
 const std::string& schemaIdStr();
 const std::string& versionStr();
+const std::string& messageLengthStr();
+const std::string& encodingTypeStr();
 const std::string& msgIdEnumName();
 const std::string& messageHeaderLayerFileName();
 const std::string& messageHeaderLayerStr();

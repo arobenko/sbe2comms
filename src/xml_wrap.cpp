@@ -195,5 +195,20 @@ XmlNodePtr xmlEnumValidValue(
     return ptr;
 }
 
+void xmlSetMinValueProp(xmlNodePtr node, const std::string& minValueVal)
+{
+    static const std::string minValueStr("minValue");
+    auto* minValueStrPtr = reinterpret_cast<const xmlChar*>(minValueStr.c_str());
+    auto* minValueValPtr = reinterpret_cast<const xmlChar*>(minValueVal.c_str());
+    xmlNewProp(node, minValueStrPtr, minValueValPtr);
+}
+
+void xmlSetMaxValueProp(xmlNodePtr node, const std::string& maxValueVal)
+{
+    static const std::string maxValueStr("maxValue");
+    auto* maxValueStrPtr = reinterpret_cast<const xmlChar*>(maxValueStr.c_str());
+    auto* maxValueValPtr = reinterpret_cast<const xmlChar*>(maxValueVal.c_str());
+    xmlNewProp(node, maxValueStrPtr, maxValueValPtr);
+}
 
 } // namespace sbe2comms

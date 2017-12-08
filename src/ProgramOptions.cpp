@@ -38,7 +38,8 @@ const std::string FullForceVerStr(ForceVerStr + ",V");
 const std::string MinRemoteVerStr("min-remote-version");
 const std::string FullMinRemoteVerStr(MinRemoteVerStr + ",m");
 const std::string InputFileStr("input-file");
-const std::string CommsChampionTagStr("commschampion-tag");
+const std::string CommsChampionTagStr("cc-tag");
+const std::string OpenFrameHeaderNameStr("sofh-name");
 
 po::options_description createDescription()
 {
@@ -55,7 +56,8 @@ po::options_description createDescription()
             "Set minimal supported remote version. Defaults to 0.")
         (CommsChampionTagStr.c_str(), po::value<std::string>()->default_value("master"),
             "Default tag/branch of the CommsChampion project.")
-
+        (OpenFrameHeaderNameStr.c_str(), po::value<std::string>()->default_value(std::string()),
+            "Name for Simple Open Framing Header definition \"composite\" type.")
     ;
     return desc;
 }
@@ -164,6 +166,12 @@ std::string ProgramOptions::getCommsChampionTag() const
 {
     return m_vm[CommsChampionTagStr].as<std::string>();
 }
+
+std::string ProgramOptions::getOpenFramingHeaderName() const
+{
+    return m_vm[OpenFrameHeaderNameStr].as<std::string>();
+}
+
 
 // namespace
 

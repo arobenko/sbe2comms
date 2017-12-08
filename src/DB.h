@@ -79,6 +79,8 @@ public:
 
     const std::string& getMessageHeaderType() const;
 
+    const std::string& getSimpleOpenFramingHeaderTypeName() const;
+
     unsigned getMinRemoteVersion() const;
 
     const std::string& getCommsChampionTag() const;
@@ -131,7 +133,9 @@ private:
     bool processForcedSchemaVersion(const ProgramOptions& options);
     bool processMinRemoteVersion(const ProgramOptions& options);
     bool processCommsChampionTag(const ProgramOptions& options);
+    bool processOpenFramingHeader(const ProgramOptions& options);
     bool processMessageSchema();
+    void checkOpenFramingHeader();
 
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
@@ -149,6 +153,7 @@ private:
     unsigned m_schemaVersion = 0U;
     unsigned m_minRemoteVersion = 0U;
     std::string m_commsChampionTag;
+    std::string m_openFramingHeaderName;
 };
 
 } // namespace sbe2comms

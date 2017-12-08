@@ -238,7 +238,7 @@ bool BasicType::writeSimpleBigUnsignedInt(
         [this, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
         {
             out << output::indent(ind) << "comms::field::IntValue<\n" <<
-                   output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
                    output::indent(ind + 1) << "std::uint64_t,\n" <<
                    output::indent(ind + 1) << "TOpt...";
 
@@ -420,7 +420,7 @@ bool BasicType::writeSimpleInt(
         [this, intType, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
         {
             out << output::indent(ind) << "comms::field::IntValue<\n" <<
-                   output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
                    output::indent(ind + 1) << intType << ",\n" <<
                    output::indent(ind + 1) << "TOpt...";
 
@@ -550,7 +550,7 @@ bool BasicType::writeSimpleFloat(
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::FloatValue<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << fpType << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 1);
@@ -633,7 +633,7 @@ bool BasicType::writeVarLengthString(
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << " comms::field::String<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
     out << '\n' <<
@@ -662,7 +662,7 @@ bool BasicType::writeVarLengthArray(
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
@@ -685,7 +685,7 @@ bool BasicType::writeVarLengthRawDataArray(
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << common::primitiveTypeToStdInt(primType) << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
@@ -723,7 +723,7 @@ bool BasicType::writeFixedLengthString(
         assert(1U < len);
         out << output::indent(indent) << "struct " << name << " : public\n" <<
                output::indent(indent + 1) << "comms::field::String<\n" <<
-               output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+               output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
                output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
                output::indent(indent + 2) << "TOpt...";
         writeExtraOptions(out, indent + 2);
@@ -740,7 +740,7 @@ bool BasicType::writeFixedLengthString(
     auto text = xmlText(getNode());
     out << output::indent(indent) << "struct " << name << " : public \n" <<
            output::indent(indent + 1) << "comms::field::String<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
     out << ",\n" <<
@@ -790,7 +790,7 @@ bool BasicType::writeFixedLengthArray(
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
            output::indent(indent + 2) << "TOpt...,\n" <<
            output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">";
@@ -816,7 +816,7 @@ bool BasicType::writeFixedLengthRawDataArray(
     assert(1U < len);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << common::primitiveTypeToStdInt(primType) << ",\n" <<
            output::indent(indent + 2) << "TOpt...,\n" <<
            output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">";
