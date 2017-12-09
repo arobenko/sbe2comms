@@ -81,6 +81,8 @@ public:
 
     const std::string& getSimpleOpenFramingHeaderTypeName() const;
 
+    bool hasSimpleOpenFramingHeaderTypeDefined() const;
+
     unsigned getMinRemoteVersion() const;
 
     const std::string& getCommsChampionTag() const;

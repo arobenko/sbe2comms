@@ -58,8 +58,6 @@ bool TransportFrame::writeProtocolDef()
         return false;
     }
 
-    auto openFramingHeaderType = common::builtinNamespaceStr() + common::openFramingHeaderStr();
-
     out << "/// \\file\n"
            "/// \\brief Contains definition of transport frames.\n\n"
            "#pragma once\n\n"
@@ -109,12 +107,11 @@ bool TransportFrame::writeProtocolDef()
            output::indent(4) << "TDataStorageOpt\n" <<
            output::indent(3) << ">\n" <<
            output::indent(2) << ">,\n" <<
-           output::indent(2) << "TOpt,\n" <<
+           output::indent(2) << common::messageHeaderLayerStr() << common::optFieldSuffixStr() << "<TOpt>,\n" <<
            output::indent(2) << "TFactoryOpt\n" <<
            output::indent(1) << ">;\n\n" <<
            "/// \\brief Definition of transport frame involving both message header\n"
-           "///     (\\ref " << common::fieldNamespaceStr() << messageHeaderType << ") and open framing header\n"
-           "///     (\\ref " << openFramingHeaderType << ").\n"
+           "///     and simple open framing header.\n"
            "/// \\tparam TMsgBase Common base (interface) class of all the messages.\n"
            "/// \\tparam TMessages All the message types that need to be recognized in the\n"
            "///     input and created.\n"
@@ -138,7 +135,8 @@ bool TransportFrame::writeProtocolDef()
            ">\n"
            "using " << common::openFramingHeaderFrameStr() << " =\n" <<
            output::indent(1) << common::openFramingHeaderLayerStr() << "<\n" <<
-           output::indent(2) << common::messageHeaderFrameStr() << "<TMsgBase, TMessages, TOpt, TFactoryOpt, TDataStorageOpt>\n" <<
+           output::indent(2) << common::messageHeaderFrameStr() << "<TMsgBase, TMessages, TOpt, TFactoryOpt, TDataStorageOpt>,\n" <<
+           output::indent(2) << common::openFramingHeaderLayerStr() << common::optFieldSuffixStr() << "<TOpt>\n" <<
            output::indent(1) << ">;\n\n";
 
     common::writeProtocolNamespaceEnd(ns, out);

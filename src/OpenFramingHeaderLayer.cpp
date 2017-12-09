@@ -52,38 +52,79 @@ bool OpenFramingHeaderLayer::writeProtocolDef()
         return false;
     }
 
+    auto& ns = m_db.getProtocolNamespace();
+
+    std::string fieldInc('\"' + common::builtinNamespaceNameStr() + '/' + common::openFramingHeaderStr() + ".h\"");
+    std::string fieldType(common::builtinNamespaceStr() + common::openFramingHeaderStr());
+
+    bool hasOpenFrameHeaderDefined = m_db.hasSimpleOpenFramingHeaderTypeDefined();
+    if (hasOpenFrameHeaderDefined) {
+        auto& fieldName = m_db.getSimpleOpenFramingHeaderTypeName();
+        fieldType = common::fieldNamespaceStr() + fieldName;
+        fieldInc = common::localHeader(ns, common::fieldNamespaceNameStr(), fieldName + ".h");
+    }
+
     out << "/// \\file\n"
            "/// \\brief Contains definition of OpenFramingHeaderLayer transport layer.\n\n"
            "#pragma once\n\n"
            "#include <iterator>\n"
            "#include <type_traits>\n\n"
            "#include \"comms/protocol/ProtocolLayerBase.h\"\n"
-           "#include \"" << common::builtinNamespaceNameStr() + '/' + common::openFramingHeaderStr() << ".h\"\n\n";
+           "#include " << common::localHeader(ns, common::emptyString(), common::defaultOptionsFileName()) << "\n" <<
+           "#include " << fieldInc << "\n\n";
 
-    auto& ns = m_db.getProtocolNamespace();
     common::writeProtocolNamespaceBegin(ns, out);
 
-    auto headerType = common::builtinNamespaceStr() + common::openFramingHeaderStr();
-    assert(!headerType.empty());
+    auto redefName = common::openFramingHeaderLayerStr() + common::optFieldSuffixStr();
+
+    out << "/// \\brief Re-definition of the Simple Open Framing Header field to be used in \\ref " << common::openFramingHeaderLayerStr() << "\n"
+           "/// \\tparam TOpt Protocol definition options, expected to be \\ref " << common::defaultOptionsStr() << " or\n"
+           "///     deriving class.\n"
+           "template <typename TOpt>\n"
+           "using " << redefName << " = ";
+    if (hasOpenFrameHeaderDefined) {
+        auto* headerType = m_db.findType(m_db.getSimpleOpenFramingHeaderTypeName());
+        assert(headerType != nullptr);
+        auto opts = headerType->getExtraOptInfos();
+        out << '\n' <<
+               output::indent(1) << fieldType << "<\n";
+        for (auto& o : opts) {
+            out << output::indent(2) << common::optParamPrefixStr() << common::fieldNamespaceStr() << o.second;
+            bool comma = (&o != &opts.back());
+            if (comma) {
+                out << ',';
+            }
+            out << '\n';
+        }
+        out << output::indent(1) << ">;\n\n";
+    }
+    else {
+        out << common::builtinNamespaceStr() << common::openFramingHeaderStr() << ";\n\n";
+    }
+
     auto& name = common::openFramingHeaderLayerStr();
 
-    out << "/// \\brief Protocol layer that uses \\ref " << headerType << " field as a prefix to all the\n"
+    out << "/// \\brief Protocol layer that uses \\ref " << redefName << " field as a prefix to all the\n"
            "///        subsequent data written by other (next) layers.\n"
            "/// \\details The main purpose of this layer is to provide information about\n" <<
            "///     the remaining size of the serialised message. \n"
-           "/// \\tparam TNextLayer Next transport layer in protocol stack.\n";
+           "/// \\tparam TNextLayer Next transport layer in protocol stack.\n"
+           "/// \\tparam TField Field of the Simple Open Framing Header.\n";;
 
     auto writeBaseDefFunc =
-        [&out, &headerType, &name](unsigned indent)
+        [&out, &name](unsigned indent)
         {
             out << output::indent(indent) << "comms::protocol::ProtocolLayerBase<\n" <<
-                   output::indent(indent + 1) << headerType << ",\n" <<
+                   output::indent(indent + 1) << "TField" << ",\n" <<
                    output::indent(indent + 1) << "TNextLayer,\n" <<
-                   output::indent(indent + 1) << name << "<TNextLayer>\n" <<
+                   output::indent(indent + 1) << name << "<TNextLayer, TField>\n" <<
                    output::indent(indent) << ">";
         };
 
-    out << "template <typename TNextLayer>\n" <<
+    out << "template <\n" <<
+           output::indent(1) << "typename TNextLayer,\n" <<
+           output::indent(1) << "typename TField = " << redefName << "<DefaultOptions>\n"
+           ">\n"
            "class " << name << " : public\n";
     writeBaseDefFunc(1);
     out << "\n{\n" <<
@@ -369,7 +410,7 @@ bool OpenFramingHeaderLayer::writeProtocolDef()
            output::indent(2) << "return writeInternalNoLength(field, msg, iter, size, std::forward<TWriter>(nextLayerWriter));\n" <<
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "static_assert(Field::minLength() == Field::maxLength(),\n" <<
-           output::indent(2) << '\"' << headerType << " field is expected to have fixed length.\");\n\n" <<
+           output::indent(2) << '\"' << fieldType << " field is expected to have fixed length.\");\n\n" <<
            "};\n\n";
 
 

@@ -130,10 +130,13 @@ typename TFrame::MsgPtr readMsg(const DataBuf& buf, TFrame& frame)
 }
 
 template <typename TOrig, typename TFrame>
-TOrig wrapOrigMessage(DataBuf& buf, mine::MsgId expId)
+TOrig wrapOrigMessage(DataBuf& buf, mine::MsgId expId, bool fullFrame = true)
 {
     orig::MessageHeader hdr;
-    auto offset = TFrame::Field::minLength();
+    std::size_t offset = 0U;
+    if (fullFrame) {
+        offset = TFrame::Field::minLength();
+    }
     hdr.wrap((char*)&buf[0], offset, 0, buf.size());
     auto templateId = hdr.templateId();
     TS_ASSERT_EQUALS(expId, templateId);

@@ -389,38 +389,6 @@ bool Type::canBeExtendedAsOptionalImpl() const
     return false;
 }
 
-bool Type::writePluginPropertiesImpl(
-        std::ostream& out,
-        unsigned indent,
-        const std::string& scope)
-{
-    std::string fieldType;
-    std::string props;
-    scopeToPropertyDefNames(scope, &fieldType, &props);
-
-    bool commsOptionalWrapped = isCommsOptionalWrapped();
-    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
-    auto name = common::refName(getName(), suffix);
-
-    out << output::indent(indent) << "using " << fieldType << " = " <<
-           common::scopeFor(m_db.getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
-           "<>;\n" <<
-           output::indent(indent) << "auto " << props << " = \n" <<
-           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">().name(";
-    if (scope.empty()) {
-        out  << common::fieldNameParamNameStr();
-    }
-    else {
-        out << '\"' << getName() << '\"';
-    }
-    out << ");\n\n";
-
-    if (scope.empty() && (!commsOptionalWrapped)) {
-        out << output::indent(indent) << "return " << props << ".asMap();\n";
-    }
-    return true;
-}
-
 void Type::writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     if (!commsOptionalWrapped) {

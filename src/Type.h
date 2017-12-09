@@ -173,7 +173,7 @@ protected:
     virtual bool writePluginPropertiesImpl(
         std::ostream& out,
         unsigned indent,
-        const std::string& scope);
+        const std::string& scope) = 0;
 
     void writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
     void writeHeader(

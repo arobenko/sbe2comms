@@ -194,6 +194,56 @@ bool BasicType::canBeExtendedAsOptionalImpl() const
     return (getLengthProp() == 1U) && (!isConstString());
 }
 
+bool BasicType::writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
+    std::string dispOffsetStr;
+    for (auto& o : getExtraOptions()) {
+        static const std::string OptPrefix("comms::option::NumValueSerOffset<");
+        if (!ba::starts_with(o, OptPrefix)) {
+            continue;
+        }
+
+        auto findResult = ba::find_last(o, ">");
+        assert(findResult);
+        dispOffsetStr = ".displayOffset(" + std::string(o.begin() + OptPrefix.size(), findResult.begin()) + ")";
+    }
+
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(";
+    if (scope.empty()) {
+        out  << common::fieldNameParamNameStr();
+    }
+    else {
+        out << '\"' << getName() << '\"';
+    }
+    out << ")";
+    if (!dispOffsetStr.empty()) {
+        out << '\n' <<
+               output::indent(indent + 2) << dispOffsetStr;
+    }
+    out << ";\n\n";
+
+    if (scope.empty() && (!commsOptionalWrapped)) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+    return true;
+}
+
 bool BasicType::writeSimpleType(
     std::ostream& out,
     unsigned indent,

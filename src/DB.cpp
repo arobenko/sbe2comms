@@ -166,6 +166,16 @@ const std::string& DB::getSimpleOpenFramingHeaderTypeName() const
     return m_openFramingHeaderName;
 }
 
+bool DB::hasSimpleOpenFramingHeaderTypeDefined() const
+{
+    if (m_openFramingHeaderName.empty()) {
+        return false;
+    }
+
+    auto* type = findType(m_openFramingHeaderName);
+    return (type != nullptr);
+}
+
 unsigned DB::getMinRemoteVersion() const
 {
     return m_minRemoteVersion;

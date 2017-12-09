@@ -82,7 +82,7 @@ bool MessageHeaderLayer::writeProtocolDef()
 
     auto opts = messageHeader->getExtraOptInfos();
     auto& name = common::messageHeaderLayerStr();
-    auto fieldName = name + "Field";
+    auto fieldName = name + common::optFieldSuffixStr();
 
     out << "/// \\brief Re-definition of the \\\"messageHeader\\\" field to be used in \\ref MessageHeaderLayer\n"
            "/// \\tparam TOpt Protocol definition options, expected to be \\ref DefaultOptions or\n"
@@ -109,8 +109,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            "/// \\tparam TAllMessages Types of all \\b input messages, bundled in std::tuple,\n"
            "///     that this protocol stack must be able to \\b read() as well as create (using createMsg()).\n"
            "/// \\tparam TNextLayer Next transport layer type.\n"
-           "/// \\tparam TOpt Protocol definition options, used to retrieve extra options for\n"
-           "///     \\ref " << common::fieldNamespaceStr() << messageHeaderType << " member fields.\n"
+           "/// \\tparam TField Field of message header.\n"
            "/// \\tparam TFactoryOpt All the options that will be forwarded to definition of\n"
            "///     message factory type (comms::MsgFactory).\n"
            "/// \\headerfile MessageHeaderLayer.h\n"
@@ -118,23 +117,23 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(1) << "typename TMessage,\n" <<
            output::indent(1) << "typename TAllMessages,\n" <<
            output::indent(1) << "typename TNextLayer,\n" <<
-           output::indent(1) << "typename TOpt = DefaultOptions,\n" <<
+           output::indent(1) << "typename TField = " << fieldName << "<DefaultOptions>,\n" <<
            output::indent(1) << "typename TFactoryOpt = comms::option::EmptyOption\n"
            ">\n"
            "class " << name << " : public\n" <<
            output::indent(1) << "comms::protocol::ProtocolLayerBase<\n" <<
-           output::indent(2) << fieldName << "<TOpt>,\n" <<
+           output::indent(2) << "TField,\n" <<
            output::indent(2) << "TNextLayer,\n" <<
-           output::indent(2) << name << "<TMessage, TAllMessages, TNextLayer, TOpt, TFactoryOpt>\n" <<
+           output::indent(2) << name << "<TMessage, TAllMessages, TNextLayer, TField, TFactoryOpt>\n" <<
            output::indent(1) << ">\n"
            "{\n" <<
            output::indent(1) << "static_assert(comms::util::IsTuple<TAllMessages>::Value,\n" <<
            output::indent(2) << "\"TAllMessages must be of std::tuple type\");\n\n" <<
            output::indent(1) << "using BaseImpl =\n" <<
            output::indent(2) << "comms::protocol::ProtocolLayerBase<\n" <<
-           output::indent(3) << fieldName << "<TOpt>,\n" <<
+           output::indent(3) << "TField,\n" <<
            output::indent(3) << "TNextLayer,\n" <<
-           output::indent(3) << name << "<TMessage, TAllMessages, TNextLayer, TOpt, TFactoryOpt>\n" <<
+           output::indent(3) << name << "<TMessage, TAllMessages, TNextLayer, TField, TFactoryOpt>\n" <<
            output::indent(2) << ">;\n\n" <<
            output::indent(1) << "using Factory = comms::MsgFactory<TMessage, TAllMessages, TFactoryOpt>;\n\n" <<
            output::indent(1) << "static_assert(TMessage::InterfaceOptions::HasMsgIdType,\n" <<
