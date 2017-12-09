@@ -170,13 +170,13 @@ bool TransportFrame::writePluginDef()
 
     out << "using " << common::messageHeaderFrameStr() << " = \n" <<
            output::indent(1) << common::scopeFor(ns, common::messageHeaderFrameStr()) << "<\n" <<
-           output::indent(2) << common::scopeFor(pluginNs, common::msgInterfaceStr()) << ",\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::msgInterfaceStr()) << "<>,\n" <<
            output::indent(2) << common::scopeFor(pluginNs, common::allMessagesStr()) << '\n' <<
            output::indent(1) << ">;\n\n";
 
     out << "using " << common::openFramingHeaderFrameStr() << " = \n" <<
            output::indent(1) << common::scopeFor(ns, common::openFramingHeaderFrameStr()) << "<\n" <<
-           output::indent(2) << common::scopeFor(pluginNs, common::msgInterfaceStr()) << ",\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::msgInterfaceStr()) << "<>,\n" <<
            output::indent(2) << common::scopeFor(pluginNs, common::allMessagesStr()) << '\n' <<
            output::indent(1) << ">;\n\n";
 

@@ -521,6 +521,12 @@ const std::string& cmakeListsFileName()
     return Str;
 }
 
+const std::string& transportMessageNameStr()
+{
+    static const std::string Str("TransportMessage");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     if (std::numeric_limits<std::int32_t>::max() < val) {

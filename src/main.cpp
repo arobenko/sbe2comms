@@ -35,6 +35,7 @@
 #include "output.h"
 #include "log.h"
 #include "Cmake.h"
+#include "TransportMessage.h"
 
 namespace bf = boost::filesystem;
 
@@ -174,6 +175,12 @@ bool writeTransportFrame(DB& db)
     return obj.write();
 }
 
+bool writeTransportMessage(DB& db)
+{
+    TransportMessage obj(db);
+    return obj.write();
+}
+
 bool writeCmake(DB& db)
 {
     Cmake obj(db);
@@ -205,6 +212,7 @@ int main(int argc, const char* argv[])
         sbe2comms::writeMessageHeaderLayer(db) &&
         sbe2comms::writeOpenFramingHeaderLayer(db) &&
         sbe2comms::writeTransportFrame(db) &&
+        sbe2comms::writeTransportMessage(db) &&
         sbe2comms::writeCmake(db)
     ;
 

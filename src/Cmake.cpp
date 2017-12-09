@@ -247,7 +247,9 @@ bool Cmake::writePlugin()
            "function (cc_plugin_all_messages)\n" <<
            output::indent(1) << "set (name \"${ALL_MESSAGES_LIB}\")\n\n" <<
            output::indent(1) << "set (src\n" <<
-           output::indent(2) << common::fieldDefFileName() << '\n';
+           output::indent(2) << common::fieldDefFileName() << '\n' <<
+           output::indent(2) << common::messageHeaderFrameStr() << common::transportMessageNameStr() << ".cpp" <<
+           output::indent(2) << common::openFramingHeaderFrameStr() << common::transportMessageNameStr() << ".cpp";
     auto& msgs = m_db.getMessagesById();
     for (auto& m : msgs) {
         assert(m.second != m_db.getMessages().end());
