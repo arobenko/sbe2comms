@@ -33,7 +33,7 @@ namespace sbe2comms
 
 bool TransportFrame::write()
 {
-    return writeProtocolDef();
+    return writeProtocolDef() && writePluginDef();
 }
 
 bool TransportFrame::writeProtocolDef()
@@ -140,6 +140,47 @@ bool TransportFrame::writeProtocolDef()
            output::indent(1) << ">;\n\n";
 
     common::writeProtocolNamespaceEnd(ns, out);
+    return true;
+}
+
+bool TransportFrame::writePluginDef()
+{
+    if (!common::createPluginDefDir(m_db.getRootPath())) {
+        return false;
+    }
+
+    auto relPath = common::pluginNamespaceNameStr() + '/' + common::transportFrameFileName();
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    auto& ns = m_db.getProtocolNamespace();
+    auto& pluginNs = common::pluginNamespaceNameStr();
+
+    out << "#pragma once\n\n"
+           "#include " << common::localHeader(ns, common::emptyString(), common::transportFrameFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, common::emptyString(), common::msgInterfaceFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, common::emptyString(), common::allMessagesFileName()) << "\n\n";
+
+    common::writePluginNamespaceBegin(ns, out);
+
+    out << "using " << common::messageHeaderFrameStr() << " = \n" <<
+           output::indent(1) << common::scopeFor(ns, common::messageHeaderFrameStr()) << "<\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::msgInterfaceStr()) << ",\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::allMessagesStr()) << '\n' <<
+           output::indent(1) << ">;\n\n";
+
+    out << "using " << common::openFramingHeaderFrameStr() << " = \n" <<
+           output::indent(1) << common::scopeFor(ns, common::openFramingHeaderFrameStr()) << "<\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::msgInterfaceStr()) << ",\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::allMessagesStr()) << '\n' <<
+           output::indent(1) << ">;\n\n";
+
+    common::writePluginNamespaceEnd(ns, out);
     return true;
 }
 
