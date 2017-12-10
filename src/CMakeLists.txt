@@ -42,6 +42,7 @@ set (
     "log.cpp"
     "Cmake.cpp"
     "TransportMessage.cpp"
+    "Plugin.cpp"
 )
 
 add_executable(${PROJECT_NAME} ${src})

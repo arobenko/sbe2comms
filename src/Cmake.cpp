@@ -247,9 +247,7 @@ bool Cmake::writePlugin()
            "function (cc_plugin_all_messages)\n" <<
            output::indent(1) << "set (name \"${ALL_MESSAGES_LIB}\")\n\n" <<
            output::indent(1) << "set (src\n" <<
-           output::indent(2) << common::fieldDefFileName() << '\n' <<
-           output::indent(2) << common::messageHeaderFrameStr() << common::transportMessageNameStr() << ".cpp" <<
-           output::indent(2) << common::openFramingHeaderFrameStr() << common::transportMessageNameStr() << ".cpp";
+           output::indent(2) << common::fieldDefFileName() << '\n';
     auto& msgs = m_db.getMessagesById();
     for (auto& m : msgs) {
         assert(m.second != m_db.getMessages().end());
@@ -261,6 +259,34 @@ bool Cmake::writePlugin()
            output::indent(1) << "qt5_use_modules(${name} Core)\n"
            "endfunction()\n\n"
            "######################################################################\n\n"
+           "function (cc_plugin variant)\n" <<
+           output::indent(1) << "set (name \"" << m_name << "_${variant}\")\n\n" <<
+           output::indent(1) << "set (meta_file \"${CMAKE_CURRENT_SOURCE_DIR}/plugin_${variant}.json\")\n" <<
+           output::indent(1) << "set (stamp_file \"${CMAKE_CURRENT_BINARY_DIR}/plubin_${variant}_refresh_stamp.txt\")\n\n" <<
+           output::indent(1) << "if ((NOT EXISTS ${stamp_file}) OR (${meta_file} IS_NEWER_THAN ${stamp_file}))\n" <<
+           output::indent(2) << "execute_process(\n" <<
+           output::indent(3) << "COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_SOURCE_DIR}/${variant}Plugin.h)\n\n" <<
+           output::indent(2) << "execute_process(\n" <<
+           output::indent(3) << "COMMAND ${CMAKE_COMMAND} -E touch ${stamp_file})\n" <<
+           output::indent(1) << "endif ()\n\n" <<
+           output::indent(1) << "set (src\n" <<
+           output::indent(2) << "${variant}" << common::transportMessageNameStr() << ".cpp\n" <<
+           output::indent(1) << ")\n\n" <<
+           output::indent(1) << "set (hdr\n" <<
+           output::indent(2) << "#${variant}Plugin.h\n" <<
+           output::indent(1) << ")\n\n" <<
+           output::indent(1) << "qt5_wrap_cpp(moc ${hdr})\n\n" <<
+           output::indent(1) << "add_library (${name} SHARED ${src} ${moc})\n" <<
+           output::indent(1) << "target_link_libraries (${name} ${ALL_MESSAGES_LIB} ${CC_PLUGIN_LIBRARIES})\n" <<
+           output::indent(1) << "qt5_use_modules (${name} Core)\n" <<
+           output::indent(1) << "install (\n" <<
+           output::indent(2) << "TARGETS ${name}\n" <<
+           output::indent(2) << "DESTINATION ${PLUGIN_INSTALL_DIR})\n\n" <<
+           output::indent(1) << "if (OPT_FULL_SOLUTION)\n" <<
+           output::indent(2) << "add_dependencies(${name} ${CC_EXTERNAL_TGT})\n" <<
+           output::indent(1) << "endif ()\n"
+           "endfunction()\n\n"
+           "######################################################################\n\n"
            "if (NOT Qt5Core_FOUND)\n" <<
            output::indent(1) << "message (WARNING \"Can NOT compile protocol plugin due to missing QT5 Core library\")\n" <<
            output::indent(1) << "return ()\n"
@@ -269,6 +295,8 @@ bool Cmake::writePlugin()
            output::indent(1) << "set (CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0\")\n"
            "endif ()\n\n" <<
            "cc_plugin_all_messages()\n"
+           "cc_plugin (\"" << common::messageHeaderFrameStr() << "\")\n" <<
+           "cc_plugin (\"" << common::openFramingHeaderFrameStr() << "\")\n\n" <<
            "FILE(GLOB_RECURSE plugin.headers \"*.h\")\n"
            "add_custom_target(cc_plugin.headers SOURCES ${plugin.headers})\n\n";
 
