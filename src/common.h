@@ -90,6 +90,7 @@ const std::string& fieldNameParamNameStr();
 const std::string& cmakeListsFileName();
 const std::string& transportMessageNameStr();
 const std::string& protocolNameStr();
+const std::string& pluginNameStr();
 std::string num(std::intmax_t val);
 std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);

@@ -19,6 +19,7 @@
 
 #include <fstream>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "DB.h"
 #include "common.h"
@@ -26,6 +27,7 @@
 #include "output.h"
 
 namespace bf = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -38,7 +40,11 @@ bool Plugin::write()
 
     return
         writeMetaFile(false) &&
-        writeMetaFile(true);
+        writeMetaFile(true) &&
+        writeHeader(false) &&
+        writeHeader(true) &&
+        writeSrc(false) &&
+        writeSrc(true);
 }
 
 bool Plugin::writeMetaFile(bool openFrame)
@@ -71,6 +77,90 @@ bool Plugin::writeMetaFile(bool openFrame)
            output::indent(1) << "\"type\" : \"protocol\"\n"
            "}\n";
 
+    return true;
+}
+
+bool Plugin::writeHeader(bool openFrame)
+{
+    auto protName = m_db.getPackageName();
+    ba::replace_all(protName, " ", "_");
+
+    auto* name = &common::messageHeaderFrameStr();
+    std::string idSuffix;
+    if (openFrame) {
+        name = &common::openFramingHeaderFrameStr();
+        idSuffix = ".OpenFrame";
+    }
+
+    auto className = *name + common::pluginNameStr();
+
+    auto relPath = common::pluginNamespaceNameStr() + '/' + className + ".h";
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "#pragma once\n\n"
+           "#include <QtCore/QObject>\n"
+           "#include <QtCore/QtPlugin>\n\n"
+           "#include \"comms_champion/comms_champion.h\"\n\n";
+
+    auto& ns = m_db.getProtocolNamespace();
+    common::writePluginNamespaceBegin(ns, out);
+    out << "class " << className << " : public comms_champion::Plugin\n"
+           "{\n" <<
+           output::indent(1) << "Q_OBJECT\n" <<
+           output::indent(1) << "Q_PLUGIN_METADATA(IID \"" << protName << idSuffix << "\" FILE \"plugin_" << *name << ".json\")\n" <<
+           output::indent(1) << "Q_INTERFACES(comms_champion::Plugin)\n\n" <<
+           "public:\n" <<
+           output::indent(1) << className << "();\n" <<
+           output::indent(1) << '~' << className << "();\n" <<
+           "};\n\n";
+
+    common::writePluginNamespaceEnd(ns, out);
+    return true;
+}
+
+bool Plugin::writeSrc(bool openFrame)
+{
+    auto* name = &common::messageHeaderFrameStr();
+    if (openFrame) {
+        name = &common::openFramingHeaderFrameStr();
+    }
+
+    auto className = *name + common::pluginNameStr();
+
+    auto relPath = common::pluginNamespaceNameStr() + '/' + className + ".cpp";
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    auto header = *name + common::pluginNameStr() + ".h";
+    out << "#include " << common::localHeader(common::pluginNamespaceNameStr(), common::emptyString(), header) << '\n' <<
+           "#include " << common::localHeader(common::pluginNamespaceNameStr(), common::emptyString(), common::protocolNameStr() + ".h") << "\n\n" <<
+           "namespace cc = comms_champion;\n\n";
+
+    auto& ns = m_db.getProtocolNamespace();
+    common::writePluginNamespaceBegin(ns, out);
+
+    out << className << "::" << className << "()\n"
+           "{\n" <<
+           output::indent(1) << "pluginProperties()\n" <<
+           output::indent(2) << ".setProtocolCreateFunc(\n" <<
+           output::indent(3) << "[this]() -> cc::ProtocolPtr\n" <<
+           output::indent(3) << "{\n" <<
+           output::indent(4) << "return cc::ProtocolPtr(new Protocol());\n" <<
+           output::indent(3) << "});\n" <<
+           "}\n\n" <<
+           className << "::~" << className << "() = default;\n\n";
+    common::writePluginNamespaceEnd(ns, out);
     return true;
 }
 

@@ -33,6 +33,8 @@ public:
 
 private:
     bool writeMetaFile(bool openFrame);
+    bool writeHeader(bool openFrame);
+    bool writeSrc(bool openFrame);
 
     DB& m_db;
 };

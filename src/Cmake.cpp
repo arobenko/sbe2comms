@@ -272,9 +272,10 @@ bool Cmake::writePlugin()
            output::indent(1) << "set (src\n" <<
            output::indent(2) << "${variant}" << common::transportMessageNameStr() << ".cpp\n" <<
            output::indent(2) << "${variant}" << common::protocolNameStr() << ".cpp\n" <<
+           output::indent(2) << "${variant}" << common::pluginNameStr() << ".cpp\n" <<
            output::indent(1) << ")\n\n" <<
            output::indent(1) << "set (hdr\n" <<
-           output::indent(2) << "#${variant}Plugin.h\n" <<
+           output::indent(2) << "${variant}" << common::pluginNameStr() << ".h\n" <<
            output::indent(1) << ")\n\n" <<
            output::indent(1) << "qt5_wrap_cpp(moc ${hdr})\n\n" <<
            output::indent(1) << "add_library (${name} SHARED ${src} ${moc})\n" <<

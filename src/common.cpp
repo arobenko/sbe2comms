@@ -533,6 +533,12 @@ const std::string& protocolNameStr()
     return Str;
 }
 
+const std::string& pluginNameStr()
+{
+    static const std::string Str("Plugin");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     if (std::numeric_limits<std::int32_t>::max() < val) {
