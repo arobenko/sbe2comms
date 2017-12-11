@@ -271,6 +271,7 @@ bool Cmake::writePlugin()
            output::indent(1) << "endif ()\n\n" <<
            output::indent(1) << "set (src\n" <<
            output::indent(2) << "${variant}" << common::transportMessageNameStr() << ".cpp\n" <<
+           output::indent(2) << "${variant}" << common::protocolNameStr() << ".cpp\n" <<
            output::indent(1) << ")\n\n" <<
            output::indent(1) << "set (hdr\n" <<
            output::indent(2) << "#${variant}Plugin.h\n" <<

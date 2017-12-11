@@ -527,6 +527,12 @@ const std::string& transportMessageNameStr()
     return Str;
 }
 
+const std::string& protocolNameStr()
+{
+    static const std::string Str("Protocol");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     if (std::numeric_limits<std::int32_t>::max() < val) {

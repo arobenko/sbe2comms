@@ -42,6 +42,7 @@ set (
     "log.cpp"
     "Cmake.cpp"
     "TransportMessage.cpp"
+    "Protocol.cpp"
     "Plugin.cpp"
 )
 
