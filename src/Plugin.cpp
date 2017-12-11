@@ -37,13 +37,22 @@ bool Plugin::write()
     }
 
     return
-        writeMetaFile(common::messageHeaderFrameStr()) &&
-        writeMetaFile(common::openFramingHeaderFrameStr());
+        writeMetaFile(false) &&
+        writeMetaFile(true);
 }
 
-bool Plugin::writeMetaFile(const std::string& name)
+bool Plugin::writeMetaFile(bool openFrame)
 {
-    auto relPath = common::pluginNamespaceNameStr() + '/' + "plugin_" + name + ".json";
+    auto* name = &common::messageHeaderFrameStr();
+    std::string shortDesc;
+    std::string desc("with message header only");
+
+    if (openFrame) {
+        name = &common::openFramingHeaderFrameStr();
+        shortDesc = " (Open Frame)";
+        desc = "with both message and simple open framing headers";
+    }
+    auto relPath = common::pluginNamespaceNameStr() + '/' + "plugin_" + *name + ".json";
     auto filePath = bf::path(m_db.getRootPath()) / relPath;
     log::info() << "Generating " << relPath << std::endl;
     std::ofstream out(filePath.string());
@@ -51,6 +60,16 @@ bool Plugin::writeMetaFile(const std::string& name)
         log::error() << "Failed to create " << filePath.string() << std::endl;
         return false;
     }
+
+    auto& protName = m_db.getPackageName();
+    auto nameStr = protName + " Protocol";
+    out << "{\n" <<
+           output::indent(1) << "\"name\" : \"" << nameStr << shortDesc << "\",\n" <<
+           output::indent(1) << "\"desc\" : [\n" <<
+           output::indent(2) << '\"' << nameStr << ' ' << desc << ".\"\n" <<
+           output::indent(1) << "],\n" <<
+           output::indent(1) << "\"type\" : \"protocol\"\n"
+           "}\n";
 
     return true;
 }

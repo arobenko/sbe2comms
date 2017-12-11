@@ -32,7 +32,7 @@ public:
     bool write();
 
 private:
-    bool writeMetaFile(const std::string& name);
+    bool writeMetaFile(bool openFrame);
 
     DB& m_db;
 };
