@@ -200,7 +200,7 @@ bool BasicType::writePluginPropertiesImpl(
         const std::string& scope)
 {
     auto len = getLengthProp();
-    if ((len == 1) || (isString()) || (isRawData())) {
+    if ((len == 1) || (isRawData())) {
         return writePluginPropertiesSimple(out, indent, scope, false);
     }
 
@@ -741,7 +741,7 @@ bool BasicType::writeFixedLengthString(
                output::indent(indent + 2) << "TOpt...";
         writeExtraOptions(out, indent + 2);
         out << '\n' <<
-               output::indent(indent + 1) << ">" <<
+               output::indent(indent + 1) << ">\n" <<
                output::indent(indent) << "{\n";
         writeStringValidFunc(out, indent + 1);
         out << '\n';
@@ -900,6 +900,9 @@ void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
            output::indent(indent) << "bool valid() const\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << common::fieldBaseDefStr() <<
+           output::indent(indent + 1) << "if (!Base::valid()) {\n" <<
+           output::indent(indent + 2) << "return false;\n" <<
+           output::indent(indent + 1) << "}\n\n" <<
            output::indent(indent + 1) << "auto& str = Base::value();\n" <<
            output::indent(indent + 1) << "for (auto ch : str) {\n" <<
            output::indent(indent + 2) << "if ((ch < " << minValue.first << ") ||\n" <<
