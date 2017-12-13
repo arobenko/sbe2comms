@@ -132,7 +132,7 @@ bool RefType::writePluginPropertiesImpl(
     scopeToPropertyDefNames(scope, &fieldType, &props);
 
     assert(m_type != nullptr);
-    auto refPropsStr = "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
+    auto refPropsStr = "createProps_" + m_type->getName() + "(\"" + getName() + "\", " + common::serialisedHiddenStr() + ")";
     if (m_type->isCommsOptionalWrapped()) {
         refPropsStr = "comms_champion::property::field::Optional(" + refPropsStr + ").field()";
     }

@@ -195,6 +195,7 @@ protected:
         std::string* propsName);
     static const std::string& getNameSuffix(bool commsOptionalWrapped, bool isElement);
     const std::string& getFieldBaseString() const;
+    static void writeSerialisedHiddenCheck(std::ostream& out, unsigned indent, const std::string& prop);
 private:
     const std::string& getDefaultOptMode() const;
 

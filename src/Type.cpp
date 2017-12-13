@@ -521,6 +521,13 @@ const std::string& Type::getFieldBaseString() const
     return common::fieldBaseStr();
 }
 
+void Type::writeSerialisedHiddenCheck(std::ostream& out, unsigned indent, const std::string& prop)
+{
+    out << output::indent(indent) << "if (" << common::serialisedHiddenStr() << ") {\n" <<
+           output::indent(indent + 1) << prop << ".serialisedHidden();\n" <<
+           output::indent(indent) << "}\n\n";
+}
+
 const std::string& Type::getDefaultOptMode() const
 {
     auto sinceVersion = getSinceVersion();

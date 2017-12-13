@@ -165,6 +165,8 @@ bool SetType::writePluginPropertiesImpl(
     }
     out << ";\n\n";
 
+    writeSerialisedHiddenCheck(out, indent, props);
+
     if (scope.empty() && (!commsOptionalWrapped)) {
         out << output::indent(indent) << "return " << props << ".asMap();\n";
     }

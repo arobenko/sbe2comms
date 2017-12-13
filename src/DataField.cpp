@@ -120,7 +120,7 @@ bool DataField::writePluginPropertiesImpl(
     std::string typePropsStr =
         common::pluginNamespaceStr() +
         common::fieldNamespaceStr() +
-        "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
 
     if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
         typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";

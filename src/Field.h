@@ -114,6 +114,7 @@ public:
     void setContainingGroupVersion(unsigned version)
     {
         m_containingGroupVersion = version;
+        m_inGroup = true;
     }
 
 protected:
@@ -156,6 +157,13 @@ protected:
         return m_db;
     }
 
+    bool isInGroup() const
+    {
+        return  m_inGroup;
+    }
+
+    const std::string& getCreatePropsCallSuffix() const;
+
     void scopeToPropertyDefNames(
         const std::string& scope,
         std::string* fieldType,
@@ -169,6 +177,7 @@ private:
     XmlPropsMap m_props;
     ExtraHeaders m_extraHeaders;
     unsigned m_containingGroupVersion = 0U;
+    bool m_inGroup = false;
 };
 
 using FieldPtr = Field::Ptr;

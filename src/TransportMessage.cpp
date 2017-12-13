@@ -201,7 +201,7 @@ bool TransportMessage::writeOpenFramingHeaderSrc()
                output::indent(3) << ".add(\n" <<
                output::indent(4) << "comms_champion::property::field::IntValue()\n" <<
                output::indent(5) << ".name(\"messageLength\")\n" <<
-               output::indent(5) << ".displayOffset(4)\n" <<
+               output::indent(5) << ".displayOffset(6)\n" <<
                output::indent(5) << ".asMap())\n" <<
                output::indent(3) << ".add(\n" <<
                output::indent(4) << "comms_champion::property::field::IntValue()\n" <<

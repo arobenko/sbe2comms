@@ -323,6 +323,16 @@ std::string Field::getTypeOptString(const Type& type) const
     return result;
 }
 
+const std::string& Field::getCreatePropsCallSuffix() const
+{
+    if (!m_inGroup) {
+        return common::emptyString();
+    }
+
+    static const std::string Str(", true");
+    return Str;
+}
+
 void Field::scopeToPropertyDefNames(
     const std::string& scope,
     std::string* fieldType,

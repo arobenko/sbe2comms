@@ -668,8 +668,17 @@ bool BasicField::writeBuiltinPluginProperties(
     out << output::indent(indent) << "using " << fieldType << " = " << scope + name << ";\n" <<
            output::indent(indent) << "auto " << props << " = \n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
-           output::indent(indent + 2) << ".name(" << '\"' << getName() << "\")\n" <<
-           output::indent(indent + 2) << ".asMap();\n\n";
+           output::indent(indent + 2) << ".name(" << '\"' << getName() << "\")\n";
+    if (isConstant()) {
+        out << output::indent(indent + 2) << ".serialisedHidden()\n" <<
+               output::indent(indent + 2) << ".readOnly()\n";
+    }
+
+    if (isInGroup()) {
+        out << output::indent(indent + 2) << ".serialisedHidden()\n";
+    }
+
+    out << output::indent(indent + 2) << ".asMap();\n\n";
 
     if (returnResult) {
         out << output::indent(indent) << "return " << props << ";\n";
@@ -691,7 +700,7 @@ bool BasicField::writeSimpleAliasPluginProperties(
     std::string typePropsStr =
         common::pluginNamespaceStr() +
         common::fieldNamespaceStr() +
-        "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
 
     if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
         typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
@@ -729,7 +738,7 @@ bool BasicField::writeConstantPluginProperties(
     std::string typePropsStr =
         common::pluginNamespaceStr() +
         common::fieldNamespaceStr() +
-        "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
 
     if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
         typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
@@ -776,7 +785,7 @@ bool BasicField::writeOptionalPluginProperties(
     std::string typePropsStr =
         common::pluginNamespaceStr() +
         common::fieldNamespaceStr() +
-        "createProps_" + m_type->getName() + "(\"" + getName() + "\")";
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
 
     if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
         typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";

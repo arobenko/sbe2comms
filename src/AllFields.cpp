@@ -78,7 +78,7 @@ bool AllFields::writePluginHeader()
     openNamespaces(out, m_db);
 
     for (auto& t : m_db.getTypes()) {
-        out << "QVariantMap createProps_" << t.first << "(const char* " << common::fieldNameParamNameStr() << ");\n";
+        out << "QVariantMap createProps_" << t.first << "(const char* " << common::fieldNameParamNameStr() << ", bool " << common::serialisedHiddenStr() << " = false);\n";
     }
 
     out << '\n';
@@ -117,7 +117,7 @@ bool AllFields::writePluginDef()
     openNamespaces(out, m_db);
 
     for (auto& t : m_db.getTypes()) {
-        out << "QVariantMap createProps_" << t.first << "(const char* " << common::fieldNameParamNameStr() << ")\n"
+        out << "QVariantMap createProps_" << t.first << "(const char* " << common::fieldNameParamNameStr() << ", bool " << common::serialisedHiddenStr() << ")\n"
                "{\n";
         t.second -> writePluginProperties(out, 1);
         out << "}\n\n";

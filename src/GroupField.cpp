@@ -194,8 +194,14 @@ bool GroupField::writePluginPropertiesImpl(
 
     out << output::indent(indent) << "auto " << props << " =\n" <<
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
-           output::indent(indent + 2) << ".add(" << bundleProps << ".asMap())\n" <<
-           output::indent(indent + 2) << ".asMap();\n\n";
+           output::indent(indent + 2) << ".name(\"" << getName() << "\")\n" <<
+           output::indent(indent + 2) << ".add(" << bundleProps << ".asMap())\n";
+
+    if (isInGroup()) {
+        out << output::indent(indent + 2) << ".serialisedHidden()\n";
+    }
+
+    out << output::indent(indent + 2) << ".asMap();\n\n";
 
     if (returnResult) {
         out << output::indent(indent) << "return " << props << ";\n";

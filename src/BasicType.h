@@ -127,6 +127,18 @@ private:
     void writeStringValidFunc(std::ostream& out, unsigned indent);
 
     bool hasDefaultValueInExtraOptions() const;
+
+    bool writePluginPropertiesSimple(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool isElement,
+        int index = -1);
+
+    bool writePluginPropertiesList(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope);
 };
 
 inline

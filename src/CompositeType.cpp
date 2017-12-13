@@ -298,6 +298,8 @@ bool CompositeType::writePluginPropertiesImpl(
                output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
                output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
 
+        writeSerialisedHiddenCheck(out, indent, props);
+
         if (scope.empty() && (!commsOptionalWrapped)) {
             out << output::indent(indent) << "return " << props << ".asMap();\n";
         }

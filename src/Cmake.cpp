@@ -66,6 +66,7 @@ bool Cmake::writeMain()
         return false;
     }
 
+    auto& ns = m_db.getProtocolNamespace();
     out << "cmake_minimum_required (VERSION 3.1)\n"
            "project (\"" << m_name << "\")\n\n"
            "option (OPT_LIB_ONLY \"Install only protocol library, no other libraries/plugings are built/installed.\" OFF)\n"
@@ -93,7 +94,7 @@ bool Cmake::writeMain()
            "set (DOC_INSTALL_DIR ${INSTALL_DIR}/doc)\n"
            "\n"
            "install (\n" <<
-           output::indent(1) << "DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ublox\n" <<
+           output::indent(1) << "DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/" << ns << "\n" <<
            output::indent(1) << "DESTINATION ${INC_INSTALL_DIR}\n"
            ")\n\n"
            "FILE(GLOB_RECURSE protocol.headers \"include/*.h\")\n"
