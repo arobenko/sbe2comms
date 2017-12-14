@@ -32,6 +32,7 @@ public:
     std::intmax_t getDefultIntNullValue() const;
     bool isIntType() const;
     bool isFpType() const;
+    bool isRawDataArray() const;
 
 protected:
     virtual Kind getKindImpl() const override;

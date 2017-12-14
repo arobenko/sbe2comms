@@ -294,9 +294,36 @@ bool CompositeType::writePluginPropertiesImpl(
         assert(dataUseRecorded());
         assert(DataEncIdx_numOfValues <= m_members.size());
 
-        out << output::indent(indent) << "auto " << props << " =\n" <<
-               output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
-               output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
+        auto& varDataMem = m_members[DataEncIdx_data];
+        assert(varDataMem);
+        assert(varDataMem->getKind() == Kind::Basic);
+        bool rawDataArray = asBasicType(*varDataMem).isRawDataArray();
+        do {
+            if (rawDataArray) {
+                out << output::indent(indent) << "auto " << props << " =\n" <<
+                       output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+                       output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
+                break;
+            }
+
+            if (!varDataMem->writePluginProperties(out, indent, subScope)) {
+                return false;
+            }
+
+            std::string memProps;
+            common::scopeToPropertyDefNames(subScope, varDataMem->getName(), varDataMem->isCommsOptionalWrapped(), nullptr, &memProps);
+
+            out << output::indent(indent) << "auto " << props << " =\n" <<
+                   output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
+                   output::indent(indent + 3) << memProps << ".asMap())\n" <<
+                   output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
+
+        } while (false);
+
+
+//        if (fieldsArray) {
+//            out << output::indent(indent) << props << ".add(" << memProps << ".asMap());\n\n";
+//        }
 
         writeSerialisedHiddenCheck(out, indent, props);
 

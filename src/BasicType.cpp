@@ -86,6 +86,16 @@ bool BasicType::isFpType() const
     return !fpType.empty();
 }
 
+bool BasicType::isRawDataArray() const
+{
+    auto len = getLengthProp();
+    if (len != 0) {
+        return false;
+    }
+
+    return isRawData();
+}
+
 BasicType::Kind BasicType::getKindImpl() const
 {
     return Kind::Basic;
