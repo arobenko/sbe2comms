@@ -212,7 +212,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(3) << "BaseImpl::updateMissingSize(header, size, missingSize);\n" <<
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
-           output::indent(3) << "return es;" <<
+           output::indent(3) << "return es;\n" <<
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "auto id = header.field_templateId().value();\n" <<
            output::indent(2) << "do {\n" <<
@@ -226,9 +226,13 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(3) << "}\n\n" <<
            output::indent(3) << "return comms::ErrorStatus::InvalidMsgId;\n" <<
            output::indent(2) << "} while (false);\n\n" <<
+           output::indent(2) << "auto remLen = size - header.length();\n" <<
+           output::indent(2) << "if (remLen < header.field_blockLength().value()) {\n" <<
+           output::indent(3) << "return comms::ErrorStatus::NotEnoughData;\n" <<
+           output::indent(2) << "}\n\n" <<
            output::indent(2) << "msgPtr->setBlockLength(header.field_blockLength().value());\n" <<
            output::indent(2) << "msgPtr->setVersion(header.field_version().value());\n" <<
-           output::indent(2) << "es = nextLayerReader.read(msgPtr, iter, size - header.length(), missingSize);\n" <<
+           output::indent(2) << "es = nextLayerReader.read(msgPtr, iter, remLen, missingSize);\n" <<
            output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
            output::indent(3) << "msgPtr.reset();\n" <<
            output::indent(2) << "}\n" <<

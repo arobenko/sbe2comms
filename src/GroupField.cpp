@@ -179,7 +179,7 @@ bool GroupField::writePluginPropertiesImpl(
         }
 
         std::string mProps;
-        common::scopeToPropertyDefNames(subScope, m->getName(), m->isCommsOptionalWrapped(), nullptr, &mProps);
+        common::scopeToPropertyDefNames(subScope, m->getName(), false, nullptr, &mProps);
         out << output::indent(indent) << bundleProps << ".add(" << mProps << ");\n\n";
     }
 

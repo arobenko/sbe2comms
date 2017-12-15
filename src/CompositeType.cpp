@@ -313,17 +313,18 @@ bool CompositeType::writePluginPropertiesImpl(
             std::string memProps;
             common::scopeToPropertyDefNames(subScope, varDataMem->getName(), varDataMem->isCommsOptionalWrapped(), nullptr, &memProps);
 
+            auto& lengthMem = m_members[DataEncIdx_length];
+            assert(lengthMem);
+
             out << output::indent(indent) << "auto " << props << " =\n" <<
                    output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
                    output::indent(indent + 3) << memProps << ".asMap())\n" <<
-                   output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
+                   output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
+                   output::indent(indent + 2) << ".showPrefix()\n" <<
+                   output::indent(indent + 2) << ".prefixName(\"" << lengthMem->getName() << "\");\n\n";
 
         } while (false);
 
-
-//        if (fieldsArray) {
-//            out << output::indent(indent) << props << ".add(" << memProps << ".asMap());\n\n";
-//        }
 
         writeSerialisedHiddenCheck(out, indent, props);
 
@@ -344,7 +345,7 @@ bool CompositeType::writePluginPropertiesImpl(
         }
 
         std::string memProps;
-        common::scopeToPropertyDefNames(subScope, m->getName(), m->isCommsOptionalWrapped(), nullptr, &memProps);
+        common::scopeToPropertyDefNames(subScope, m->getName(), false, nullptr, &memProps);
         out << output::indent(indent) << props << ".add(" << memProps << ".asMap());\n\n";
     }
 

@@ -185,10 +185,11 @@ bool Field::writePluginProperties(
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << type << ">()\n" <<
            output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
            output::indent(indent + 2) << ".uncheckable()\n" <<
-           output::indent(indent + 2) << ".field(" << fieldProps << ");\n";
+           output::indent(indent + 2) << ".field(" << fieldProps << ")\n" <<
+           output::indent(indent + 2) << ".asMap();\n\n";
 
     if (returnResult) {
-        out << output::indent(indent) << "return " << props << ".asMap();\n";
+        out << output::indent(indent) << "return " << props << ";\n";
     }
     return true;
 }

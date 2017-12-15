@@ -723,6 +723,11 @@ bool BasicField::writeConstantPluginProperties(
     bool returnResult,
     bool commsOptionalWrapped)
 {
+    std::string typePropsStr =
+        common::pluginNamespaceStr() +
+        common::fieldNamespaceStr() +
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
+
     std::string fieldType;
     std::string props;
     common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
@@ -733,12 +738,33 @@ bool BasicField::writeConstantPluginProperties(
     }
     auto name = common::refName(getName(), *suffixPtr);
 
-    out << output::indent(indent) << "using " << fieldType << " = " << scope << name << ";\n";
+    if ((!commsOptionalWrapped) && (isCommsOptionalWrapped())) {
+        assert(m_type->isCommsOptionalWrapped());
+        out << output::indent(indent) << "using " << fieldType << " = " << scope << name << ";\n" <<
+               output::indent(indent) << "auto " << props << "Opt =\n" <<
+               output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
+               output::indent(indent + 3) << typePropsStr << ");\n\n";
 
-    std::string typePropsStr =
-        common::pluginNamespaceStr() +
-        common::fieldNamespaceStr() +
-        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
+        std::string wrappedFieldType;
+        std::string wrappedProps;
+        common::scopeToPropertyDefNames(scope, getName(), true, &wrappedFieldType, &wrappedProps);
+        out << output::indent(indent) << "using " << wrappedFieldType << " = " << scope << name << common::optFieldSuffixStr() << ";\n" <<
+               output::indent(indent) << "auto " << wrappedProps << "=\n" <<
+               output::indent(indent + 1) << "comms_champion::property::field::ForField<" << wrappedFieldType << ">(" << props << "Opt.field())\n" <<
+               output::indent(indent + 2) << ".serialisedHidden()\n" <<
+               output::indent(indent + 2) << ".readOnly()\n" <<
+               output::indent(indent + 2) << ".asMap();\n\n" <<
+               output::indent(indent) << props << "Opt.field(" << wrappedProps << ");\n" <<
+               output::indent(indent) << "auto " << props << " = " << props << "Opt.asMap();\n\n";
+
+        if (returnResult) {
+            out << output::indent(indent) << "return " << props << ";\n";
+        }
+        return true;
+    }
+
+
+    out << output::indent(indent) << "using " << fieldType << " = " << scope << name << ";\n";
 
     if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
         typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
