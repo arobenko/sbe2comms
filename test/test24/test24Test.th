@@ -165,7 +165,7 @@ void Test24Suite::test4()
     TestFrame frame;
     auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
 
-    TS_TRACE(buf);
+    //TS_TRACE(buf);
     TS_ASSERT(!buf.empty());
     auto msg2 = test::common::readMsg(buf, frame);
     TS_ASSERT(msg2);

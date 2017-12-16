@@ -137,9 +137,13 @@ bool RefType::writePluginPropertiesImpl(
         refPropsStr = "comms_champion::property::field::Optional(" + refPropsStr + ").field()";
     }
 
-    out << output::indent(indent) << "using " << fieldType << " = " <<
-           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName()) <<
-           "<>;\n" <<
+    auto aliasTypeStr =
+            common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName());
+    if (isCommsOptionalWrapped()) {
+        aliasTypeStr += common::optFieldSuffixStr();
+    }
+
+    out << output::indent(indent) << "using " << fieldType << " = " << aliasTypeStr << "<>;\n" <<
            output::indent(indent) << "comms_champion::property::field::ForField<" << fieldType << "> " << props << "(\n" <<
            output::indent(indent + 1) << refPropsStr << ");\n\n";
 

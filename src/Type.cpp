@@ -338,7 +338,7 @@ bool Type::writePluginProperties(std::ostream& out, unsigned indent, const std::
     common::scopeToPropertyDefNames(scope, getName(), false, &type, &props);
 
     auto nameStr = '\"' + getName() + '\"';
-    if (!scope.empty()) {
+    if (scope.empty()) {
         nameStr = common::fieldNameParamNameStr();
     }
 
@@ -349,8 +349,11 @@ bool Type::writePluginProperties(std::ostream& out, unsigned indent, const std::
            output::indent(indent + 1) << "comms_champion::property::field::ForField<" << type << ">()\n" <<
            output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
            output::indent(indent + 2) << ".uncheckable()\n" <<
-           output::indent(indent + 2) << ".field(" << fieldProps << ".asMap());\n" <<
-           output::indent(indent) << "return " << props << ".asMap();\n";
+           output::indent(indent + 2) << ".field(" << fieldProps << ".asMap());\n\n";
+
+    if (scope.empty()) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
 
     return true;
 }
