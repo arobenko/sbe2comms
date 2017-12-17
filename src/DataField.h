@@ -31,9 +31,16 @@ public:
 
 protected:
     virtual Kind getKindImpl() const override;
+    virtual unsigned getReferencedTypeSinceVersionImpl() const override;
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool usesBuiltInTypeImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped) override;
 
 private:
     const Type* m_type = nullptr;

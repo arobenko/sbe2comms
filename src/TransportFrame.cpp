@@ -33,7 +33,7 @@ namespace sbe2comms
 
 bool TransportFrame::write()
 {
-    return writeProtocolDef();
+    return writeProtocolDef() && writePluginDef();
 }
 
 bool TransportFrame::writeProtocolDef()
@@ -58,8 +58,6 @@ bool TransportFrame::writeProtocolDef()
         return false;
     }
 
-    auto openFramingHeaderType = common::builtinNamespaceStr() + common::openFramingHeaderStr();
-
     out << "/// \\file\n"
            "/// \\brief Contains definition of transport frames.\n\n"
            "#pragma once\n\n"
@@ -67,7 +65,6 @@ bool TransportFrame::writeProtocolDef()
            "#include \"comms/protocol/MsgDataLayer.h\"\n"
            "#include \"comms/options.h\"\n"
            "#include \"comms/field/ArrayList.h\"\n"
-           "#include \"" << common::fieldsDefFileName() << "\"\n"
            "#include \"" << common::messageHeaderLayerFileName() << "\"\n"
            "#include \"" << common::openFramingHeaderLayerFileName() << "\"\n"
            "#include \"" << common::defaultOptionsFileName() << "\"\n\n";
@@ -110,12 +107,11 @@ bool TransportFrame::writeProtocolDef()
            output::indent(4) << "TDataStorageOpt\n" <<
            output::indent(3) << ">\n" <<
            output::indent(2) << ">,\n" <<
-           output::indent(2) << "TOpt,\n" <<
+           output::indent(2) << common::messageHeaderLayerStr() << common::optFieldSuffixStr() << "<TOpt>,\n" <<
            output::indent(2) << "TFactoryOpt\n" <<
            output::indent(1) << ">;\n\n" <<
            "/// \\brief Definition of transport frame involving both message header\n"
-           "///     (\\ref " << common::fieldNamespaceStr() << messageHeaderType << ") and open framing header\n"
-           "///     (\\ref " << openFramingHeaderType << ").\n"
+           "///     and simple open framing header.\n"
            "/// \\tparam TMsgBase Common base (interface) class of all the messages.\n"
            "/// \\tparam TMessages All the message types that need to be recognized in the\n"
            "///     input and created.\n"
@@ -139,10 +135,52 @@ bool TransportFrame::writeProtocolDef()
            ">\n"
            "using " << common::openFramingHeaderFrameStr() << " =\n" <<
            output::indent(1) << common::openFramingHeaderLayerStr() << "<\n" <<
-           output::indent(2) << common::messageHeaderFrameStr() << "<TMsgBase, TMessages, TOpt, TFactoryOpt, TDataStorageOpt>\n" <<
+           output::indent(2) << common::messageHeaderFrameStr() << "<TMsgBase, TMessages, TOpt, TFactoryOpt, TDataStorageOpt>,\n" <<
+           output::indent(2) << common::openFramingHeaderLayerStr() << common::optFieldSuffixStr() << "<TOpt>\n" <<
            output::indent(1) << ">;\n\n";
 
     common::writeProtocolNamespaceEnd(ns, out);
+    return true;
+}
+
+bool TransportFrame::writePluginDef()
+{
+    if (!common::createPluginDefDir(m_db.getRootPath())) {
+        return false;
+    }
+
+    auto relPath = common::pluginNamespaceNameStr() + '/' + common::transportFrameFileName();
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    auto& ns = m_db.getProtocolNamespace();
+    auto& pluginNs = common::pluginNamespaceNameStr();
+
+    out << "#pragma once\n\n"
+           "#include " << common::localHeader(ns, common::emptyString(), common::transportFrameFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, common::emptyString(), common::msgInterfaceFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, common::emptyString(), common::allMessagesFileName()) << "\n\n";
+
+    common::writePluginNamespaceBegin(ns, out);
+
+    out << "using " << common::messageHeaderFrameStr() << " = \n" <<
+           output::indent(1) << common::scopeFor(ns, common::messageHeaderFrameStr()) << "<\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::msgInterfaceStr()) << "<>,\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::allMessagesStr()) << '\n' <<
+           output::indent(1) << ">;\n\n";
+
+    out << "using " << common::openFramingHeaderFrameStr() << " = \n" <<
+           output::indent(1) << common::scopeFor(ns, common::openFramingHeaderFrameStr()) << "<\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::msgInterfaceStr()) << "<>,\n" <<
+           output::indent(2) << common::scopeFor(pluginNs, common::allMessagesStr()) << '\n' <<
+           output::indent(1) << ">;\n\n";
+
+    common::writePluginNamespaceEnd(ns, out);
     return true;
 }
 

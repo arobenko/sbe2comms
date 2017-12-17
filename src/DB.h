@@ -36,7 +36,6 @@ class DB
 {
 public:
     using TypesMap = std::map<std::string, TypePtr>;
-    using TypesList = std::list<Type*>;
     using MessagePtr = std::unique_ptr<Message>;
     using MessagesMap = std::map<std::string, MessagePtr>;
     using MessagesIdMap = std::map<unsigned, MessagesMap::const_iterator>;
@@ -58,11 +57,6 @@ public:
         return m_types;
     }
 
-    const TypesList& getTypesList() const
-    {
-        return m_typesList;
-    }
-
     MessagesMap& getMessages()
     {
         return m_messages;
@@ -81,9 +75,17 @@ public:
 
     unsigned getSchemaId() const;
 
+    const std::string& getPackageName() const;
+
     const std::string& getMessageHeaderType() const;
 
+    const std::string& getSimpleOpenFramingHeaderTypeName() const;
+
+    bool hasSimpleOpenFramingHeaderTypeDefined() const;
+
     unsigned getMinRemoteVersion() const;
+
+    const std::string& getCommsChampionTag() const;
 
     const std::string& getEndian() const;
 
@@ -132,13 +134,15 @@ private:
     bool processNamespace(const ProgramOptions& options);
     bool processForcedSchemaVersion(const ProgramOptions& options);
     bool processMinRemoteVersion(const ProgramOptions& options);
+    bool processCommsChampionTag(const ProgramOptions& options);
+    bool processOpenFramingHeader(const ProgramOptions& options);
     bool processMessageSchema();
+    void checkOpenFramingHeader();
 
     XmlDocPtr m_doc;
     std::unique_ptr<MessageSchema> m_messageSchema;
     XmlNodePtr m_msgIdEnum;
     TypesMap m_types;
-    TypesList m_typesList;
     GeneratedTypeMap m_builtInTypes;
     GeneratedTypeMap m_paddingTypes;
     MessagesMap m_messages;
@@ -148,8 +152,10 @@ private:
     std::string m_rootDir;
     std::string m_endian;
     std::string m_namespace;
-    unsigned m_schemaVersion;
-    unsigned m_minRemoteVersion;
+    unsigned m_schemaVersion = 0U;
+    unsigned m_minRemoteVersion = 0U;
+    std::string m_commsChampionTag;
+    std::string m_openFramingHeaderName;
 };
 
 } // namespace sbe2comms

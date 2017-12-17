@@ -72,6 +72,24 @@ void closeNamespaces(std::ostream& out, DB& db)
     common::writeProtocolNamespaceEnd(db.getProtocolNamespace(), out);
 }
 
+void openPluginNamespaces(std::ostream& out, DB& db)
+{
+    common::writePluginNamespaceBegin(db.getProtocolNamespace(), out);
+
+    out << "namespace " << common::messageDirName() << "\n"
+            "{\n"
+            "\n";
+}
+
+void closePluginNamespaces(std::ostream& out, DB& db)
+{
+    out << "} // namespace " << common::messageDirName() << "\n"
+            "\n";
+
+    common::writePluginNamespaceEnd(db.getProtocolNamespace(), out);
+}
+
+
 void openFieldsDef(std::ostream& out, const std::string& name)
 {
     out <<
@@ -114,25 +132,11 @@ bool Message::parse()
 
     return true;
 }
-
 bool Message::write()
 {
-
-    if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace(), common::messageDirName())) {
-        return false;
-    }
-
-    auto messageDirRelPath =
-            common::protocolDirRelPath(m_db.getProtocolNamespace(), common::messageDirName());
-
-    const std::string Ext(".h");
-    auto filename = getName() + Ext;
-    auto relPath = bf::path(messageDirRelPath) / filename;
-    auto filePath = bf::path(m_db.getRootPath()) / relPath;
-
-    log::info() << "Generating " << relPath.string() << std::endl;
-    return writeMessageDef(filePath.string());
+    return writeProtocolDef() && writePluginHeader() && writePluginSrc();
 }
+
 
 bool Message::writeDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope)
 {
@@ -179,9 +183,11 @@ bool Message::createFields()
     bool dataMembers = false;
     auto blockLength = prop::blockLength(m_props);
     auto scope = getName() + common::fieldsSuffixStr() + "::";
+    unsigned lastSinceVersion = 0U;
+    std::set<std::string> fieldNames;
 
     auto addPaddingFunc =
-        [this, &padCount, &expOffset, &scope](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
+        [this, &padCount, &expOffset, &scope, &lastSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
         {
             ++padCount;
             auto* padType = m_db.getPaddingType(padLen);
@@ -190,7 +196,7 @@ bool Message::createFields()
                 return false;
             }
 
-            auto padNode = xmlCreatePaddingField(padCount, padType->getName());
+            auto padNode = xmlCreatePaddingField(padCount, padType->getName(), lastSinceVersion);
             assert(padNode);
             auto padField = Field::create(m_db, padNode.get(), scope);
             assert(padField);
@@ -233,6 +239,11 @@ bool Message::createFields()
             return false;
         }
 
+        if (fieldNames.find(fieldPtr->getName()) != fieldNames.end()) {
+            log::error() << "Multiple fields with the same name \"" << fieldPtr->getName() << "\"" << std::endl;
+            return false;
+        }
+
         if (!fieldPtr->doesExist()) {
             continue;
         }
@@ -246,6 +257,13 @@ bool Message::createFields()
             log::error() << "Field \"" << fieldPtr->getName() << "\" of \"" << getName() << "\" message cannot follow other group or data" << std::endl;
             return false;
         }
+
+        auto sinceVersion = fieldPtr->getSinceVersion();
+        if (sinceVersion < lastSinceVersion) {
+            log::error() << "Unexpected \"sinceVersion\" attribute value of \"" << fieldPtr->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
+            return false;
+        }
+        lastSinceVersion = sinceVersion;
 
         if (fieldPtr->getKind() == Field::Kind::Data) {
             dataMembers = true;
@@ -290,6 +308,7 @@ bool Message::createFields()
             expOffset += static_cast<const BasicField*>(fieldPtr.get())->getSerializationLength();
         }
 
+        fieldNames.insert(fieldPtr->getName());
         m_fields.push_back(std::move(fieldPtr));
     }
 
@@ -375,7 +394,8 @@ bool Message::writeMessageClass(std::ostream& out)
         out << output::indent(2) << "comms::option::ZeroFieldsImpl\n";
     }
     else {
-        out << output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>\n";
+        out << output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>,\n" <<
+               output::indent(2) << "comms::option::HasDoRefresh\n";
     }
     out <<
         output::indent(1) << ">\n"
@@ -384,6 +404,7 @@ bool Message::writeMessageClass(std::ostream& out)
     writeFieldsAccess(out);
     writeConstructors(out);
     writeReadFunc(out);
+    writeRefreshFunc(out);
     writePrivateMembers(out);
     out << "};\n\n";
 
@@ -517,14 +538,7 @@ void Message::writeReadFunc(std::ostream& out)
             break;
         }
 
-        for (auto& f : m_fields) {
-            if (!f->isCommsOptionalWrapped()) {
-                continue;
-            }
-
-            out << output::indent(2) << "updateOptionalFieldMode(field_" << f->getName() << "(), " <<
-                   f->getSinceVersion() << ");\n";
-        }
+        out << output::indent(2) << "updateFieldsVersion();\n";
 
         auto nonBasicFieldIter =
             std::find_if(
@@ -539,7 +553,6 @@ void Message::writeReadFunc(std::ostream& out)
                    output::indent(2) << "return Base::doRead(iter, len - Base::getBlockLength());\n";
             break;
         }
-
 
         if (nonBasicFieldIter == m_fields.end()) {
             out << output::indent(2) << "auto iterTmp = iter;\n" <<
@@ -566,68 +579,212 @@ void Message::writeReadFunc(std::ostream& out)
     out << output::indent(1) << "}\n\n";
 }
 
-void Message::writePrivateMembers(std::ostream& out)
+void Message::writeRefreshFunc(std::ostream& out)
 {
-    bool needsFieldsModeUpdate =
-        std::any_of(
+    if (m_fields.empty()) {
+        return;
+    }
+
+    out << output::indent(1) << "/// \\brief Custom refresh functionality.\n" <<
+           output::indent(1) << "bool doRefresh()\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << common::messageBaseDefStr() <<
+           output::indent(2) << "bool updated = updateFieldsVersion();\n";
+
+    auto nonBasicFieldIter =
+        std::find_if(
             m_fields.begin(), m_fields.end(),
             [](FieldsList::const_reference f)
             {
-                return f->isCommsOptionalWrapped();
+                return (f->getKind() != Field::Kind::Basic);
             });
 
-    if (!needsFieldsModeUpdate) {
+    do {
+        if (nonBasicFieldIter == m_fields.begin()) {
+            out << output::indent(2) << "std::size_t currBlockLength = 0U;\n";
+            break;
+        }
+
+        if (nonBasicFieldIter == m_fields.end()) {
+            out << output::indent(2) << "std::size_t currBlockLength = Base::doLength();\n";
+            break;
+        }
+
+        auto& fieldName = (*nonBasicFieldIter)->getName();
+        out << output::indent(2) << "std::size_t currBlockLength = Base::template doLengthUntil<FieldIdx_" << fieldName << ">();\n";
+    } while (false);
+
+    out << output::indent(2) << "if (currBlockLength == Base::getBlockLength()) {\n" <<
+           output::indent(3) << "return updated;\n" <<
+           output::indent(2) << "}\n\n" <<
+           output::indent(2) << "Base::setBlockLength(currBlockLength);\n" <<
+           output::indent(2) << "return true;\n" <<
+           output::indent(1) << "}\n\n";
+}
+
+void Message::writePrivateMembers(std::ostream& out)
+{
+    if (m_fields.empty()) {
         return;
     }
 
     out << "private:\n" <<
-           output::indent(1) << "template <typename TField>\n" <<
-           output::indent(1) << "void updateOptionalFieldMode(TField& field, unsigned sinceVersion)\n" <<
+           output::indent(1) << "bool updateFieldsVersion()\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << common::messageBaseDefStr() <<
-           output::indent(2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
-           output::indent(2) << "if (Base::getVersion() < sinceVersion) {\n" <<
-           output::indent(3) << "mode = comms::field::OptionalMode::Missing;\n" <<
-           output::indent(2) << "}\n" <<
-           output::indent(2) << "field.setMode(mode);\n" <<
-           output::indent(1) << "}\n";
+           output::indent(2) << "return comms::util::tupleAccumulate(Base::fields(), false, " <<
+                                common::builtinNamespaceStr() << common::versionSetterStr() << "(Base::getVersion()));\n" <<
+           output::indent(1) << "}\n;";
 }
 
 void Message::writeExtraDefHeaders(std::ostream& out)
 {
     std::set<std::string> extraHeaders;
     extraHeaders.insert("<iterator>");
+    extraHeaders.insert("\"comms/MessageBase.h\"");
+    extraHeaders.insert("\"comms/Assert.h\"");
+    extraHeaders.insert('\"' + napespacePrefix(m_db) + common::defaultOptionsFileName() + '\"');
+    extraHeaders.insert('\"' + napespacePrefix(m_db) + common::msgIdFileName() + '\"');
 
     for (auto& f : m_fields) {
         f->updateExtraHeaders(extraHeaders);
     }
 
-    for (auto& h : extraHeaders) {
-        out << "#include " << h << '\n';
-    }
-
-    out << "#include \"comms/MessageBase.h\"\n"
-           "#include \"comms/Assert.h\"\n"
-           "#include \"" << napespacePrefix(m_db) << common::defaultOptionsFileName() << "\"\n" <<
-           "#include \"" << napespacePrefix(m_db) << common::msgIdFileName() << "\"\n";
-
     if (!m_fields.empty()) {
-        out << "#include \"" << napespacePrefix(m_db) << common::fieldsDefFileName() << "\"\n";
+        extraHeaders.insert(common::localHeader(m_db.getProtocolNamespace(), common::builtinNamespaceNameStr(), common::versionSetterFileName()));
+        extraHeaders.insert("\"comms/util/Tuple.h\"");
     }
 
-    auto hasBuiltIns =
-        std::any_of(
-            m_fields.begin(), m_fields.end(),
-            [](FieldsList::const_reference& f)
-            {
-                return f->usesBuiltInType();
-            });
-
-    if (hasBuiltIns) {
-        out << "#include \"" << napespacePrefix(m_db) << common::builtinsDefFileName() << "\"\n";
-    }
-
-    out << '\n';
+    common::writeExtraHeaders(out, extraHeaders);
 }
+
+bool Message::writeProtocolDef()
+{
+    if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace(), common::messageDirName())) {
+        return false;
+    }
+
+    auto messageDirRelPath =
+            common::protocolDirRelPath(m_db.getProtocolNamespace(), common::messageDirName());
+
+    const std::string Ext(".h");
+    auto filename = getName() + Ext;
+    auto relPath = bf::path(messageDirRelPath) / filename;
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+
+    log::info() << "Generating " << relPath.string() << std::endl;
+    return writeMessageDef(filePath.string());
+}
+
+bool Message::writePluginHeader()
+{
+    if (!common::createPluginDefDir(m_db.getRootPath(), common::messageDirName())) {
+        return false;
+    }
+
+    auto& ns = common::pluginNamespaceNameStr();
+    auto relPath = common::pathTo(ns, common::messageDirName() + '/' + getName() + ".h");
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    auto& protNs = m_db.getProtocolNamespace();
+    out << "#pragma once\n\n"
+           "#include \"comms_champion/comms_champion.h\"\n"
+           "#include \"cc_plugin/" << common::msgInterfaceFileName() << "\"\n"
+           "#include " << common::localHeader(protNs, common::messageNamespaceNameStr(), getName() + ".h") << "\n\n";
+
+    openPluginNamespaces(out, m_db);
+
+    auto protMsgScope = common::scopeFor(protNs, common::messageNamespaceStr() + getName());
+    auto pluginInterfaceScope = common::scopeFor(protNs, common::pluginNamespaceStr() + common::msgInterfaceStr());
+
+    out << "class " << getReferenceName() << " : public\n" <<
+           output::indent(1) << "comms_champion::ProtocolMessageBase<\n" <<
+           output::indent(2) << protMsgScope << '<' << pluginInterfaceScope << "<> >,\n" <<
+           output::indent(2) << getReferenceName() << ">\n" <<
+           "{\n"
+           "protected:\n" <<
+           output::indent(1) << "virtual const char* nameImpl() const override;\n" <<
+           output::indent(1) << "virtual const QVariantList& fieldsPropertiesImpl() const override;\n" <<
+           "};\n\n";
+    closePluginNamespaces(out, m_db);
+    return true;
+
+}
+
+bool Message::writePluginSrc()
+{
+    if (!common::createPluginDefDir(m_db.getRootPath(), common::messageDirName())) {
+        return false;
+    }
+
+    auto& ns = common::pluginNamespaceNameStr();
+    auto relPath = common::pathTo(ns, common::messageDirName() + '/' + getName() + ".cpp");
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "#include \"" << getName() << ".h\"\n\n"
+           "#include <cassert>\n"
+           "#include <QtCore/QVariantList>\n"
+           "#include \"cc_plugin/" << common::fieldHeaderFileName() << "\"\n\n";
+
+    openPluginNamespaces(out, m_db);
+
+    out << "namespace\n"
+           "{\n\n";
+
+    static const std::string createFieldPropsFuncPrefix("createFieldProps_");
+    auto relScope = common::messageNamespaceStr() + getName() + common::fieldsSuffixStr() + "<>::";
+    auto scope = common::scopeFor(m_db.getProtocolNamespace(), relScope);
+    for (auto& f : m_fields) {
+        out << "QVariantMap " << createFieldPropsFuncPrefix << f->getName() << "()\n"
+               "{\n";
+        if (!f->writePluginProperties(out, 1, scope)) {
+            return false;
+        }
+        out << "}\n\n";
+
+    }
+
+    static const std::string createPropertiesFuncName("createFieldsProperties");
+    out << "QVariantList " << createPropertiesFuncName << "()\n"
+           "{\n" <<
+           output::indent(1) << "QVariantList props;\n";
+    for (auto& f : m_fields) {
+        out << output::indent(1) << "props.append(" << createFieldPropsFuncPrefix << f->getName() << "());\n";
+    }
+
+    out << '\n' <<
+           output::indent(1) << "assert(props.size() == " << getReferenceName() << "::FieldIdx_numOfValues);\n" <<
+           output::indent(1) << "return props;\n"
+           "}\n\n"
+           "} // namespace\n\n"
+           "const char* " << getReferenceName() << "::nameImpl() const\n"
+           "{\n" <<
+           output::indent(1) << "static const char* Str = \"" << getName() << "\";\n" <<
+           output::indent(1) << "return Str;\n"
+           "}\n\n"
+           "const QVariantList& " << getReferenceName() << "::fieldsPropertiesImpl() const\n"
+           "{\n" <<
+           output::indent(1) << "static const auto Props = " << createPropertiesFuncName << "();\n" <<
+           output::indent(1) << "return Props;\n"
+           "}\n\n";
+
+    closePluginNamespaces(out, m_db);
+    return true;
+
+}
+
+
 
 } // namespace sbe2comms

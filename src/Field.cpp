@@ -42,12 +42,27 @@ bool Field::parse()
         return false;
     }
 
+    if (!parseImpl()) {
+        return false;
+    }
+
+    if (!getDefaultOptMode().empty()) {
+        recordExtraHeader("\"comms/field/Optional.h\"");
+    }
+
     unsigned deprecated = prop::deprecated(m_props);
     unsigned sinceVer = prop::sinceVersion(m_props);
     if (deprecated <= sinceVer) {
         log::warning() << "The field \"" << getName() << "\" has been deprecated before introduced." << std::endl;
     }
-    return parseImpl();
+
+    auto refTypeSinceVersion = getReferencedTypeSinceVersionImpl();
+    if (sinceVer < refTypeSinceVersion) {
+        log::error() << "The field \"" << getName() << "\" references type that has been introduced later." << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 bool Field::doesExist() const
@@ -112,18 +127,70 @@ bool Field::write(std::ostream& out, unsigned indent)
         return writeImpl(out, indent, common::emptyString());
     }
 
-    static const std::string OptFieldSuffix("Field");
-    bool result = writeImpl(out, indent, OptFieldSuffix);
+    bool result = writeImpl(out, indent, common::optFieldSuffixStr());
     if (!result) {
         return false;
     }
 
     writeHeader(out, indent, common::emptyString());
-    out << output::indent(indent) << "using " << getName() << " =\n" <<
-           output::indent(indent + 1) << "comms::field::Optional<\n" <<
-           output::indent(indent + 2) << getName() << OptFieldSuffix << ",\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
-           output::indent(indent + 1) << ">;\n\n";
+    common::writeOptFieldDefinition(out, indent, getName(), optMode, getSinceVersion());
+    return true;
+}
+
+bool Field::writePluginProperties(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult)
+{
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    bool wrapProps = commsOptionalWrapped;
+    do {
+        if (!commsOptionalWrapped) {
+            break;
+        }
+
+        if (isForcedCommsOptionalImpl()) {
+            wrapProps = true;
+            break;
+        }
+
+        wrapProps = (getReferencedTypeSinceVersionImpl() <= m_db.getMinRemoteVersion());
+    } while (false);
+
+    bool fieldsReturnResult = returnResult && (!wrapProps);
+
+    if (!writePluginPropertiesImpl(out, indent, scope, fieldsReturnResult, wrapProps)) {
+        return false;
+    }
+
+    if (!wrapProps) {
+        return true;
+    }
+
+    assert(commsOptionalWrapped);
+    std::string fieldProps;
+    common::scopeToPropertyDefNames(scope, getName(), true, nullptr, &fieldProps);
+
+    std::string type;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), false, &type, &props);
+
+    auto nameStr = '\"' + getName() + '\"';
+
+    out << output::indent(indent) << "using " << type << " = " <<
+           scope + getReferenceName() <<
+           ";\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << type << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
+           output::indent(indent + 2) << ".uncheckable()\n" <<
+           output::indent(indent + 2) << ".field(" << fieldProps << ")\n" <<
+           output::indent(indent + 2) << ".asMap();\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
     return true;
 }
 
@@ -157,12 +224,6 @@ unsigned Field::getDeprecated() const
     return prop::deprecated(m_props);
 }
 
-unsigned Field::getSinceVersion() const
-{
-    assert(!m_props.empty());
-    return prop::sinceVersion(m_props);
-}
-
 const std::string& Field::getType() const
 {
     assert(!m_props.empty());
@@ -175,20 +236,32 @@ unsigned Field::getOffset() const
     return prop::offset(m_props);
 }
 
-void Field::updateExtraHeaders(std::set<std::string>& headers)
+void Field::updateExtraHeaders(ExtraHeaders& headers)
 {
     for (auto& h : m_extraHeaders) {
-        if (headers.find(h) != headers.end()) {
-            continue;
-        }
-
-        headers.insert(h);
+        common::recordExtraHeader(h, headers);
     }
 }
 
 bool Field::isCommsOptionalWrapped() const
 {
     return !getDefaultOptMode().empty();
+}
+
+unsigned Field::getSinceVersionImpl() const
+{
+    assert(!m_props.empty());
+    return prop::sinceVersion(m_props);
+}
+
+unsigned Field::getReferencedTypeSinceVersionImpl() const
+{
+    return 0U;
+}
+
+bool Field::isForcedCommsOptionalImpl() const
+{
+    return false;
 }
 
 bool Field::parseImpl()
@@ -222,21 +295,14 @@ void Field::writeOptions(std::ostream& out, unsigned indent)
 
 void Field::recordExtraHeader(const std::string& header)
 {
-    auto iter = m_extraHeaders.find(header);
-    if (iter != m_extraHeaders.end()) {
-        return;
-    }
-    m_extraHeaders.insert(header);
+    common::recordExtraHeader(header, m_extraHeaders);
 }
 
-const std::string& Field::getDefaultOptMode() const
+void Field::recordMultipleExtraHeaders(const ExtraHeaders& headers)
 {
-    if (m_db.getMinRemoteVersion() < getSinceVersion()) {
-        static const std::string Mode("comms::field::OptionalMode::Exists");
-        return Mode;
+    for (auto& h : headers) {
+        recordExtraHeader(h);
     }
-
-    return common::emptyString();
 }
 
 std::string Field::getFieldOptString() const
@@ -258,5 +324,42 @@ std::string Field::getTypeOptString(const Type& type) const
     return result;
 }
 
+const std::string& Field::getCreatePropsCallSuffix() const
+{
+    if (!m_inGroup) {
+        return common::emptyString();
+    }
+
+    static const std::string Str(", true");
+    return Str;
+}
+
+void Field::scopeToPropertyDefNames(
+    const std::string& scope,
+    std::string* fieldType,
+    std::string* propsName)
+{
+    return common::scopeToPropertyDefNames(scope, getName(), isCommsOptionalWrapped(), fieldType, propsName);
+}
+
+const std::string& Field::getDefaultOptMode() const
+{
+    auto sinceVersion = getSinceVersion();
+    if (m_containingGroupVersion == sinceVersion) {
+        return common::emptyString();
+    }
+
+    if (sinceVersion <= m_db.getMinRemoteVersion()) {
+        return common::emptyString();
+    }
+
+    auto refTypeSinceVersion = getReferencedTypeSinceVersionImpl();
+    if ((sinceVersion <= refTypeSinceVersion) && (!isForcedCommsOptionalImpl())) {
+        return common::emptyString();
+    }
+
+    static const std::string Mode("comms::field::OptionalMode::Exists");
+    return Mode;
+}
 
 } // namespace sbe2comms

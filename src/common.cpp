@@ -23,11 +23,13 @@
 #include <sstream>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "output.h"
 #include "log.h"
 
 namespace bf = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -53,21 +55,27 @@ const std::string& messageDirName()
     return Name;
 }
 
-const std::string& includeDirName()
+const std::string& fieldDirName()
 {
-    static const std::string Name("include");
+    static const std::string Name("field");
     return Name;
 }
 
-const std::string& fieldsDefFileName()
+const std::string& fieldHeaderFileName()
 {
     static const std::string Name("field.h");
     return Name;
 }
 
-const std::string& builtinsDefFileName()
+const std::string& fieldDefFileName()
 {
-    static const std::string Name("sbe2comms.h");
+    static const std::string Name("field.cpp");
+    return Name;
+}
+
+const std::string& includeDirName()
+{
+    static const std::string Name("include");
     return Name;
 }
 
@@ -85,7 +93,13 @@ const std::string& msgIdFileName()
 
 const std::string& msgInterfaceFileName()
 {
-    static const std::string Name("Message.h");
+    static const std::string Name(msgInterfaceStr() + ".h");
+    return Name;
+}
+
+const std::string& msgInterfaceStr()
+{
+    static const std::string Name("Message");
     return Name;
 }
 
@@ -142,6 +156,7 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("char16_t"),
         makePairFunc("char32_t"),
         makePairFunc("class"),
+        makePairFunc("comms"),
         makePairFunc("alignas"),
         makePairFunc("compl"),
         makePairFunc("concept"),
@@ -172,6 +187,7 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("import"),
         makePairFunc("inline"),
         makePairFunc("int"),
+        makePairFunc("length"),
         makePairFunc("long"),
         makePairFunc("module"),
         makePairFunc("mutable"),
@@ -187,10 +203,13 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("private"),
         makePairFunc("protected"),
         makePairFunc("public"),
+        makePairFunc("read"),
+        makePairFunc("refresh"),
         makePairFunc("register"),
         makePairFunc("reinterpret_cast"),
         makePairFunc("requires"),
         makePairFunc("return"),
+        makePairFunc("sbe2comms"),
         makePairFunc("short"),
         makePairFunc("signed"),
         makePairFunc("sizeof"),
@@ -212,11 +231,14 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("union"),
         makePairFunc("unsigned"),
         makePairFunc("using"),
+        makePairFunc("valid"),
+        makePairFunc("value"),
         makePairFunc("virtual"),
         makePairFunc("void"),
         makePairFunc("volatile"),
         makePairFunc("wchar_t"),
         makePairFunc("while"),
+        makePairFunc("write"),
         makePairFunc("xor"),
         makePairFunc("xor_eq"),
 
@@ -265,6 +287,12 @@ const std::string& fieldBaseDefStr()
     return Str;
 }
 
+const std::string& fieldBaseFileName()
+{
+    static const std::string Str(fieldBaseStr() + ".h");
+    return Str;
+}
+
 const std::string& messageBaseDefStr()
 {
     static const std::string Str("using Base = typename std::decay<decltype(toMessageBase(*this))>::type;\n");
@@ -309,7 +337,25 @@ const std::string& messageNamespaceNameStr()
 
 const std::string& builtinNamespaceStr()
 {
-    static const std::string Str("sbe2comms::");
+    static const std::string Str(builtinNamespaceNameStr() + "::");
+    return Str;
+}
+
+const std::string& builtinNamespaceNameStr()
+{
+    static const std::string Str("sbe2comms");
+    return Str;
+}
+
+const std::string& pluginNamespaceNameStr()
+{
+    static const std::string Str("cc_plugin");
+    return Str;
+}
+
+const std::string& pluginNamespaceStr()
+{
+    static const std::string Str(pluginNamespaceNameStr() + "::");
     return Str;
 }
 
@@ -322,6 +368,12 @@ const std::string& memembersSuffixStr()
 const std::string& fieldsSuffixStr()
 {
     static const std::string Str("Fields");
+    return Str;
+}
+
+const std::string& optFieldSuffixStr()
+{
+    static const std::string Str("Field");
     return Str;
 }
 
@@ -370,6 +422,18 @@ const std::string& schemaIdStr()
 const std::string& versionStr()
 {
     static const std::string Str("version");
+    return Str;
+}
+
+const std::string& messageLengthStr()
+{
+    static const std::string Str("messageLength");
+    return Str;
+}
+
+const std::string& encodingTypeStr()
+{
+    static const std::string Str("encodingType");
     return Str;
 }
 
@@ -433,6 +497,54 @@ const std::string& padStr()
     return Str;
 }
 
+const std::string& versionSetterStr()
+{
+    static const std::string Str("VersionSetter");
+    return Str;
+}
+
+const std::string& versionSetterFileName()
+{
+    static const std::string Str(versionSetterStr() + ".h");
+    return Str;
+}
+
+const std::string& fieldNameParamNameStr()
+{
+    static const std::string Str("fieldName");
+    return Str;
+}
+
+const std::string& cmakeListsFileName()
+{
+    static const std::string Str("CMakeLists.txt");
+    return Str;
+}
+
+const std::string& transportMessageNameStr()
+{
+    static const std::string Str("TransportMessage");
+    return Str;
+}
+
+const std::string& protocolNameStr()
+{
+    static const std::string Str("Protocol");
+    return Str;
+}
+
+const std::string& pluginNameStr()
+{
+    static const std::string Str("Plugin");
+    return Str;
+}
+
+const std::string& serialisedHiddenStr()
+{
+    static const std::string Str("serialishedHidden");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     if (std::numeric_limits<std::int32_t>::max() < val) {
@@ -488,7 +600,7 @@ std::string scopeFor(const std::string& ns, const std::string type)
     return result;
 }
 
-std::string pathTo(const std::string& ns, const std::string path)
+std::string pathTo(const std::string& ns, const std::string& path)
 {
     std::string result = ns;
     if (!ns.empty()) {
@@ -496,6 +608,24 @@ std::string pathTo(const std::string& ns, const std::string path)
     }
     result += path;
     return result;
+}
+
+std::string localHeader(const std::string& ns, const std::string& localNs, const std::string& path)
+{
+    auto localPath = localNs;
+    if (!localPath.empty()) {
+        localPath += '/';
+    }
+    localPath += path;
+    return '\"' + pathTo(ns, localPath) + '\"';
+}
+
+std::string refName(const std::string& name, const std::string& suffix)
+{
+    if (suffix.empty()) {
+        return renameKeyword(name);
+    }
+    return name + suffix;
 }
 
 const std::string& primitiveTypeToStdInt(const std::string& type)
@@ -632,6 +762,94 @@ void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
            output::indent(indent) << "}\n";
 }
 
+void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent)
+{
+    out << output::indent(indent) << "/// \\brief Update current message version.\n" <<
+           output::indent(indent) << "/// \\details Does nothing.\n" <<
+           output::indent(indent) << "/// \\return \\b false to indicate nothing has changed.\n" <<
+           output::indent(indent) << "static bool setVersion(unsigned)\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "return false;\n" <<
+           output::indent(indent) << "}\n";
+}
+
+void writeOptFieldDefinition(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& name,
+    const std::string& optMode,
+    unsigned sinceVersion,
+    bool isFieldTemplate)
+{
+    auto fieldType = name + optFieldSuffixStr();
+    if (isFieldTemplate) {
+        fieldType += "<TOpt...>";
+        out << output::indent(indent) << "template <typename... TOpt>\n";
+    }
+
+    out << output::indent(indent) << "struct " << renameKeyword(name) << " : public\n" <<
+           output::indent(indent + 1) << "comms::field::Optional<\n" <<
+           output::indent(indent + 2) << fieldType << ",\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "/// \\brief Update current version.\n" <<
+           output::indent(indent + 1) << "/// \\return \\b true if field's content has been updated.\n" <<
+           output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << fieldBaseDefStr() <<
+           output::indent(indent + 2) << "bool updated = Base::field().setVersion(value);\n" <<
+           output::indent(indent + 2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
+           output::indent(indent + 2) << "if (value < " << sinceVersion << "U) {\n" <<
+           output::indent(indent + 3) << "mode = comms::field::OptionalMode::Missing;\n" <<
+           output::indent(indent + 2) << "}\n\n" <<
+           output::indent(indent + 2) << "if (Base::getMode() != mode) {\n" <<
+           output::indent(indent + 3) << "Base::setMode(mode);\n" <<
+           output::indent(indent + 3) << "updated = true;\n" <<
+           output::indent(indent + 2) << "}\n\n" <<
+           output::indent(indent + 2) << "return updated;\n" <<
+           output::indent(indent + 1) << "}\n" <<
+           output::indent(indent) << "};\n\n";
+}
+
+
+void writeExtraHeaders(std::ostream& out, const std::set<std::string>& allHeaders)
+{
+    auto writeExtraHeadersFunc =
+            [&out, &allHeaders](const std::string& prefix, const std::string& notPrefix = std::string())
+            {
+                bool wroteHeaders = false;
+                for (auto& h : allHeaders) {
+                    if ((!prefix.empty()) && !ba::starts_with(h, prefix)) {
+                        continue;
+                    }
+
+                    if ((!notPrefix.empty()) && (ba::starts_with(h, notPrefix))) {
+                        continue;
+                    }
+
+                    wroteHeaders = true;
+                    out << "#include " << h << '\n';
+                }
+
+                if (wroteHeaders) {
+                    out << '\n';
+                }
+
+            };
+
+    static const std::string SysHeaderPrefix("<");
+    writeExtraHeadersFunc(SysHeaderPrefix);
+
+    static const std::string CommsHeaderPrefix("\"comms/");
+    writeExtraHeadersFunc(CommsHeaderPrefix);
+
+    static const std::string InternalHeaderPrefix("\"");
+    writeExtraHeadersFunc(InternalHeaderPrefix, CommsHeaderPrefix);
+
+    writeExtraHeadersFunc(std::string(), InternalHeaderPrefix);
+}
+
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders)
 {
     auto iter = allHeaders.find(newHeader);
@@ -661,6 +879,27 @@ void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out)
     out << "} // namespace " << ns << "\n\n";
 }
 
+void writePluginNamespaceBegin(const std::string& ns, std::ostream& out)
+{
+    if (!ns.empty()) {
+        out << "namespace " << ns << "\n"
+               "{\n"
+               "\n";
+    }
+
+    out << "namespace " << common::pluginNamespaceNameStr() << "\n"
+           "{\n\n";
+}
+
+void writePluginNamespaceEnd(const std::string& ns, std::ostream& out)
+{
+    out << "} // namespace " << common::pluginNamespaceNameStr() << "\n\n";
+
+    if (!ns.empty()) {
+        out << "} // namespace " << ns << "\n\n";
+    }
+}
+
 std::string protocolDirRelPath(const std::string& ns, const std::string& extraDir)
 {
     bf::path path(includeDirName());
@@ -688,6 +927,28 @@ bool createProtocolDefDir(
     bf::create_directories(protocolDir, ec);
     if (ec) {
         log::error() << "Failed to create \"" << protocolRelDir.string() <<
+                "\" with error \"" << ec.message() << "\"!" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool createPluginDefDir(
+    const std::string& root,
+    const std::string& extraDir)
+{
+    bf::path rootPath(root);
+    bf::path dir(pluginNamespaceNameStr());
+    if (!extraDir.empty()) {
+        dir /= extraDir;
+    }
+
+    bf::path fullPath = rootPath / dir;
+
+    boost::system::error_code ec;
+    bf::create_directories(fullPath, ec);
+    if (ec) {
+        log::error() << "Failed to create \"" << dir.string() <<
                 "\" with error \"" << ec.message() << "\"!" << std::endl;
         return false;
     }
@@ -791,6 +1052,31 @@ std::pair<std::uintmax_t, bool> intBigUnsignedMaxValue(const std::string& value)
 std::uintmax_t defaultBigUnsignedNullValue()
 {
     return std::numeric_limits<std::uint64_t>::max();
+}
+
+void scopeToPropertyDefNames(
+    const std::string& scope,
+    const std::string& name,
+    bool commsOptionalWrapped,
+    std::string* fieldType,
+    std::string* propsName)
+{
+    auto scopeNameStr = ba::replace_all_copy(scope, "::", "_");
+    ba::replace_all(scopeNameStr, "<>", "");
+    if (fieldType != nullptr) {
+        *fieldType = "Field_" + scopeNameStr + name;
+        if (commsOptionalWrapped) {
+            *fieldType += optFieldSuffixStr();
+        }
+    }
+
+    if (propsName != nullptr) {
+        *propsName = "props_" + scopeNameStr + name;
+        if (commsOptionalWrapped) {
+            *propsName += optFieldSuffixStr();
+        }
+    }
+
 }
 
 } // namespace common

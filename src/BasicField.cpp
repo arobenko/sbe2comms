@@ -69,8 +69,29 @@ Field::Kind BasicField::getKindImpl() const
     return Kind::Basic;
 }
 
+unsigned BasicField::getReferencedTypeSinceVersionImpl() const
+{
+    assert(m_type != nullptr);
+    return m_type->getSinceVersion();
+}
+
+bool BasicField::isForcedCommsOptionalImpl() const
+{
+    return (!isSimpleAlias()) && (!isConstant());
+}
+
 bool BasicField::parseImpl()
 {
+    auto getTypeHeader =
+        [this](const std::string& fieldNs, const std::string& typeName) -> std::string
+        {
+            return
+                '\"' +
+                common::pathTo(
+                    getDb().getProtocolNamespace(),
+                    fieldNs + '/' + typeName + ".h") +
+                '\"';
+        };
     do {
         auto& typeName = getType();
         if (typeName.empty()) {
@@ -79,6 +100,10 @@ bool BasicField::parseImpl()
                 if (!valueRef.empty()) {
                     assert(!m_generatedPadding);
                     m_type = getTypeFromValueRef();
+                    if (m_type != nullptr) {
+                        recordExtraHeader(
+                            getTypeHeader(common::fieldNamespaceNameStr(), m_type->getName()));
+                    }
                     break;
                 }
             }
@@ -90,16 +115,24 @@ bool BasicField::parseImpl()
         if (m_generatedPadding) {
             m_type = getDb().findPaddingType(typeName);
             assert(m_type != nullptr);
+            recordExtraHeader(
+                getTypeHeader(common::builtinNamespaceNameStr(), common::padStr()));
             break;
         }
 
         m_type = getDb().findType(typeName);
         if (m_type != nullptr) {
+            recordExtraHeader(
+                getTypeHeader(common::fieldNamespaceNameStr(), m_type->getName()));
             break;
         }
 
         m_type = getDb().getBuiltInType(typeName);
         assert((m_type == nullptr) || getDb().isRecordedBuiltInType(typeName));
+        recordExtraHeader(
+            getTypeHeader(common::fieldNamespaceNameStr(), common::fieldBaseStr()));
+        recordExtraHeader(
+            getTypeHeader(common::builtinNamespaceNameStr(), m_type->getName()));
     } while (false);
 
     if (m_type == nullptr) {
@@ -130,8 +163,7 @@ bool BasicField::parseImpl()
 
     if (isOptional()) {
         if (m_type->getKind() == Type::Kind::Basic) {
-            auto* basicType = static_cast<const BasicType*>(m_type);
-            if (basicType->isFpType()) {
+            if (asBasicType(m_type)->isFpType()) {
                 recordExtraHeader("<cmath>");
                 recordExtraHeader("<limits>");
             }
@@ -183,6 +215,36 @@ bool BasicField::usesBuiltInTypeImpl() const
 {
     assert(m_type != nullptr);
     return m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName());
+}
+
+bool BasicField::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptionalWrapped)
+{
+    assert(m_type != nullptr);
+    if (m_generatedPadding || getDb().isRecordedBuiltInType(m_type->getName())) {
+        return writeBuiltinPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
+    }
+
+    if (isSimpleAlias()) {
+        return writeSimpleAliasPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
+    }
+
+    if (isConstant()) {
+        return writeConstantPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
+    }
+
+    if (isOptional()) {
+        return writeOptionalPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
+    }
+
+
+    log::error() << "Unexpected condition for field " << getName() << std::endl;
+    assert(!"Not implemented");
+    return false;
 }
 
 bool BasicField::checkRequired() const
@@ -341,8 +403,14 @@ void BasicField::writePaddingAlias(std::ostream& out, unsigned indent, const std
 void BasicField::writeCompositeAlias(std::ostream& out, unsigned indent, const std::string& name)
 {
     assert(m_type != nullptr);
-    auto& ns = getNamespaceForType(getDb(), m_type->getName());
-    out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<\n";
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
+
+    out << output::indent(indent) << "using " << name << " = " << fieldRefName << "<\n";
     auto typeOpts = m_type->getExtraOptInfos();
     for (auto& o : typeOpts) {
         out << output::indent(indent + 1) << common::optParamPrefixStr();
@@ -375,8 +443,13 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
     }
 
     auto& ns = getNamespaceForType(getDb(), m_type->getName());
+    auto* typeSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        typeSuffixPtr = &common::optFieldSuffixStr();
+    }
+    auto typeRefName = common::refName(m_type->getName(), *typeSuffixPtr);
 
-    out << output::indent(indent) << "using " << name << " = " << ns << m_type->getReferenceName() << "<\n";
+    out << output::indent(indent) << "using " << name << " = " << ns << typeRefName << "<\n";
 
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
     if (builtIn) {
@@ -400,7 +473,12 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
     std::string enumType(valueRef.begin(), sep.begin());
     enumType += common::enumValSuffixStr();
     std::string valueStr(sep.end(), valueRef.end());
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
     bool builtIn =
             (!getDb().isIntroducedType(m_type->getName())) &&
             (getDb().isRecordedBuiltInType(m_type->getName()));
@@ -452,7 +530,12 @@ void BasicField::writeOptionalBasicBigUnsignedInt(std::ostream& out, unsigned in
     assert(basicType->isIntType());
     std::uintmax_t nullValue = common::defaultBigUnsignedNullValue();
     auto nullValueStr = common::num(nullValue);
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
@@ -483,7 +566,12 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
         return;
     }
     auto nullValueStr = common::num(basicType->getDefultIntNullValue());
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
@@ -509,7 +597,12 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
     assert(m_type->getKind() == Type::Kind::Basic);
     auto* basicType = static_cast<const BasicType*>(m_type);
     assert(basicType->isFpType());
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        fieldSuffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldSuffixPtr);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
@@ -538,7 +631,11 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
     auto* enumType = static_cast<const EnumType*>(m_type);
     std::intmax_t nullValue = enumType->getDefultNullValue();
     auto nullValueStr = common::num(nullValue);
-    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + m_type->getReferenceName();
+    auto* fieldRefSuffixPtr = &common::emptyString();
+    if ((m_type->isCommsOptionalWrapped()) && isCommsOptionalWrapped()) {
+        fieldRefSuffixPtr = &common::optFieldSuffixStr();
+    }
+    auto fieldRefName = getNamespaceForType(getDb(), m_type->getName()) + common::refName(m_type->getName(), *fieldRefSuffixPtr);
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n" <<
            output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n" <<
@@ -549,6 +646,192 @@ void BasicField::writeOptionalEnum(std::ostream& out, unsigned indent, const std
            output::indent(indent) << "{\n";
     common::writeIntNullCheckUpdateFuncs(out, indent + 1, nullValueStr);
     out << output::indent(indent) << "};\n\n";
+}
+
+bool BasicField::writeBuiltinPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped)
+{
+    std::string fieldType;
+    std::string props;
+    auto* suffixStrPtr = &common::emptyString();
+    if (commsOptionalWrapped) {
+        suffixStrPtr = &common::optFieldSuffixStr();
+    }
+
+    auto name = common::refName(getName(), *suffixStrPtr);
+
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
+    out << output::indent(indent) << "using " << fieldType << " = " << scope + name << ";\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << '\"' << getName() << "\")\n";
+    if (isConstant()) {
+        out << output::indent(indent + 2) << ".serialisedHidden()\n" <<
+               output::indent(indent + 2) << ".readOnly()\n";
+    }
+
+    if (isInGroup()) {
+        out << output::indent(indent + 2) << ".serialisedHidden()\n";
+    }
+
+    out << output::indent(indent + 2) << ".asMap();\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return true;
+}
+
+bool BasicField::writeSimpleAliasPluginProperties(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptionalWrapped)
+{
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, nullptr, &props);
+
+    std::string typePropsStr =
+        common::pluginNamespaceStr() +
+        common::fieldNamespaceStr() +
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
+
+    if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
+        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
+    }
+
+    out << output::indent(indent) << "auto " << props << " =\n" <<
+           output::indent(indent + 1) << typePropsStr << ";\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return true;
+}
+
+bool BasicField::writeConstantPluginProperties(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptionalWrapped)
+{
+    std::string typePropsStr =
+        common::pluginNamespaceStr() +
+        common::fieldNamespaceStr() +
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
+
+    std::string fieldType;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
+
+    auto* suffixPtr = &common::emptyString();
+    if (commsOptionalWrapped) {
+        suffixPtr = &common::optFieldSuffixStr();
+    }
+    auto name = common::refName(getName(), *suffixPtr);
+
+    if ((!commsOptionalWrapped) && (isCommsOptionalWrapped())) {
+        assert(m_type->isCommsOptionalWrapped());
+        out << output::indent(indent) << "using " << fieldType << " = " << scope << name << ";\n" <<
+               output::indent(indent) << "auto " << props << "Opt =\n" <<
+               output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
+               output::indent(indent + 3) << typePropsStr << ");\n\n";
+
+        std::string wrappedFieldType;
+        std::string wrappedProps;
+        common::scopeToPropertyDefNames(scope, getName(), true, &wrappedFieldType, &wrappedProps);
+        out << output::indent(indent) << "using " << wrappedFieldType << " = " << scope << name << common::optFieldSuffixStr() << ";\n" <<
+               output::indent(indent) << "auto " << wrappedProps << "=\n" <<
+               output::indent(indent + 1) << "comms_champion::property::field::ForField<" << wrappedFieldType << ">(" << props << "Opt.field())\n" <<
+               output::indent(indent + 2) << ".serialisedHidden()\n" <<
+               output::indent(indent + 2) << ".readOnly()\n" <<
+               output::indent(indent + 2) << ".asMap();\n\n" <<
+               output::indent(indent) << props << "Opt.field(" << wrappedProps << ");\n" <<
+               output::indent(indent) << "auto " << props << " = " << props << "Opt.asMap();\n\n";
+
+        if (returnResult) {
+            out << output::indent(indent) << "return " << props << ";\n";
+        }
+        return true;
+    }
+
+
+    out << output::indent(indent) << "using " << fieldType << " = " << scope << name << ";\n";
+
+    if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
+        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
+    }
+
+    out << output::indent(indent) << "auto " << props << " =\n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
+           output::indent(indent + 3) << typePropsStr << ")\n" <<
+           output::indent(indent + 2) << ".serialisedHidden()\n" <<
+           output::indent(indent + 2) << ".readOnly()\n" <<
+           output::indent(indent + 2) << ".asMap();\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return true;
+}
+
+bool BasicField::writeOptionalPluginProperties(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptionalWrapped)
+{
+    assert(m_type != nullptr);
+    if (m_type->getKind() != Type::Kind::Enum) {
+        return writeSimpleAliasPluginProperties(out, indent, scope, returnResult, commsOptionalWrapped);
+    }
+
+    std::string fieldType;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
+
+    auto* suffixPtr = &common::emptyString();
+    if (commsOptionalWrapped) {
+        suffixPtr = &common::optFieldSuffixStr();
+    }
+    auto name = common::refName(getName(), *suffixPtr);
+
+    out << output::indent(indent) << "using " << fieldType << " = " << scope << name << ";\n";
+
+    std::string typePropsStr =
+        common::pluginNamespaceStr() +
+        common::fieldNamespaceStr() +
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
+
+    if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
+        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
+    }
+
+    auto* enumType = static_cast<const EnumType*>(m_type);
+    std::intmax_t nullValue = enumType->getDefultNullValue();
+    auto nullValueStr = common::num(nullValue);
+
+    out << output::indent(indent) << "auto " << props << " =\n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
+           output::indent(indent + 3) << typePropsStr << ")\n" <<
+           output::indent(indent + 2) << ".add(\"" << common::enumNullValueStr() << "\", " << nullValueStr << ")\n" <<
+           output::indent(indent + 2) << ".asMap();\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return true;
 }
 
 

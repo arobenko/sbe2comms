@@ -42,10 +42,14 @@ public:
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
     virtual bool canBeExtendedAsOptionalImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope) override;
 
 private:
     using Values = std::map<std::intmax_t, std::string>;
@@ -54,8 +58,16 @@ private:
     using RangeInfosList = std::list<RangeInfo>;
 
     void writeEnumVal(std::ostream& out, unsigned indent);
-    void writeSingle(std::ostream& out, unsigned indent, bool isElement = false);
-    void writeList(std::ostream& out, unsigned indent, unsigned count);
+    void writeSingle(
+        std::ostream& out,
+        unsigned indent,
+        bool commsOptionalWrapped,
+        bool isElement = false);
+    void writeList(
+        std::ostream& out,
+        unsigned indent,
+        unsigned count,
+        bool commsOptionalWrapped);
     const std::string& getUnderlyingType() const;
     bool readValues();
     RangeInfosList getValidRanges() const;

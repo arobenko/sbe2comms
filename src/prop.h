@@ -54,7 +54,6 @@ const std::string& characterEncoding(const XmlPropsMap& map);
 const std::string& valueRef(const XmlPropsMap& map);
 const std::string& dimensionType(const XmlPropsMap& map);
 unsigned id(const XmlPropsMap& map);
-const std::string& ccFailInvalid(const XmlPropsMap& map);
 
 } // namespace prop
 

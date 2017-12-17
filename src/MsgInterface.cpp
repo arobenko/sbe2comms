@@ -33,7 +33,7 @@ namespace sbe2comms
 
 bool MsgInterface::write()
 {
-    return writeProtocolDef();
+    return writeProtocolDef() && writePluginHeader();
 }
 
 bool MsgInterface::writeProtocolDef()
@@ -53,7 +53,7 @@ bool MsgInterface::writeProtocolDef()
     }
 
     out << "/// \\file\n"
-           "/// \\brief Contains definition of common \\ref Message interface class.\n\n"
+           "/// \\brief Contains definition of common \\ref " << common::msgInterfaceStr() << " interface class.\n\n"
            "#pragma once\n\n"
            "#include \"comms/Message.h\"\n"
            "#include \"comms/options.h\"\n"
@@ -66,7 +66,7 @@ bool MsgInterface::writeProtocolDef()
     out << "/// \\brief Common interface class for all the messages.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n"
            "template <typename... TOpt>\n"
-           "class Message : public\n" <<
+           "class " << common::msgInterfaceStr() << " : public\n" <<
            output::indent(1) << "comms::Message<\n" <<
            output::indent(2) << "comms::option::MsgIdType<" << common::msgIdEnumName() << ">,\n" <<
            output::indent(2) << m_db.getEndian() << ",\n" <<
@@ -100,6 +100,36 @@ bool MsgInterface::writeProtocolDef()
            "};\n\n";
 
     common::writeProtocolNamespaceEnd(ns, out);
+    return true;
+}
+
+bool MsgInterface::writePluginHeader()
+{
+    if (!common::createPluginDefDir(m_db.getRootPath())) {
+        return false;
+    }
+
+    auto& ns = common::pluginNamespaceNameStr();
+    auto relPath = common::pathTo(ns, common::msgInterfaceFileName());
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    auto& protNs = m_db.getProtocolNamespace();
+    out << "#pragma once\n\n"
+           "#include \"comms_champion/comms_champion.h\"\n"
+           "#include " << common::localHeader(protNs, std::string(), common::msgInterfaceFileName()) << "\n\n";
+
+    common::writePluginNamespaceBegin(protNs, out);
+
+    auto protMsgScope = common::scopeFor(protNs, common::msgInterfaceStr());
+    out << "template <typename... TOptions>\n"
+           "using " <<  common::msgInterfaceStr() << " = comms_champion::MessageBase<" << protMsgScope << ", TOptions...>;\n\n";
+    common::writePluginNamespaceEnd(protNs, out);
     return true;
 }
 

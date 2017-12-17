@@ -50,22 +50,28 @@ public:
         return m_members;
     }
 
+    bool isOpenFramingHeader() const;
+
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped) override;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope) override;
     virtual std::size_t getSerializationLengthImpl() const override;
-    virtual bool writeDependenciesImpl(std::ostream& out, unsigned indent) override;
     virtual bool hasFixedLengthImpl() const override;
     virtual ExtraOptInfosList getExtraOptInfosImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope) override;
+
 private:
     using AllExtraOptInfos = std::vector<ExtraOptInfosList>;
 
     bool prepareMembers();
     bool writeMembers(std::ostream& out, unsigned indent);
-    bool writeBundle(std::ostream& out, unsigned indent);
-    bool writeData(std::ostream& out, unsigned indent);
+    bool writeBundle(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
+    bool writeData(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
     bool checkDataValid();
     AllExtraOptInfos getAllExtraOpts() const;
     void writeExtraOptsDoc(std::ostream& out, unsigned indent, const AllExtraOptInfos& infos);
@@ -76,6 +82,7 @@ private:
         bool hasExtraOptions = false);
     bool isMessageHeader() const;
     bool checkMessageHeader();
+    bool checkOpenFramingHeader();
 
     Members m_members;
     bool m_dataUse = false;

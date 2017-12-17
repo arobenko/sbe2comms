@@ -92,6 +92,7 @@ bool EnumType::parseImpl()
         return false;
     }
 
+    addExtraInclude("\"comms/field/EnumValue.h\"");
     auto ranges = getValidRanges();
     if (MaxRangesCount < ranges.size()) {
         addExtraInclude("<algorithm>");
@@ -104,20 +105,19 @@ bool EnumType::parseImpl()
     return true;
 }
 
-bool EnumType::writeImpl(std::ostream& out, unsigned indent)
+bool EnumType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     auto count = getAdjustedLengthProp();
     if (count != 1U) {
-        writeSingle(out, indent, true);
+        writeSingle(out, indent, commsOptionalWrapped, true);
     }
 
     if (count == 1U) {
-        writeSingle(out, indent);
+        writeSingle(out, indent, commsOptionalWrapped);
         return true;
     }
 
-    writeList(out, indent, count);
-
+    writeList(out, indent, count, commsOptionalWrapped);
     return true;
 }
 
@@ -158,7 +158,49 @@ bool EnumType::canBeExtendedAsOptionalImpl() const
     return getAdjustedLengthProp() == 1U;
 }
 
-void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
+bool EnumType::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+    auto nameStr = common::fieldNameParamNameStr();
+    if (!scope.empty()) {
+        nameStr = '\"' + getName() + '\"';
+    }
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << nameStr << ")";
+    for (auto& v : m_values) {
+        out << '\n' <<
+               output::indent(indent + 2) << ".add(\"" << v.second << "\", " << v.first << ")";
+    }
+    out << ";\n\n";
+
+    writeSerialisedHiddenCheck(out, indent, props);
+
+    if (scope.empty() && (!commsOptionalWrapped)) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+
+    return true;
+}
+
+void EnumType::writeSingle(
+    std::ostream& out,
+    unsigned indent,
+    bool commsOptionalWrapped,
+    bool isElement)
 {
     auto& underlying = getUnderlyingType();
     assert(!underlying.empty());
@@ -191,15 +233,14 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         out << output::indent(indent) << "};\n\n";
     } while (false);
 
-    std::string name;
     if (isElement) {
         writeElementHeader(out, indent);
-        name = getName() + common::elementSuffixStr();
     }
     else {
-        writeHeader(out, indent, true);
-        name = getReferenceName();
+        writeHeader(out, indent, commsOptionalWrapped, true);
     }
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
+    auto name = common::refName(getName(), suffix);
     common::writeExtraOptionsTemplParam(out, indent);
 
     auto ranges = getValidRanges();
@@ -251,21 +292,24 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         };
 
     if (asType) {
-        out << output::indent(indent) << "using " << name << " = \n" <<
+        out << output::indent(indent) << "struct " << name << " : public\n" <<
                output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
-               output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+               output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
                output::indent(indent + 2) << enumName << ",\n" <<
                output::indent(indent + 2) << "TOpt...";
         writeDefaultValueFunc(indent + 2);
         writeRangesFunc(indent + 2);
         out << '\n' <<
-               output::indent(indent + 1) << ">;\n\n";
+               output::indent(indent + 1) << ">\n" <<
+               output::indent(indent) << "{\n";
+        common::writeDefaultSetVersionFunc(out, indent + 1);
+        out << output::indent(indent) << "};\n\n";
         return;
     }
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << enumName << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeDefaultValueFunc(indent + 2);
@@ -279,7 +323,7 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         out << output::indent(indent + 1) << "/// \\brief Custom implementation of validity check.\n" <<
                output::indent(indent + 1) << "bool valid() const\n" <<
                output::indent(indent + 1) << "{\n" <<
-               output::indent(indent + 2) << "using Base = typename std::decay<decltype(toFieldBase(*this))>::type;\n" <<
+               output::indent(indent + 2) << common::fieldBaseDefStr() <<
                output::indent(indent + 2) << "static const " << enumName << " Values[] = {\n";
         std::intmax_t last = 0;
         bool firstValue = true;
@@ -305,25 +349,36 @@ void EnumType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
         common::writeEnumNullCheckUpdateFuncs(out, indent + 1);
     }
 
+    out << '\n';
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+
     out << output::indent(indent) << "};\n\n";
 }
 
-void EnumType::writeList(std::ostream& out, unsigned indent, unsigned count)
+void EnumType::writeList(
+    std::ostream& out,
+    unsigned indent,
+    unsigned count,
+    bool commsOptionalWrapped)
 {
-    writeHeader(out, indent, true);
+    writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
-
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
+           output::indent(indent + 2) << common::refName(getName(), common::elementSuffixStr()) << "<>,\n" <<
            output::indent(indent + 2) << "TOpt...";
     if (count != 0U) {
         out << ",\n" <<
                output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">";
     }
     out << '\n' <<
-           output::indent(indent + 1) << ">;\n\n";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "};\n\n";
 }
 
 const std::string& EnumType::getUnderlyingType() const

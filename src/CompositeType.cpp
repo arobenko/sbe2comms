@@ -118,9 +118,9 @@ bool CompositeType::isValidData() const
         {
             return t.getKind() == Kind::Basic &&
                    t.getLengthProp() == 1U &&
-                   t.isRequired();
+                   t.isRequired() &&
+                   (!t.isCommsOptionalWrapped());
         };
-    static_cast<void>(verifyLengthFunc);
 
     auto verifyDataFunc =
         [](const Type& t) -> bool
@@ -129,7 +129,6 @@ bool CompositeType::isValidData() const
                    t.getLengthProp() == 0U &&
                    t.isRequired();
         };
-    static_cast<void>(verifyDataFunc);
 
     return
         ((m_members.size() == DataEncIdx_numOfValues) &&
@@ -140,6 +139,11 @@ bool CompositeType::isValidData() const
 bool CompositeType::isBundle() const
 {
     return !dataUseRecorded();
+}
+
+bool CompositeType::isOpenFramingHeader() const
+{
+    return (getName() == getDb().getSimpleOpenFramingHeaderTypeName());
 }
 
 CompositeType::Kind CompositeType::getKindImpl() const
@@ -153,22 +157,42 @@ bool CompositeType::parseImpl()
         return false;
     }
 
-    if ((isMessageHeader()) && (!checkMessageHeader())) {
+    if (isMessageHeader()) {
+        if (!checkMessageHeader()) {
+            return false;
+        }
+
+        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::emptyString(), common::msgIdFileName()));
+    }
+
+    if ((isOpenFramingHeader()) && (!checkOpenFramingHeader())) {
         return false;
+    }
+    
+    ExtraIncludes inc;
+    for (auto& m : m_members) {
+        m->updateExtraIncludes(inc);
+    }
+
+    for (auto& i : inc) {
+        addExtraInclude(i);
+    }
+
+    if (isBundle()) {
+        addExtraInclude("\"comms/util/Tuple.h\"");
+        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::builtinNamespaceNameStr(), common::versionSetterFileName()));
+        addExtraInclude("\"comms/field/Bundle.h\"");
     }
 
     return true;
 }
 
-bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
+bool CompositeType::writeImpl(
+    std::ostream& out,
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
     assert(!m_members.empty());
-    for (auto& m : m_members) {
-        if (!m->writeDependencies(out, indent)) {
-            log::error() << "Failed to write dependencies for composite \"" << getName() << "\"." << std::endl;
-            return false;
-        }
-    }
 
     if (!checkDataValid()) {
         return false;
@@ -179,10 +203,10 @@ bool CompositeType::writeImpl(std::ostream& out, unsigned indent)
     }
 
     if (dataUseRecorded()) {
-        return writeData(out, indent);
+        return writeData(out, indent, commsOptionalWrapped);
     }
 
-    return writeBundle(out, indent);
+    return writeBundle(out, indent, commsOptionalWrapped);
 }
 
 bool CompositeType::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
@@ -208,15 +232,6 @@ std::size_t CompositeType::getSerializationLengthImpl() const
             {
                 return soFar + t->getSerializationLength();
             });
-}
-
-bool CompositeType::writeDependenciesImpl(std::ostream& out, unsigned indent)
-{
-    bool result = true;
-    for (auto& m : m_members) {
-        result = m->writeDependencies(out, indent) && result;
-    }
-    return result;
 }
 
 bool CompositeType::hasFixedLengthImpl() const
@@ -252,6 +267,95 @@ Type::ExtraOptInfosList CompositeType::getExtraOptInfosImpl() const
     return list;
 }
 
+bool CompositeType::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
+           "<>;\n";
+
+    auto subScope = scope + getName() + common::memembersSuffixStr() + "::";
+    auto nameStr = common::fieldNameParamNameStr();
+    if (!scope.empty()) {
+        nameStr = '\"' + getName() + '\"';
+    }
+
+    if (!isBundle()) {
+        assert(dataUseRecorded());
+        assert(DataEncIdx_numOfValues <= m_members.size());
+
+        auto& varDataMem = m_members[DataEncIdx_data];
+        assert(varDataMem);
+        assert(varDataMem->getKind() == Kind::Basic);
+        bool rawDataArray = asBasicType(*varDataMem).isRawDataArray();
+        do {
+            if (rawDataArray) {
+                out << output::indent(indent) << "auto " << props << " =\n" <<
+                       output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+                       output::indent(indent + 2) << ".name(" << nameStr << ");\n\n";
+                break;
+            }
+
+            if (!varDataMem->writePluginProperties(out, indent, subScope)) {
+                return false;
+            }
+
+            std::string memProps;
+            common::scopeToPropertyDefNames(subScope, varDataMem->getName(), varDataMem->isCommsOptionalWrapped(), nullptr, &memProps);
+
+            auto& lengthMem = m_members[DataEncIdx_length];
+            assert(lengthMem);
+
+            out << output::indent(indent) << "auto " << props << " =\n" <<
+                   output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">(\n" <<
+                   output::indent(indent + 3) << memProps << ".asMap())\n" <<
+                   output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
+                   output::indent(indent + 2) << ".showPrefix()\n" <<
+                   output::indent(indent + 2) << ".prefixName(\"" << lengthMem->getName() << "\");\n\n";
+
+        } while (false);
+
+
+        writeSerialisedHiddenCheck(out, indent, props);
+
+        if (scope.empty() && (!commsOptionalWrapped)) {
+            out << output::indent(indent) << "return " << props << ".asMap();\n";
+        }
+
+        return true;
+    }
+
+
+    out << output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">().name(" << nameStr << ");\n\n";
+
+    for (auto& m : m_members) {
+        if (!m->writePluginProperties(out, indent, subScope)) {
+            return false;
+        }
+
+        std::string memProps;
+        common::scopeToPropertyDefNames(subScope, m->getName(), false, nullptr, &memProps);
+        out << output::indent(indent) << props << ".add(" << memProps << ".asMap());\n\n";
+    }
+
+    if (scope.empty() && (!commsOptionalWrapped)) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+
+    return true;
+}
+
 bool CompositeType::prepareMembers()
 {
     assert(m_members.empty());
@@ -259,6 +363,7 @@ bool CompositeType::prepareMembers()
     m_members.reserve(children.size());
     unsigned expOffset = 0U;
     unsigned padCount = 0;
+    auto thisSinceVersion = getSinceVersion();
     for (auto* c : children) {
         auto mem = Type::create(getDb(), c);
         if (!mem) {
@@ -275,6 +380,13 @@ bool CompositeType::prepareMembers()
         if (!mem->doesExist()) {
             continue;
         }
+
+        if (mem->getSinceVersion() < thisSinceVersion) {
+            log::error() << "Member \"" << mem->getName() << "\" of composite \"" << getName() << "\" has wrong sinceVersion information." << std::endl;
+            return false;
+        }
+
+        mem->setContainingCompositeVersion(thisSinceVersion);
 
         do {
             auto offset = mem->getOffset();
@@ -369,7 +481,10 @@ bool CompositeType::writeMembers(std::ostream& out, unsigned indent)
     return result;
 }
 
-bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
+bool CompositeType::writeBundle(
+    std::ostream& out,
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
     auto extraOpts = getAllExtraOpts();
     for (auto& o : extraOpts) {
@@ -381,13 +496,15 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
         }
     }
 
-    writeBrief(out, indent);
+    writeBrief(out, indent, commsOptionalWrapped);
     common::writeDetails(out, indent, getDescription());
     writeExtraOptsDoc(out, indent, extraOpts);
     writeExtraOptsTemplParams(out, indent, extraOpts);
-    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::Bundle<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << getName() << common::memembersSuffixStr() << "::All<\n";
     for (auto& o : extraOpts) {
         for (auto& internalO : o) {
@@ -423,7 +540,16 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
         }
         out << '\n';
     }
-    out << output::indent(indent + 1) << ");\n";
+    out << output::indent(indent + 1) << ");\n\n" <<
+           output::indent(indent + 1) << "/// \\brief Update current message version.\n" <<
+           output::indent(indent + 1) << "/// \\details Calls setVersion() of every member.\n" <<
+           output::indent(indent + 1) << "/// \\return \\b true if any of the fields returns \\b true.\n" <<
+           output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(indent + 1) << "{\n" <<
+           output::indent(indent + 2) << common::fieldBaseDefStr() <<
+           output::indent(indent + 2) << "return comms::util::tupleAccumulate(Base::value(), false, " << common::builtinNamespaceStr() << common::versionSetterStr() << "(value));\n" <<
+           output::indent(indent + 1) << "}\n";
+
     if (isBundleOptional()) {
         out << "\n" <<
                output::indent(indent + 1) << "/// \\brief Check the value of the first member is equivalent to \\b nullValue.\n" <<
@@ -437,11 +563,16 @@ bool CompositeType::writeBundle(std::ostream& out, unsigned indent)
                output::indent(indent + 2) << "field_" << m_members[0]->getName() << "().setNull();\n" <<
                output::indent(indent + 1) << "}\n";
     }
-    out << output::indent(indent) << "};\n\n";
+
+    out << output::indent(indent) << "};\n";
+
     return true;
 }
 
-bool CompositeType::writeData(std::ostream& out, unsigned indent)
+bool CompositeType::writeData(
+    std::ostream& out,
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
     if (!isValidData()) {
         log::error() << "The members in \"" << getName() << "\" composite are not defined as expected to implement data fields." << std::endl;
@@ -450,22 +581,27 @@ bool CompositeType::writeData(std::ostream& out, unsigned indent)
 
     auto allExtraOpts = getAllExtraOpts();
     assert(allExtraOpts.size() == DataEncIdx_numOfValues);
-    auto& lengthExtraOpt = allExtraOpts[DataEncIdx_length].front().second;
-    auto& dataExtraOpt = allExtraOpts[DataEncIdx_data].front().second;
-    writeHeader(out, indent, false);
+    auto& lengthExtraOpt = allExtraOpts[DataEncIdx_length].front().first;
+    auto& dataExtraOpt = allExtraOpts[DataEncIdx_data].front().first;
+    writeHeader(out, indent, commsOptionalWrapped, false);
     writeExtraOptsDoc(out, indent, allExtraOpts);
     common::writeExtraOptionsDoc(out, indent);
     writeExtraOptsTemplParams(out, indent, allExtraOpts, true);
     auto& lenMem = *m_members[DataEncIdx_length];
     auto& dataMem = *m_members[DataEncIdx_data];
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<
            output::indent(indent + 2) << "comms::option::SequenceSerLengthFieldPrefix<\n" <<
            output::indent(indent + 3) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << '<' << OptPrefix << lengthExtraOpt << ">\n" <<
            output::indent(indent + 2) << ">,\n" <<
            output::indent(indent + 2) << OptPrefix << dataExtraOpt << ",\n" <<
            output::indent(indent + 2) << "TOpt\n" <<
-           output::indent(indent + 1) << ">;\n\n";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "};\n\n";
 
     return true;
 }
@@ -644,5 +780,148 @@ bool CompositeType::checkMessageHeader()
     asEnumType(*templateIdTypePtr).setMessageId();
     return true;
 }
+
+bool CompositeType::checkOpenFramingHeader()
+{
+    assert(isOpenFramingHeader());
+    if (m_members.size() != 2U) {
+        log::error() << "Simple Open Framing Header \"" << getName() << "\" is expected to have only 2 member types." << std::endl;
+        return false;
+    }
+
+    auto checkNameFunc =
+        [this](const std::string& name)
+        {
+            bool result =
+                std::any_of(
+                    m_members.begin(), m_members.end(),
+                    [&name](Members::const_reference m)
+                    {
+                        return m->getName() == name;
+                    });
+            if (!result) {
+                log::error() << "Simple Open Framing Header composite \"" << getName() << "\" doesn't have member called \"" << name << "\"." << std::endl;
+            }
+            return result;
+        };
+
+    if ((!checkNameFunc(common::messageLengthStr())) ||
+        (!checkNameFunc(common::encodingTypeStr()))) {
+        return false;
+    }
+
+    for (auto& m : m_members) {
+        if (m->getKind() != Type::Kind::Basic) {
+            log::warning() << "The member \"" << m->getName() << "\" of Simple Open Framing Header composite \"" << getName() << "\" " <<
+                            "is not of basic type";
+            return false;
+        }
+
+        if (m->getLengthProp() != 1) {
+            log::error() << "The member \"" << m->getName() << "\" of Simple Open Framing Header composite \"" << getName() << "\" " <<
+                            "must have length property equal to 1.";
+            return false;
+        }
+
+        if (!asBasicType(m.get())->isIntType()) {
+            return false;
+        }
+    }
+
+    auto findMemberFunc =
+        [this](const std::string& name)
+        {
+            return std::find_if(
+                m_members.begin(), m_members.end(),
+                [&name](Members::const_reference m)
+                {
+                    return m->getName() == name;
+                });
+
+        };
+
+    auto messageLengthIter = findMemberFunc(common::messageLengthStr());
+    assert(messageLengthIter != m_members.end());
+    auto& messageLengthTypePtr = *messageLengthIter;
+    assert(messageLengthTypePtr);
+
+    auto encTypeIter = findMemberFunc(common::encodingTypeStr());
+    assert(encTypeIter != m_members.end());
+    auto& encTypeTypePtr = *encTypeIter;
+    assert(encTypeTypePtr);
+
+    auto encTypeLength = encTypeTypePtr->getSerializationLength();
+    if (encTypeLength != 2U) {
+        log::error() << "The member \"" << common::encodingTypeStr() << "\" of Simple Open Framing Header composite \"" <<
+                        getName() << "\" is expected to have 2 bytes serialization length." << std::endl;
+        return false;
+    }
+
+
+    auto extraSerLength =
+        messageLengthTypePtr->getSerializationLength() +
+        encTypeLength;
+
+    messageLengthTypePtr->addExtraOption("comms::option::NumValueSerOffset<" + common::num(extraSerLength) + '>');
+
+    std::uintmax_t sync = 0x5be0;
+    if (ba::ends_with(getDb().getEndian(), "LittleEndian")) {
+        sync = 0xeb50;
+    }
+
+    auto syncStr = common::num(sync);
+
+    auto& encTypeProps = encTypeTypePtr->getProps();
+    auto& minValueStr = prop::minValue(encTypeProps);
+    auto& maxValueStr = prop::maxValue(encTypeProps);
+
+    do {
+        if (minValueStr.empty()) {
+            xmlSetMinValueProp(encTypeTypePtr->getNode(), syncStr);
+            break;
+        }
+
+        unsigned minValue = 0U;
+        try {
+            minValue = static_cast<unsigned>(std::stoul(minValueStr));
+        }
+        catch (...) {
+            // do nothing;
+        }
+
+        if (minValue != sync) {
+            log::error() << "Invalid minValue attribute of \"" << encTypeTypePtr->getName() << "\" member of Simple Open Frame Header." << std::endl;
+            return false;
+        }
+
+    } while (false);
+
+    do {
+        if (maxValueStr.empty()) {
+            xmlSetMaxValueProp(encTypeTypePtr->getNode(), syncStr);
+            break;
+        }
+
+        unsigned maxValue = 0U;
+        try {
+            maxValue = static_cast<unsigned>(std::stoul(maxValueStr));
+        }
+        catch (...) {
+            // do nothing;
+        }
+
+        if (maxValue != sync) {
+            log::error() << "Invalid maxValue attribute of \"" << encTypeTypePtr->getName() << "\" member of Simple Open Frame Header." << std::endl;
+            return false;
+        }
+
+    } while (false);
+
+    encTypeTypePtr->updateNodeProperties();
+    encTypeTypePtr->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
+
+    return true;
+}
+
 
 } // namespace sbe2comms

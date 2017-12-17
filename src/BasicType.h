@@ -32,24 +32,31 @@ public:
     std::intmax_t getDefultIntNullValue() const;
     bool isIntType() const;
     bool isFpType() const;
+    bool isRawDataArray() const;
 
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
     virtual bool canBeExtendedAsOptionalImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope) override;
 
 private:
     bool writeSimpleType(
         std::ostream& out,
         unsigned indent,
+        bool commsOptionalWrapped,
         bool isElement = false);
 
     bool writeSimpleBigUnsignedInt(
         std::ostream& out,
         unsigned indent,
+        bool commsOptionalWrapped,
         bool isElement,
         std::uintmax_t minVal,
         std::uintmax_t maxVal);
@@ -58,45 +65,57 @@ private:
         std::ostream& out,
         unsigned indent,
         const std::string& intType,
+        bool commsOptionalWrapped,
         bool isElement);
 
     bool writeSimpleFloat(
         std::ostream& out,
         unsigned indent,
         const std::string& fpType,
+        bool commsOptionalWrapped,
         bool isElement);
 
     bool writeVarLength(
         std::ostream& out,
-        unsigned indent);
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeVarLengthString(
         std::ostream& out,
-        unsigned indent);
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeVarLengthArray(
         std::ostream& out,
-        unsigned indent);
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeVarLengthRawDataArray(
         std::ostream& out,
         unsigned indent,
-        const std::string& primType);
+        const std::string& primType,
+        bool commsOptionalWrapped);
 
-    bool writeFixedLength(std::ostream& out,
-        unsigned indent);
+    bool writeFixedLength(
+        std::ostream& out,
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeFixedLengthString(
         std::ostream& out,
-        unsigned indent);
+        unsigned indent,
+        bool commsOptionalWrapped);
 
-    bool writeFixedLengthArray(std::ostream& out,
-        unsigned indent);
+    bool writeFixedLengthArray(
+        std::ostream& out,
+        unsigned indent,
+        bool commsOptionalWrapped);
 
     bool writeFixedLengthRawDataArray(
         std::ostream& out,
         unsigned indent,
-        const std::string& primType);
+        const std::string& primType,
+        bool commsOptionalWrapped);
 
     bool isString() const;
 
@@ -109,6 +128,18 @@ private:
     void writeStringValidFunc(std::ostream& out, unsigned indent);
 
     bool hasDefaultValueInExtraOptions() const;
+
+    bool writePluginPropertiesSimple(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool isElement,
+        int index = -1);
+
+    bool writePluginPropertiesList(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope);
 };
 
 inline

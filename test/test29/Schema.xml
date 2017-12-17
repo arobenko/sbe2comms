@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test29"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="bigEndian"
+               version="3">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <composite name="varStringEncoding" sinceVersion="1">
+            <type name="length" primitiveType="uint8" maxValue="100" sinceVersion="1"/>
+            <type name="varData" primitiveType="char" length="0" sinceVersion="1"/>
+        </composite>
+        <composite name="varDataEncoding" sinceVersion="1">
+            <type name="length" primitiveType="uint8" maxValue="100" sinceVersion="1"/>
+            <type name="varData" primitiveType="uint8" length="0" sinceVersion="1"/>
+        </composite>        
+    </types>
+    <message name="Msg1" id="1" description="TestMessage">
+        <data name="field1" id="101" type="varStringEncoding" sinceVersion="1"/>
+        <data name="field2" id="102" type="varDataEncoding" sinceVersion="1"/>
+        <data name="field3" id="103" type="varStringEncoding" sinceVersion="2"/>
+        <data name="field4" id="104" type="varDataEncoding" sinceVersion="2"/>        
+    </message>
+</messageSchema>

@@ -38,6 +38,8 @@ public:
     bool hasForcedSchemaVersion() const;
     unsigned getForcedSchemaVersion() const;
     unsigned getMinRemoteVersion() const;
+    std::string getCommsChampionTag() const;
+    std::string getOpenFramingHeaderName() const;
 private:
     boost::program_options::variables_map m_vm;
 };

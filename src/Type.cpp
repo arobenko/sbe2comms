@@ -18,6 +18,10 @@
 #include "Type.h"
 
 #include <iostream>
+#include <fstream>
+
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "DB.h"
 #include "common.h"
@@ -29,14 +33,46 @@
 #include "RefType.h"
 #include "log.h"
 
+namespace bf = boost::filesystem;
+namespace ba = boost::algorithm;
+
 namespace sbe2comms
 {
+
+namespace
+{
+
+void writeFileHeader(std::ostream& out, const std::string& name)
+{
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of \\ref " << common::fieldNamespaceStr() << name << " field.\n\n"
+           "#pragma once\n\n";
+}
+
+void openNamespaces(std::ostream& out, DB& db)
+{
+    common::writeProtocolNamespaceBegin(db.getProtocolNamespace(), out);
+
+    out << "namespace " << common::fieldNamespaceNameStr() << "\n"
+            "{\n"
+            "\n";
+}
+
+void closeNamespaces(std::ostream& out, DB& db)
+{
+    out << "} // namespace " << common::fieldNamespaceNameStr() << "\n"
+            "\n";
+
+    common::writeProtocolNamespaceEnd(db.getProtocolNamespace(), out);
+}
+
+} // namespace
 
 Type::Type(DB& db, xmlNodePtr node)
   : m_db(db),
     m_node(node)
 {
-    m_props = xmlParseNodeProps(m_node, getDb().getDoc());
+    updateNodeProperties();
 }
 
 Type::~Type() noexcept = default;
@@ -61,6 +97,22 @@ bool Type::parse()
         return false;
     }
 
+    unsigned sinceVer = getSinceVersion();
+    if (sinceVer < m_containingCompositeVersion) {
+        log::error() << "Invalid \"sinceVersion\" attribute of \"" << getName() << "\", expected to be greater or equal to the version of containing composite." << std::endl;
+        return false;
+    }
+
+    if (!getDefaultOptMode().empty()) {
+        m_extraIncludes.insert("\"comms/field/Optional.h\"");
+    }
+
+    unsigned deprecated = prop::deprecated(m_props);
+    if (deprecated <= sinceVer) {
+        log::warning() << "The type \"" << getName() << "\" has been deprecated before introduced." << std::endl;
+    }
+
+    m_extraIncludes.insert('\"' + common::fieldBaseFileName() + '\"');
     return parseImpl();
 }
 
@@ -164,38 +216,16 @@ const std::string& Type::getEncodingType() const
     return prop::encodingType(m_props);
 }
 
-std::pair<std::string, bool> Type::getFailOnInvalid() const
+unsigned Type::getSinceVersion() const
 {
     assert(!m_props.empty());
-    auto& str = prop::ccFailInvalid(m_props);
-    if (str.empty()) {
-        return std::make_pair(str, false);
-    }
-
-    static const std::map<std::string, std::string> Map = {
-        std::make_pair("default", std::string()),
-        std::make_pair("data", "comms::ErrorStatus::InvalidMsgData"),
-        std::make_pair("protocol", "comms::ErrorStatus::ProtocolError")
-    };
-
-    auto iter = Map.find(str);
-    if (iter == Map.end()) {
-        return std::make_pair(common::emptyString(), false);
-    }
-
-    return std::make_pair(iter->second, true);
+    return prop::sinceVersion(m_props);
 }
 
 void Type::updateExtraIncludes(ExtraIncludes& extraIncludes)
 {
     for (auto& i : m_extraIncludes) {
-        auto iter = extraIncludes.lower_bound(i);
-        if ((iter != extraIncludes.end()) &&
-            (*iter == i)) {
-            continue;
-        }
-
-        extraIncludes.insert(iter, i);
+        common::recordExtraHeader(i, extraIncludes);
     }
 }
 
@@ -245,22 +275,97 @@ Type::Ptr Type::create(DB& db, xmlNodePtr node)
     return createIter->second(db, node);
 }
 
-bool Type::write(std::ostream& out, unsigned indent)
+bool Type::writeProtocolDef()
 {
-    assert(doesExist());
-    if (m_written) {
-        return true;
-    }
-
-    if (m_writingInProgress) {
-        log::error() << "Recursive types dependencies discovered for \"" << getName() << "\" type." << std::endl;
+    if (!common::createProtocolDefDir(m_db.getRootPath(), m_db.getProtocolNamespace(), common::fieldDirName())) {
         return false;
     }
 
-    m_writingInProgress = true;
-    m_written = writeImpl(out, indent);
-    m_writingInProgress = false;
-    return m_written;
+    auto fieldDirRelPath =
+            common::protocolDirRelPath(m_db.getProtocolNamespace(), common::fieldDirName());
+
+    const std::string Ext(".h");
+    auto filename = getName() + Ext;
+    auto relPath = bf::path(fieldDirRelPath) / filename;
+    auto filePath = bf::path(m_db.getRootPath()) / relPath;
+
+    log::info() << "Generating " << relPath.string() << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    writeFileHeader(out, getName());
+    common::writeExtraHeaders(out, m_extraIncludes);
+    openNamespaces(out, m_db);
+    bool result = write(out);
+    closeNamespaces(out, m_db);
+    return result && out.good();
+}
+
+bool Type::write(std::ostream& out, unsigned indent)
+{
+    assert(doesExist());
+
+    auto& optMode = getDefaultOptMode();
+    if (optMode.empty()) {
+        return writeImpl(out, indent, false);
+    }
+
+    bool result = writeImpl(out, indent, true);
+    if (!result) {
+        return false;
+    }
+
+    writeHeader(out, indent, false);
+    common::writeOptFieldDefinition(out, indent, getName(), optMode, getSinceVersion(), true);
+    return true;
+}
+
+bool Type::writePluginProperties(std::ostream& out, unsigned indent, const std::string& scope)
+{
+    bool result = writePluginPropertiesImpl(out, indent, scope);
+    if ((!result) || (!isCommsOptionalWrapped())) {
+        return result;
+    }
+
+    std::string fieldProps;
+    common::scopeToPropertyDefNames(scope, getName(), true, nullptr, &fieldProps);
+
+    std::string type;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), false, &type, &props);
+
+    auto nameStr = '\"' + getName() + '\"';
+    if (scope.empty()) {
+        nameStr = common::fieldNameParamNameStr();
+    }
+
+    out << output::indent(indent) << "using " << type << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getReferenceName()) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << type << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << nameStr << ")\n" <<
+           output::indent(indent + 2) << ".uncheckable()\n" <<
+           output::indent(indent + 2) << ".field(" << fieldProps << ".asMap());\n\n";
+
+    if (scope.empty()) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+
+    return true;
+}
+
+bool Type::isCommsOptionalWrapped() const
+{
+    return !getDefaultOptMode().empty();
+}
+
+void Type::updateNodeProperties()
+{
+    m_props = xmlParseNodeProps(m_node, getDb().getDoc());
 }
 
 bool Type::parseImpl()
@@ -272,13 +377,6 @@ bool Type::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std
 {
     out << output::indent(indent) << "/// \\brief Default options for \\ref " << scope << getReferenceName() << " field.\n" <<
            output::indent(indent) << "using " << getReferenceName() << common::eqEmptyOptionStr() << ";\n\n";
-    return true;
-}
-
-bool Type::writeDependenciesImpl(std::ostream& out, unsigned indent)
-{
-    static_cast<void>(out);
-    static_cast<void>(indent);
     return true;
 }
 
@@ -294,14 +392,23 @@ bool Type::canBeExtendedAsOptionalImpl() const
     return false;
 }
 
-void Type::writeBrief(std::ostream& out, unsigned indent)
+void Type::writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
-    out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
+    if (!commsOptionalWrapped) {
+        out << output::indent(indent) << "/// \\brief Definition of \"" << getName() << "\" field.\n";
+    }
+    else {
+        out << output::indent(indent) << "/// \\brief Definition of inner field of the optional \\ref " << getReferenceName() << " field.\n";
+    }
 }
 
-void Type::writeHeader(std::ostream& out, unsigned indent, bool extraOpts)
+void Type::writeHeader(
+    std::ostream& out,
+    unsigned indent,
+    bool commsOptionalWrapped,
+    bool extraOpts)
 {
-    writeBrief(out, indent);
+    writeBrief(out, indent, commsOptionalWrapped);
     common::writeDetails(out, indent, prop::description(m_props));
     if (extraOpts) {
         common::writeExtraOptionsDoc(out, indent);
@@ -325,11 +432,6 @@ void Type::writeExtraOptions(std::ostream& out, unsigned indent)
         out << ",\n" <<
                output::indent(indent) << o;
     }
-}
-
-void Type::writeBaseDef(std::ostream& out, unsigned indent)
-{
-    out << output::indent(indent) << "using Base = typename std::decay<decltype(comms::field::toFieldBase(*this))>::type;\n";
 }
 
 std::string Type::nodeText()
@@ -392,6 +494,56 @@ std::intmax_t Type::builtInIntNullValue(const std::string& type)
     auto iter = Map.find(type);
     assert(iter != Map.end());
     return iter->second;
+}
+
+void Type::scopeToPropertyDefNames(const std::string& scope, std::string* fieldType, std::string* propsName)
+{
+    return common::scopeToPropertyDefNames(scope, getName(), isCommsOptionalWrapped(), fieldType, propsName);
+}
+
+const std::string& Type::getNameSuffix(bool commsOptionalWrapped, bool isElement)
+{
+    if (isElement) {
+        return common::elementSuffixStr();
+    }
+
+    if (commsOptionalWrapped) {
+        return common::optFieldSuffixStr();
+    }
+
+    return common::emptyString();
+}
+
+const std::string& Type::getFieldBaseString() const
+{
+    if (m_forcedBigEndianBase) {
+        static const std::string Str("comms::Field<comms::option::BigEndian>");
+        return Str;
+    }
+
+    return common::fieldBaseStr();
+}
+
+void Type::writeSerialisedHiddenCheck(std::ostream& out, unsigned indent, const std::string& prop)
+{
+    out << output::indent(indent) << "if (" << common::serialisedHiddenStr() << ") {\n" <<
+           output::indent(indent + 1) << prop << ".serialisedHidden();\n" <<
+           output::indent(indent) << "}\n\n";
+}
+
+const std::string& Type::getDefaultOptMode() const
+{
+    auto sinceVersion = getSinceVersion();
+    if (m_containingCompositeVersion == sinceVersion) {
+        return common::emptyString();
+    }
+
+    if (m_db.getMinRemoteVersion() < sinceVersion) {
+        static const std::string Mode("comms::field::OptionalMode::Exists");
+        return Mode;
+    }
+
+    return common::emptyString();
 }
 
 } // namespace sbe2comms

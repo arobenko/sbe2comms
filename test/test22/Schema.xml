@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test22"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian"
+               version="4">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <type name="Int16_1" primitiveType="int16" minValue="-1000" maxValue="1000" />
+        <type name="Int16_2" primitiveType="int16" minValue="500" maxValue="1000" />
+        <composite name="groupSizeEncoding">
+            <type name="numInGroup" primitiveType="uint16" />
+            <type name="blockLength" primitiveType="uint16" />
+        </composite> 
+        <composite name="varStringEncoding">
+            <type name="length" primitiveType="uint8" maxValue="100"/>
+            <type name="varData" primitiveType="char" length="0"/>
+        </composite>               
+    </types>
+    <message name="Msg1" id="5" description="TestMessage" blockLength="12">
+        <field name="field1" id="10" type="int16"/>
+        <field name="field2" id="11" type="uint16" sinceVersion="1"/>
+        <group name="field3" id="12">
+            <field name="mem1" type="uint32" id="101" sinceVersion="1"/>
+            <field name="mem2" type="int32" id="102" sinceVersion="2"/>
+        </group>
+        <group name="field4" id="13">
+            <field name="mem1" type="uint32" id="101"  sinceVersion="3"/>
+            <field name="mem2" type="int32" id="102" sinceVersion="4"/>
+        </group>
+        <data name="field5" id="16" type="varStringEncoding" sinceVersion="4"/>
+    </message>
+</messageSchema>

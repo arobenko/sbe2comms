@@ -1,0 +1,249 @@
+//
+// Copyright 2017 (C). Alex Robenko. All rights reserved.
+//
+
+// This file is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include <vector>
+
+#include "mine/message/Msg1.h"
+#include "mine/TransportFrame.h"
+#include "mine/AllMessages.h"
+#include "orig/Msg1.h"
+#include "common.h"
+
+class Test22Suite : public CxxTest::TestSuite
+{
+public:
+    void test1();
+    void test2();
+    void test3();
+    void test4();
+    void test5();
+
+private:
+
+    template <typename TMessage>
+    using MineMsg1 = mine::message::Msg1<TMessage>;
+
+    template <typename TMessage>
+    using AllMessages = mine::AllMessages<TMessage>;
+
+    template <typename TMessage>
+    using Frame = mine::OpenFramingHeaderFrame<TMessage, AllMessages<TMessage> >;
+
+    template <typename TMsg>
+    TMsg construct()
+    {
+        TMsg msg;
+        static_assert(msg.doMinLength() == 2U, "Invalid min length");
+        static const std::size_t EmptyLength = 21U;
+        TS_ASSERT_EQUALS(msg.doLength(), EmptyLength);
+        TS_ASSERT(msg.doValid());
+        TS_ASSERT_EQUALS(msg.doGetId(), mine::MsgId_Msg1);
+        TS_ASSERT_EQUALS(msg.field_field1().value(), 0);
+        TS_ASSERT_EQUALS(msg.field_field2().field().value(), 0);
+        TS_ASSERT_EQUALS(msg.field_field3().field().value().size(), 0U);
+        TS_ASSERT_EQUALS(msg.field_field4().field().value().size(), 0U);
+        TS_ASSERT_EQUALS(msg.field_field5().field().value().size(), 0U);
+
+        msg.field_field1().value() = 1234;
+        msg.field_field2().field().value() = 2222;
+
+        msg.field_field3().field().value().resize(1);
+        auto& field3Elem0 = msg.field_field3().field().value()[0];
+        field3Elem0.field_mem1().value() = 55555;
+        field3Elem0.field_mem2().field().value() = -1000;
+
+        msg.field_field4().field().value().resize(1);
+        auto& field4Elem0 = msg.field_field4().field().value()[0];
+        field4Elem0.field_mem1().value() = 54321 ;
+        field4Elem0.field_mem2().field().value() = -88888;
+
+        msg.field_field5().field().value() = "hello";
+
+        TS_ASSERT_EQUALS(msg.doLength(), EmptyLength + 8U + 8U + 5U);
+
+        return msg;
+    }
+
+    template <typename TMsg>
+    void fillPadding(TMsg& msg)
+    {
+        static_cast<void>(msg);
+        test::common::resizeList(msg.field_pad1_().field());
+    }
+
+    template <typename TMine, typename TOrig>
+    void verifyOrig(const TMine& mineMsg, TOrig& origMsg)
+    {
+        TS_ASSERT_EQUALS(mineMsg.getBlockLength(), origMsg.sbeBlockLength());
+        TS_ASSERT_EQUALS(mineMsg.field_field1().value(), origMsg.field1());
+        TS_ASSERT(mineMsg.field_field2().doesExist());
+        TS_ASSERT_EQUALS(mineMsg.field_field2().field().value(), origMsg.field2());
+
+        TS_ASSERT(mineMsg.field_field3().doesExist());
+        auto& mineField3 = mineMsg.field_field3().field();
+        auto& mineField3Elem0 = mineField3.value()[0];
+        auto& origField3 = origMsg.field3();
+        TS_ASSERT(origField3.hasNext());
+        auto& origField3Elem0 = origField3.next();
+        TS_ASSERT_EQUALS(mineField3Elem0.field_mem1().value(), origField3Elem0.mem1());
+        TS_ASSERT(mineField3Elem0.field_mem2().doesExist());
+        TS_ASSERT_EQUALS(mineField3Elem0.field_mem2().field().value(), origField3Elem0.mem2());
+
+        TS_ASSERT(mineMsg.field_field4().doesExist());
+        auto& mineField4 = mineMsg.field_field4().field();
+        auto& mineField4Elem0 = mineField4.value()[0];
+        auto& origField4 = origMsg.field4();
+        TS_ASSERT(origField4.hasNext());
+        auto& origField4Elem0 = origField4.next();
+        TS_ASSERT_EQUALS(mineField4Elem0.field_mem1().value(), origField4Elem0.mem1());
+        TS_ASSERT(mineField4Elem0.field_mem2().doesExist());
+        TS_ASSERT_EQUALS(mineField4Elem0.field_mem2().field().value(), origField4Elem0.mem2());
+
+        TS_ASSERT(mineMsg.field_field5().doesExist());
+        TS_ASSERT_EQUALS(mineMsg.field_field5().field().value(), origMsg.getField5AsString());
+
+        TS_ASSERT_EQUALS(mineMsg.doLength(), origMsg.encodedLength())
+    }
+};
+
+void Test22Suite::test1()
+{
+    using TestMessage = test::common::MineMessageFull;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
+
+//    TS_TRACE(buf);
+    TS_ASSERT(!buf.empty());
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    fillPadding(msg);
+    test::common::verifyMine(msg, *msg2);
+
+    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    verifyOrig(msg, origMsg);
+}
+
+void Test22Suite::test2()
+{
+    using TestMessage = test::common::MineMessageFullOutput;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgOutputIter<TestMessage>(msg, frame);
+    TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    fillPadding(msg);
+    test::common::verifyMine(msg, *msg2);
+
+    auto origMsg = test::common::wrapOrigMessage<orig::Msg1, TestFrame>(buf, msg.doGetId());
+    verifyOrig(msg, origMsg);
+}
+
+void Test22Suite::test3()
+{
+    using TestMessage = test::common::MineMessageEmpty;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgOutputIter(msg, frame);
+    TS_ASSERT_EQUALS(buf.size(), frame.length(msg));
+
+
+    using OtherTestMessage = test::common::MineMessageFull;
+    using OtherTestMsg1 = MineMsg1<OtherTestMessage>;
+    using OtherTestFrame = Frame<OtherTestMessage>;
+
+    auto otherMsg = construct<OtherTestMsg1>();
+    OtherTestFrame otherFrame;
+    auto otherBuf = test::common::writeMsgIntoBuf(otherMsg, otherFrame);
+    TS_ASSERT_EQUALS(buf, otherBuf);
+}
+
+void Test22Suite::test4()
+{
+    using TestMessage = test::common::MineMessageFull;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+    msg.setVersion(0);
+    msg.doRefresh();
+    TS_ASSERT_EQUALS(msg.getBlockLength(), 2U);
+    TS_ASSERT(msg.field_pad1_().isMissing());
+    TS_ASSERT(msg.field_field2().isMissing());
+    TS_ASSERT(msg.field_field3().isMissing());
+    TS_ASSERT(msg.field_field4().isMissing());
+    TS_ASSERT(msg.field_field5().isMissing());
+
+    msg.field_field1().value() = 1234;
+    TS_ASSERT_EQUALS(msg.doLength(), 2U);
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
+
+//    TS_TRACE(buf);
+    TS_ASSERT(!buf.empty());
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+//    fillPadding(msg);
+    test::common::verifyMine(msg, *msg2);
+}
+
+void Test22Suite::test5()
+{
+    using TestMessage = test::common::MineMessageFull;
+    using TestMsg1 = MineMsg1<TestMessage>;
+    using TestFrame = Frame<TestMessage>;
+
+    auto msg = construct<TestMsg1>();
+    msg.setVersion(1);
+    msg.doRefresh();
+    TS_ASSERT_EQUALS(msg.getBlockLength(), 12U);
+    TS_ASSERT(msg.field_field2().doesExist());
+    TS_ASSERT(msg.field_field3().doesExist());
+    TS_ASSERT(msg.field_field4().isMissing());
+    TS_ASSERT(msg.field_field5().isMissing());
+    msg.field_field1().value() = 1234;
+    msg.field_field2().field().value() = 1111;
+    msg.field_field3().field().value().resize(1);
+    msg.field_field3().field().value()[0].field_mem1().value() = 3333;
+    msg.field_field3().field().value()[0].field_mem2().setMissing();
+    TS_ASSERT_EQUALS(msg.doLength(), 20U);
+
+    TestFrame frame;
+    auto buf = test::common::writeMsgIntoBuf<TestMessage>(msg, frame);
+
+//    TS_TRACE(buf);
+    TS_ASSERT(!buf.empty());
+    auto msg2 = test::common::readMsg(buf, frame);
+    TS_ASSERT(msg2);
+    fillPadding(msg);
+    test::common::verifyMine(msg, *msg2);
+}
+

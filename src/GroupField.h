@@ -36,10 +36,17 @@ public:
 
 protected:
     virtual Kind getKindImpl() const override;
+    virtual unsigned getSinceVersionImpl() const override;
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool usesBuiltInTypeImpl() const override;
     virtual bool writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope) override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped);
 
 private:
     bool prepareMembers();
@@ -49,7 +56,6 @@ private:
     const std::string& getDimensionType() const;
     bool writeMembersDefaultOptions(std::ostream& out, unsigned indent, const std::string& scope);
 
-    std::list<FieldPtr> m_fields;
     std::vector<FieldPtr> m_members;
     const Type* m_type = nullptr;
 };

@@ -24,7 +24,11 @@ class DB;
 class BuiltIn
 {
 public:
-    static bool write(DB& db);
+    BuiltIn(DB& db);
+    bool write();
+
+private:
+    DB& m_db;
 };
 
 } // namespace sbe2comms

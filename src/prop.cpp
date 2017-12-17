@@ -54,7 +54,6 @@ const std::string ValueRef("valueRef");
 const std::string DimensionType("dimensionType");
 const std::string GroupSizeEncoding("groupSizeEncoding");
 const std::string Id("id");
-const std::string FailInvalid("cc_fail_invalid");
 
 const std::string& getProp(
     const XmlPropsMap& map,
@@ -238,11 +237,6 @@ const std::string& dimensionType(const XmlPropsMap& map)
 unsigned id(const XmlPropsMap& map)
 {
     return getPropInt<unsigned>(map, Id);
-}
-
-const std::string& ccFailInvalid(const XmlPropsMap& map)
-{
-    return getProp(map, FailInvalid);
 }
 
 } // namespace prop

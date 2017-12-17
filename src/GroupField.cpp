@@ -46,6 +46,13 @@ Field::Kind GroupField::getKindImpl() const
     return Kind::Group;
 }
 
+unsigned GroupField::getSinceVersionImpl() const
+{
+    assert(!m_members.empty());
+    assert(m_members.front());
+    return m_members.front()->getSinceVersion();
+}
+
 bool GroupField::parseImpl()
 {
     if (!prepareMembers()) {
@@ -71,6 +78,14 @@ bool GroupField::parseImpl()
     }
 
     getDb().recordGroupListUsage();
+    recordExtraHeader(common::localHeader(getDb().getProtocolNamespace(), common::builtinNamespaceNameStr(), common::groupListStr() + ".h"));
+    recordExtraHeader(common::localHeader(getDb().getProtocolNamespace(), common::fieldNamespaceNameStr(), m_type->getName() + ".h"));
+    ExtraHeaders membersHeaders;
+
+    for (auto& m : m_members) {
+        m->updateExtraHeaders(membersHeaders);
+    }
+    recordMultipleExtraHeaders(membersHeaders);
     return true;
 }
 
@@ -96,7 +111,15 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
     assert(m_type != nullptr);
     auto extraOpts = m_type->getExtraOptInfos();
 
-    out << output::indent(indent) << "using " << getName() << " =\n" <<
+    std::string name;
+    if (suffix.empty()) {
+        name = common::renameKeyword(getName());
+    }
+    else {
+        name = getName() + suffix;
+    }
+
+    out << output::indent(indent) << "using " << name << " =\n" <<
            output::indent(indent + 1) << common::builtinNamespaceStr() << common::groupListStr() << "<\n" <<
            output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << ",\n" <<
@@ -128,7 +151,63 @@ bool GroupField::usesBuiltInTypeImpl() const
 bool GroupField::writeDefaultOptionsImpl(std::ostream& out, unsigned indent, const std::string& scope)
 {
     return writeMembersDefaultOptions(out, indent, scope) &&
-           Base::writeDefaultOptionsImpl(out, indent, scope);
+            Base::writeDefaultOptionsImpl(out, indent, scope);
+}
+
+bool GroupField::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptionalWrapped)
+{
+    std::string fieldType;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, &fieldType, &props);
+
+    auto bundleName = common::refName(getName(), common::elementSuffixStr());
+    auto bundleType = fieldType + '_' + common::elementSuffixStr();
+    auto bundleProps = props + '_' + common::elementSuffixStr();
+    auto subScope = scope + getName() + common::memembersSuffixStr() + "::";
+
+    out << output::indent(indent) << "using " << bundleType << " = " << scope << bundleName << ";\n" <<
+           output::indent(indent) << "comms_champion::property::field::ForField<" << bundleType << "> " << bundleProps << ";\n\n";
+
+    for (auto& m : m_members) {
+        if (!m->writePluginProperties(out, indent, subScope, false)) {
+            return false;
+        }
+
+        std::string mProps;
+        common::scopeToPropertyDefNames(subScope, m->getName(), false, nullptr, &mProps);
+        out << output::indent(indent) << bundleProps << ".add(" << mProps << ");\n\n";
+    }
+
+    auto* suffixPtr = &common::emptyString();
+    if (commsOptionalWrapped) {
+        suffixPtr = &common::optFieldSuffixStr();
+    }
+
+    auto name = common::refName(getName(), *suffixPtr);
+
+    out << output::indent(indent) << "using " << fieldType << " = " << scope << name << ";\n";
+
+    out << output::indent(indent) << "auto " << props << " =\n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(\"" << getName() << "\")\n" <<
+           output::indent(indent + 2) << ".add(" << bundleProps << ".asMap())\n";
+
+    if (isInGroup()) {
+        out << output::indent(indent + 2) << ".serialisedHidden()\n";
+    }
+
+    out << output::indent(indent + 2) << ".asMap();\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return true;
 }
 
 bool GroupField::prepareMembers()
@@ -142,8 +221,12 @@ bool GroupField::prepareMembers()
     bool dataMembers = false;
     auto blockLength = getBlockLength();
     auto scope = getScope() + getName() + common::memembersSuffixStr() + "::";
+    auto lastSinceVersion = 0U;
+    unsigned thisFieldSinceVersion = 0U;
+    std::set<std::string> memNames;
+
     auto addPaddingFunc =
-        [this, &padCount, &expOffset, &scope](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
+        [this, &padCount, &expOffset, &scope, &lastSinceVersion, &thisFieldSinceVersion](xmlNodePtr c, unsigned padLen, bool before = true) -> bool
         {
             ++padCount;
             auto* padType = getDb().getPaddingType(padLen);
@@ -152,10 +235,11 @@ bool GroupField::prepareMembers()
                 return false;
             }
 
-            auto padNode = xmlCreatePaddingField(padCount, padType->getName());
+            auto padNode = xmlCreatePaddingField(padCount, padType->getName(), lastSinceVersion);
             assert(padNode);
             auto padField = Field::create(getDb(), padNode.get(), scope);
             assert(padField);
+            padField->setContainingGroupVersion(thisFieldSinceVersion);
             assert(padField->getKind() == Field::Kind::Basic);
             auto* castedPadMem = static_cast<BasicField*>(padField.get());
             castedPadMem->setGeneratedPadding();
@@ -195,6 +279,17 @@ bool GroupField::prepareMembers()
             return false;
         }
 
+        if (m_members.empty()) {
+            thisFieldSinceVersion = mem->getSinceVersion();
+        }
+        mem->setContainingGroupVersion(thisFieldSinceVersion);
+
+        if (memNames.find(mem->getName()) != memNames.end()) {
+            log::error() << "Multiple member fields with the same name \"" << mem->getName() << "\" inside group \"" << getName() << "\"" << std::endl;
+            return false;
+        }
+
+
         if (!mem->doesExist()) {
             continue;
         }
@@ -212,6 +307,13 @@ bool GroupField::prepareMembers()
         if (mem->getKind() == Kind::Data) {
             dataMembers = true;
         }
+
+        auto sinceVersion = mem->getSinceVersion();
+        if (sinceVersion < lastSinceVersion) {
+            log::error() << "Unexpected \"sinceVersion\" attribute value of \"" << mem->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
+            return false;
+        }
+        lastSinceVersion = sinceVersion;
 
         do {
             if (!rootBlock) {
@@ -250,6 +352,7 @@ bool GroupField::prepareMembers()
             assert(mem->getKind() == Kind::Basic);
             expOffset += static_cast<const BasicField*>(mem.get())->getSerializationLength();
         }
+        memNames.insert(mem->getName());
         m_members.push_back(std::move(mem));
     }
 
@@ -260,8 +363,8 @@ bool GroupField::prepareMembers()
 
     if (rootBlock && (blockLength != 0) && (expOffset < blockLength)) {
         xmlNodePtr c = nullptr;
-        if (!m_fields.empty()) {
-            c = m_fields.back()->getNode();
+        if (!m_members.empty()) {
+            c = m_members.back()->getNode();
         }
         return addPaddingFunc(c, blockLength - expOffset);
     }

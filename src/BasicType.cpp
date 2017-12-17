@@ -39,8 +39,6 @@ namespace sbe2comms
 namespace
 {
 
-const std::string CharType("char");
-
 const std::string& primitiveFloatToStd(const std::string& type)
 {
     static const std::string Values[] = {
@@ -88,6 +86,16 @@ bool BasicType::isFpType() const
     return !fpType.empty();
 }
 
+bool BasicType::isRawDataArray() const
+{
+    auto len = getLengthProp();
+    if (len != 0) {
+        return false;
+    }
+
+    return isRawData();
+}
+
 BasicType::Kind BasicType::getKindImpl() const
 {
     return Kind::Basic;
@@ -115,41 +123,59 @@ bool BasicType::parseImpl()
         }
     }
 
-    auto& fpType = primitiveFloatToStd(getPrimitiveType());
-    if (!fpType.empty()) {
-        addExtraInclude("<limits>");
-        addExtraInclude("<cmath>");
-    }
+    do {
+        bool list = (getLengthProp() != 1U);
+        bool string = list && isString();
+        if (string || isConstString()) {
+            addExtraInclude("\"comms/field/String.h\"");
+            break;
+        }
 
+        if (list) {
+            addExtraInclude("\"comms/field/ArrayList.h\"");
+        }
+
+        if (isIntType()) {
+            addExtraInclude("<cstdint>");
+            if ((!list) || (!isRawData())) {
+                addExtraInclude("\"comms/field/IntValue.h\"");
+            }
+        }
+        else if (isFpType()) {
+            addExtraInclude("<limits>");
+            addExtraInclude("<cmath>");
+            addExtraInclude("\"comms/field/FloatValue.h\"");
+        }
+    } while (false);
     return true;
 }
 
-bool BasicType::writeImpl(std::ostream& out, unsigned indent)
+bool BasicType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     auto len = getLengthProp();
     if ((len != 1) && (!isString()) && (!isRawData())) {
         writeElementHeader(out, indent);
         common::writeExtraOptionsTemplParam(out, indent);
-        writeSimpleType(out, indent, true);
+        writeSimpleType(out, indent, commsOptionalWrapped, true);
         out << ";\n\n";
     }
 
-    writeHeader(out, indent);
+    writeHeader(out, indent, commsOptionalWrapped);
     common::writeExtraOptionsTemplParam(out, indent);
     bool result = false;
     do {
 
         if ((len == 1) && (!isConstString())) {
-            result = writeSimpleType(out, indent);
+            result = writeSimpleType(out, indent, commsOptionalWrapped);
             break;
         }
 
         if (len == 0) {
-            result = writeVarLength(out, indent);
+            result = writeVarLength(out, indent, commsOptionalWrapped);
             break;
         }
 
-        result = writeFixedLength(out, indent);
+        result = writeFixedLength(out, indent, commsOptionalWrapped);
 
     } while (false);
     out << ";\n\n";
@@ -178,19 +204,34 @@ bool BasicType::canBeExtendedAsOptionalImpl() const
     return (getLengthProp() == 1U) && (!isConstString());
 }
 
-bool BasicType::writeSimpleType(std::ostream& out,
+bool BasicType::writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope)
+{
+    auto len = getLengthProp();
+    if ((len == 1) || (isRawData())) {
+        return writePluginPropertiesSimple(out, indent, scope, false);
+    }
+
+    return writePluginPropertiesList(out, indent, scope);
+}
+
+bool BasicType::writeSimpleType(
+    std::ostream& out,
     unsigned indent,
+    bool commsOptionalWrapped,
     bool isElement)
 {
     auto& primType = getPrimitiveType();
     auto& intType = common::primitiveTypeToStdInt(primType);
     if (!intType.empty()) {
-        return writeSimpleInt(out, indent, intType, isElement);
+        return writeSimpleInt(out, indent, intType, commsOptionalWrapped, isElement);
     }
 
     auto& fpType = primitiveFloatToStd(primType);
     if (!fpType.empty()) {
-        return writeSimpleFloat(out, indent, fpType, isElement);
+        return writeSimpleFloat(out, indent, fpType, commsOptionalWrapped, isElement);
     }
 
     log::error() << "Unknown primitiveType \"" << primType << "\" for "
@@ -201,6 +242,7 @@ bool BasicType::writeSimpleType(std::ostream& out,
 bool BasicType::writeSimpleBigUnsignedInt(
     std::ostream& out,
     unsigned indent,
+    bool commsOptionalWrapped,
     bool isElement,
     std::uintmax_t minVal,
     std::uintmax_t maxVal)
@@ -219,7 +261,7 @@ bool BasicType::writeSimpleBigUnsignedInt(
         [this, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
         {
             out << output::indent(ind) << "comms::field::IntValue<\n" <<
-                   output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
                    output::indent(ind + 1) << "std::uint64_t,\n" <<
                    output::indent(ind + 1) << "TOpt...";
 
@@ -257,17 +299,16 @@ bool BasicType::writeSimpleBigUnsignedInt(
                    output::indent(ind) << ">";
         };
 
-    std::string name;
-    if (isElement) {
-        name = getName() + common::elementSuffixStr();
-    }
-    else {
-        name = getReferenceName();
-    }
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
+    std::string name = common::refName(getName(), suffix);
 
     if (isRequired()) {
-        out << output::indent(indent) << "using " << name << " = \n";
+        out << output::indent(indent) << "struct " << name << " : public\n";
         writeFunc(indent + 1);
+        out << '\n' <<
+               output::indent(indent) << "{\n";
+        common::writeDefaultSetVersionFunc(out, indent + 1);
+        out << output::indent(indent) << "}";
         return true;
     }
 
@@ -289,8 +330,12 @@ bool BasicType::writeSimpleBigUnsignedInt(
             return false;
         }
 
-        out << output::indent(indent) << "using " << name << " = \n";
+        out << output::indent(indent) << "struct " << name << " : public\n";
         writeFunc(indent + 1);
+        out << '\n' <<
+               output::indent(indent) << "{\n";
+        common::writeDefaultSetVersionFunc(out, indent + 1);
+        out << output::indent(indent) << "}";
         return true;
     }
 
@@ -319,6 +364,8 @@ bool BasicType::writeSimpleBigUnsignedInt(
         out << output::indent(indent) << "\n" <<
                output::indent(indent) << "{\n";
         common::writeIntNullCheckUpdateFuncs(out, indent + 1, common::num(nullValue));
+        out << '\n';
+        common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
         return true;
     }
@@ -327,9 +374,11 @@ bool BasicType::writeSimpleBigUnsignedInt(
     return false;
 }
 
-bool BasicType::writeSimpleInt(std::ostream& out,
+bool BasicType::writeSimpleInt(
+    std::ostream& out,
     unsigned indent,
     const std::string& intType,
+    bool commsOptionalWrapped,
     bool isElement)
 {
     auto& primType = getPrimitiveType();
@@ -373,8 +422,7 @@ bool BasicType::writeSimpleInt(std::ostream& out,
             return false;
         }
 
-        log::info() << "Type=" << getName() << " min=" << bigMinVal.first << "; max=" << bigMaxVal.first << std::endl;
-        return writeSimpleBigUnsignedInt(out, indent, isElement, bigMinVal.first, bigMaxVal.first);
+        return writeSimpleBigUnsignedInt(out, indent, commsOptionalWrapped, isElement, bigMinVal.first, bigMaxVal.first);
     }
 
     if (!checkMinMaxValErrorFunc(minVal.second, maxVal.second)) {
@@ -395,7 +443,7 @@ bool BasicType::writeSimpleInt(std::ostream& out,
         [this, intType, &defValue, &constant, &minVal, &maxVal, &extraValidNumber, &out](unsigned ind)
         {
             out << output::indent(ind) << "comms::field::IntValue<\n" <<
-                   output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
                    output::indent(ind + 1) << intType << ",\n" <<
                    output::indent(ind + 1) << "TOpt...";
 
@@ -432,17 +480,16 @@ bool BasicType::writeSimpleInt(std::ostream& out,
                    output::indent(ind) << ">";
         };
 
-    std::string name;
-    if (isElement) {
-        name = getName() + common::elementSuffixStr();
-    }
-    else {
-        name = getReferenceName();
-    }
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
+    std::string name = common::refName(getName(), suffix);
 
     if (isRequired()) {
-        out << output::indent(indent) << "using " << name << " = \n";
+        out << output::indent(indent) << "struct " << name << " : public\n";
         writeFunc(indent + 1);
+        out << '\n' <<
+               output::indent(indent) << "{\n";
+        common::writeDefaultSetVersionFunc(out, indent + 1);
+        out << output::indent(indent) << "}";
         return true;
     }
 
@@ -464,8 +511,13 @@ bool BasicType::writeSimpleInt(std::ostream& out,
             return false;
         }
 
-        out << output::indent(indent) << "using " << name << " = \n";
+        out << output::indent(indent) << "struct " << name << " : public\n";
         writeFunc(indent + 1);
+        out << '\n' <<
+               output::indent(indent) << "{\n";
+        common::writeDefaultSetVersionFunc(out, indent + 1);
+        out << output::indent(indent) << "}";
+
         return true;
     }
 
@@ -499,6 +551,8 @@ bool BasicType::writeSimpleInt(std::ostream& out,
         out << output::indent(indent) << "\n" <<
                output::indent(indent) << "{\n";
         common::writeIntNullCheckUpdateFuncs(out, indent + 1, common::num(nullValue));
+        out << '\n';
+        common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
         return true;
     }
@@ -507,22 +561,19 @@ bool BasicType::writeSimpleInt(std::ostream& out,
     return false;
 }
 
-bool BasicType::writeSimpleFloat(std::ostream& out,
+bool BasicType::writeSimpleFloat(
+    std::ostream& out,
     unsigned indent,
     const std::string& fpType,
+    bool commsOptionalWrapped,
     bool isElement)
 {
-    std::string name;
-    if (isElement) {
-        name = getName() + common::elementSuffixStr();
-    }
-    else {
-        name = getReferenceName();
-    }
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
+    std::string name = common::refName(getName(), suffix);
 
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::FloatValue<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << fpType << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 1);
@@ -541,6 +592,8 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
     do {
         if (isRequired()) {
             common::writeFpValidCheckFunc(out, indent + 1);
+            out << '\n';
+            common::writeDefaultSetVersionFunc(out, indent + 1);
             result = true;
             break;
         }
@@ -549,6 +602,8 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
             common::writeFpOptConstructor(out, indent + 1, name);
             out << '\n';
             common::writeFpNullCheckUpdateFuncs(out, indent + 1);
+            out << '\n';
+            common::writeDefaultSetVersionFunc(out, indent + 1);
             result = true;
             break;
         }
@@ -560,11 +615,12 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
             out << '\n' <<
                    output::indent(indent + 1) << "/// \\brief Value validity check function.\n" <<
                    output::indent(indent + 1) << "bool valid() const\n" <<
-                   output::indent(indent + 1) << "{\n";
-            writeBaseDef(out, indent + 2);
-            out << output::indent(indent + 2) << "auto defaultValue = static_cast<typename Base::ValueType>(" << constValStr << ");\n" <<
+                   output::indent(indent + 1) << "{\n" <<
+                   output::indent(indent + 2) << common::fieldBaseDefStr() <<
+                   output::indent(indent + 2) << "auto defaultValue = static_cast<typename Base::ValueType>(" << constValStr << ");\n" <<
                    output::indent(indent + 2) << "return std::abs(Base::value() - defaultValue) < std::numberic_limits<typename Base::ValueType>::epsilon;\n" <<
-                   output::indent(indent + 1) << "}\n";
+                   output::indent(indent + 1) << "}\n\n";
+            common::writeDefaultSetVersionFunc(out, indent + 1);
             result = true;
             break;
         }
@@ -576,108 +632,138 @@ bool BasicType::writeSimpleFloat(std::ostream& out,
     return result;
 }
 
-bool BasicType::writeVarLength(std::ostream& out, unsigned indent)
+bool BasicType::writeVarLength(
+    std::ostream& out,
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
     assert(!isConstant());
     if (isString()) {
-        return writeVarLengthString(out, indent);
+        return writeVarLengthString(out, indent, commsOptionalWrapped);
     }
 
-    return writeVarLengthArray(out, indent);
+    return writeVarLengthArray(out, indent, commsOptionalWrapped);
 }
 
 
 bool BasicType::writeVarLengthString(
     std::ostream& out,
-    unsigned indent)
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
-    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    std::string name = common::refName(getName(), suffix);
+
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << " comms::field::String<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
     out << '\n' <<
            output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n";
     writeStringValidFunc(out, indent + 1);
+    out << '\n';
+    common::writeDefaultSetVersionFunc(out, indent + 1);
     out << output::indent(indent) << "}";
     return true;
 }
 
 bool BasicType::writeVarLengthArray(
     std::ostream& out,
-    unsigned indent)
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
     auto& primType = getPrimitiveType();
     assert(!primType.empty());
     if (isRawData(primType)) {
-        return writeVarLengthRawDataArray(out, indent, primType);
+        return writeVarLengthRawDataArray(out, indent, primType, commsOptionalWrapped);
     }
 
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    std::string name = common::refName(getName(), suffix);
+
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
     out << '\n' <<
-           output::indent(indent + 1) << ">";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "}";
     return true;
 }
 
 bool BasicType::writeVarLengthRawDataArray(
     std::ostream& out,
     unsigned indent,
-    const std::string& primType)
+    const std::string& primType,
+    bool commsOptionalWrapped)
 {
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    std::string name = common::refName(getName(), suffix);
+
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << common::primitiveTypeToStdInt(primType) << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
     out << '\n' <<
-           output::indent(indent + 1) << ">";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "}";
     return true;
 }
 
 bool BasicType::writeFixedLength(
     std::ostream& out,
-    unsigned indent)
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
     if (isString()) {
-        return writeFixedLengthString(out, indent);
+        return writeFixedLengthString(out, indent, commsOptionalWrapped);
     }
     
     assert(!isConstant());
-    return writeFixedLengthArray(out, indent);
+    return writeFixedLengthArray(out, indent, commsOptionalWrapped);
 }
 
 bool BasicType::writeFixedLengthString(
     std::ostream& out,
-    unsigned indent)
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    std::string name = common::refName(getName(), suffix);
+
     if (!isConstString()) {
         unsigned len = getLengthProp();
         assert(1U < len);
-        out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+        out << output::indent(indent) << "struct " << name << " : public\n" <<
                output::indent(indent + 1) << "comms::field::String<\n" <<
-               output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+               output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
                output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
                output::indent(indent + 2) << "TOpt...";
         writeExtraOptions(out, indent + 2);
         out << '\n' <<
-               output::indent(indent + 1) << ">" <<
+               output::indent(indent + 1) << ">\n" <<
                output::indent(indent) << "{\n";
         writeStringValidFunc(out, indent + 1);
+        out << '\n';
+        common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
         return true;
     }
 
     auto text = xmlText(getNode());
-    out << output::indent(indent) << "struct " << getReferenceName() << " : public \n" <<
+    out << output::indent(indent) << "struct " << name << " : public \n" <<
            output::indent(indent + 1) << "comms::field::String<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << "TOpt...";
     writeExtraOptions(out, indent + 2);
     out << ",\n" <<
@@ -701,53 +787,68 @@ bool BasicType::writeFixedLengthString(
     out << '\n' <<
            output::indent(indent + 2) << "};\n\n" <<
            output::indent(indent + 2) << "Base::value() = Chars;\n" <<
-           output::indent(indent + 1) << "}\n" <<
-           output::indent(indent) << "}";
+           output::indent(indent + 1) << "}\n\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "}";
     
     return true;
 }
 
 bool BasicType::writeFixedLengthArray(
     std::ostream& out,
-    unsigned indent)
+    unsigned indent,
+    bool commsOptionalWrapped)
 {
     auto& primType = getPrimitiveType();
     assert(!primType.empty());
     if (isRawData(primType)) {
-        return writeFixedLengthRawDataArray(out, indent, primType);
+        return writeFixedLengthRawDataArray(out, indent, primType, commsOptionalWrapped);
     }
+
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    std::string name = common::refName(getName(), suffix);
 
     unsigned len = getLengthProp();
     assert(1U < len);
 
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
            output::indent(indent + 2) << "TOpt...,\n" <<
            output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">";
     writeExtraOptions(out, indent + 2);
     out << '\n' <<
-           output::indent(indent + 1) << ">";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "}";
     return true;
 }
 
 bool BasicType::writeFixedLengthRawDataArray(
     std::ostream& out,
     unsigned indent,
-    const std::string& primType)
+    const std::string& primType,
+    bool commsOptionalWrapped)
 {
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    std::string name = common::refName(getName(), suffix);
+
     unsigned len = getLengthProp();
     assert(1U < len);
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
            output::indent(indent + 2) << common::primitiveTypeToStdInt(primType) << ",\n" <<
            output::indent(indent + 2) << "TOpt...,\n" <<
            output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">";
     writeExtraOptions(out, indent + 2);
     out << '\n' <<
-           output::indent(indent + 1) << ">";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << output::indent(indent) << "}";
     return true;
 }
 
@@ -769,7 +870,7 @@ bool BasicType::isString() const
         return true;
     }
 
-    return getPrimitiveType() == CharType;
+    return getPrimitiveType() == common::charType();
 }
 
 bool BasicType::isConstString() const
@@ -791,7 +892,7 @@ bool BasicType::isRawData(const std::string& primType) const
     }
 
     static const std::string RawDataTypes[] = {
-        CharType,
+        common::charType(),
         "int8",
         "uint8"
     };
@@ -801,14 +902,17 @@ bool BasicType::isRawData(const std::string& primType) const
 
 void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
 {
-    auto minValue = common::intMinValue(CharType, std::string());
+    auto minValue = common::intMinValue(common::charType(), std::string());
     assert (minValue.second);
-    auto maxValue = common::intMaxValue(CharType, std::string());
+    auto maxValue = common::intMaxValue(common::charType(), std::string());
     assert(maxValue.second);
     out << output::indent(indent) << "/// \\brief Value validity check function.\n" <<
            output::indent(indent) << "bool valid() const\n" <<
            output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << common::fieldBaseDefStr() <<
+           output::indent(indent + 1) << "if (!Base::valid()) {\n" <<
+           output::indent(indent + 2) << "return false;\n" <<
+           output::indent(indent + 1) << "}\n\n" <<
            output::indent(indent + 1) << "auto& str = Base::value();\n" <<
            output::indent(indent + 1) << "for (auto ch : str) {\n" <<
            output::indent(indent + 2) << "if ((ch < " << minValue.first << ") ||\n" <<
@@ -830,6 +934,153 @@ bool BasicType::hasDefaultValueInExtraOptions() const
                 static const std::string OptStr("DefaultNumValue");
                 return o.find(OptStr) != std::string::npos;
             });
+}
+
+bool BasicType::writePluginPropertiesSimple(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool isElement,
+    int index)
+{
+    std::string fieldType;
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), (!isElement) && isCommsOptionalWrapped(), &fieldType, &props);
+
+    if (isElement) {
+        fieldType += common::elementSuffixStr();
+        props += common::elementSuffixStr();
+
+        if (0 <= index) {
+            auto indexStr = std::to_string(index);
+            fieldType += indexStr;
+            props += indexStr;
+        }
+    }
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
+    auto name = common::refName(getName(), suffix);
+
+    std::string dispOffsetStr;
+    for (auto& o : getExtraOptions()) {
+        static const std::string OptPrefix("comms::option::NumValueSerOffset<");
+        if (!ba::starts_with(o, OptPrefix)) {
+            continue;
+        }
+
+        auto findResult = ba::find_last(o, ">");
+        assert(findResult);
+        dispOffsetStr = ".displayOffset(" + std::string(o.begin() + OptPrefix.size(), findResult.begin()) + ")";
+    }
+
+    std::string fieldName;
+    do {
+        if (isElement && (index < 0)) {
+            fieldName = "\"elem\"";
+            break;
+        }
+
+        if (isElement) {
+            fieldName = '\"' + std::to_string(index) + '\"';
+            break;
+        }
+
+        if (scope.empty()) {
+            fieldName = common::fieldNameParamNameStr();
+            break;
+        }
+
+        fieldName = '\"' + getName() + '\"';
+    } while (false);
+
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << fieldName << ")";
+
+    if (isConstant()) {
+        out << '\n' <<
+               output::indent(indent + 2) << ".serialisedHidden()\n" <<
+               output::indent(indent + 2) << ".readOnly()\n";
+    }
+
+    if (!dispOffsetStr.empty()) {
+        out << '\n' <<
+               output::indent(indent + 2) << dispOffsetStr;
+    }
+
+    out << ";\n\n";
+
+    writeSerialisedHiddenCheck(out, indent, props);
+
+    if (scope.empty() && (!commsOptionalWrapped) && (!isElement)) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+    return true;
+}
+
+bool BasicType::writePluginPropertiesList(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+
+    auto len = getLengthProp();
+    assert(len != 1U);
+    if (len == 0) {
+        writePluginPropertiesSimple(out, indent, scope, true);
+    }
+
+    for (auto idx = 0; idx < static_cast<int>(len); ++idx) {
+        writePluginPropertiesSimple(out, indent, scope, true, idx);
+    }
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".serialisedHidden()\n" <<
+           output::indent(indent + 2) << ".name(";
+    if (scope.empty()) {
+        out  << common::fieldNameParamNameStr();
+    }
+    else {
+        out << '\"' << getName() << '\"';
+    }
+    out << ")";
+
+    std::string elemProps;
+    common::scopeToPropertyDefNames(scope, getName(), false, nullptr, &elemProps);
+    elemProps += common::elementSuffixStr();
+
+
+    if (len == 0) {
+        out << '\n' <<
+               output::indent(indent + 2) << ".add(" << elemProps << ".asMap())";
+    }
+
+    for (auto idx = 0; idx < static_cast<int>(len); ++idx) {
+        out << '\n' <<
+               output::indent(indent + 2) << ".add(" << elemProps << std::to_string(idx) << ".asMap())";
+    }
+
+    out << ";\n\n";
+
+    if (scope.empty() && (!commsOptionalWrapped)) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+    return true;
 }
 
 } // namespace sbe2comms

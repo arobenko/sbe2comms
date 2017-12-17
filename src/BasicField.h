@@ -38,9 +38,17 @@ public:
 
 protected:
     virtual Kind getKindImpl() const override;
+    virtual unsigned getReferencedTypeSinceVersionImpl() const override;
+    virtual bool isForcedCommsOptionalImpl() const override;
     virtual bool parseImpl() override;
     virtual bool writeImpl(std::ostream& out, unsigned indent, const std::string& suffix) override;
     virtual bool usesBuiltInTypeImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped) override;
 
 private:
     bool checkRequired() const;
@@ -58,6 +66,30 @@ private:
     void writeOptionalBasicInt(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalBasicFp(std::ostream& out, unsigned indent, const std::string& name);
     void writeOptionalEnum(std::ostream& out, unsigned indent, const std::string& name);
+    bool writeBuiltinPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped);
+    bool writeSimpleAliasPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped);
+    bool writeConstantPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped);
+    bool writeOptionalPluginProperties(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope,
+        bool returnResult,
+        bool commsOptionalWrapped);
 
     const Type* m_type = nullptr;
     bool m_generatedPadding = false;

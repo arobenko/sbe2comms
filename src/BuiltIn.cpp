@@ -49,22 +49,20 @@ void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& name)
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << common::renameKeyword(name) << " = \n" <<
+           "struct " << common::renameKeyword(name) << " : public\n" <<
            output::indent(1) << "comms::field::IntValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << type << ",\n" <<
            output::indent(2) << "TOpt...,\n" <<
            output::indent(2) << "comms::option::ValidBigUnsignedNumValueRange<0, " << common::num(maxVal.first) << ">\n" <<
-           output::indent(1) << ">;\n\n";
+           output::indent(1) << ">\n" <<
+           "{\n";
+    common::writeDefaultSetVersionFunc(out, 1);
+    out << "};\n\n";
 }
 
-void writeBuiltInInt(std::ostream& out, const std::string& name)
+void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
 {
-    if (name == common::uint64Type()) {
-        writeBuiltInBigUnsignedInt(out, name);
-        return;
-    }
-
     auto minVal = common::intMinValue(name);
     auto maxVal = common::intMaxValue(name);
     assert(minVal.second);
@@ -78,36 +76,90 @@ void writeBuiltInInt(std::ostream& out, const std::string& name)
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << common::renameKeyword(name) << " = \n" <<
+           "struct " << common::renameKeyword(name) << " : public\n" <<
            output::indent(1) << "comms::field::IntValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << type << ",\n" <<
            output::indent(2) << "TOpt...,\n";
-    if ((0 < minVal.first) || 
+    if ((0 < minVal.first) ||
         (maxVal.first < 0)) {
         auto defValue = std::min(std::max(std::intmax_t(0), minVal.first), maxVal.first);
         out << output::indent(2) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">,\n";
     }
     out << output::indent(2) << "comms::option::ValidNumValueRange<" << common::num(minVal.first) << ", " << common::num(maxVal.first) << ">\n" <<
-           output::indent(1) << ">;\n\n";
+           output::indent(1) << ">\n" <<
+           "{\n";
+    common::writeDefaultSetVersionFunc(out, 1);
+    out << "};\n\n";
+}
+
+void writeBuiltInInt(std::ostream& out, const std::string& name)
+{
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << name << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include <cstdint>\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/IntValue.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n";
+
+
+    if (name == common::uint64Type()) {
+        writeBuiltInBigUnsignedInt(out, name);
+    }
+    else {
+        writeBuiltInRegularInt(out, name);
+    }
+
+    out << "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
 }
 
 void writeBuiltInFloat(std::ostream& out, const std::string& name)
 {
-    out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
+    auto& refName = common::renameKeyword(name);
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << refName << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/FloatValue.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Definition of built-in \"" << name << "\" type\n"
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
-           "using " << common::renameKeyword(name) << " = \n" <<
+           "struct " << refName << " : public\n" <<
            output::indent(1) << "comms::field::FloatValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << name << ",\n" <<
            output::indent(2) << "TOpt...\n" <<
-           output::indent(1) << ">;\n\n";
+           output::indent(1) << ">\n" <<
+           "{\n";
+    common::writeDefaultSetVersionFunc(out, 1);
+    out << "};\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
 }
 
-void writeBuiltIn(std::ostream& out, const std::string& name)
+bool writeBuiltIn(DB& db, const std::string& name)
 {
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + name + ".h");
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
     static const std::string FloatTypes[] = {
         "float",
         "double"
@@ -116,14 +168,42 @@ void writeBuiltIn(std::ostream& out, const std::string& name)
     auto iter = std::find(std::begin(FloatTypes), std::end(FloatTypes), name);
     if (iter != std::end(FloatTypes)) {
         writeBuiltInFloat(out, name);
-        return;
+        return out.good();
     }
     writeBuiltInInt(out, name);
+    return out.good();
 }
 
-void writeGroupList(std::ostream& out)
+bool writeGroupList(DB& db)
 {
-    out << "/// \\brief Generic list type to be used to defaine a \"group\" list.\n"
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + common::groupListStr() + ".h");
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::groupListStr() << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include <cstdint>\n"
+           "#include <type_traits>\n\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/ArrayList.h\"\n"
+           "#include \"comms/field/Optional.h\"\n"
+           "#include \"comms/options.h\"\n"
+           "#include \"comms/util/Tuple.h\"\n\n"
+           "#include \"VersionSetter.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Generic list type to be used to defaine a \"group\" list.\n"
            "/// \\tparam TFieldBase Common base class of all the fields.\n"
            "/// \\tparam TElement Element of the list, expected to be a variant of \\b comms::field::Bundle.\n"
            "/// \\tparam TDimensionType Dimention type field with \"blockLength\" and \"numInGroup\" members.\n"
@@ -136,7 +216,7 @@ void writeGroupList(std::ostream& out)
            output::indent(1) << "std::size_t TRootCount,\n" <<
            output::indent(1) << "typename... TOpt\n" <<
            ">\n"
-           "struct groupList : public\n" <<
+           "struct " << common::groupListStr() << " : public\n" <<
            output::indent(1) << "comms::field::ArrayList<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
            output::indent(2) << "TElement,\n" <<
@@ -175,6 +255,7 @@ void writeGroupList(std::ostream& out)
            output::indent(3) << common::fieldBaseDefStr() <<
            output::indent(3) << "Base::value().emplace_back();\n" <<
            output::indent(3) << "auto& lastElem = Base::value().back();\n" <<
+           output::indent(3) << "comms::util::tupleAccumulate(lastElem.value(), false, VersionSetter(m_version));\n" <<
            output::indent(3) << "es = lastElem.template readUntil<TRootCount>(iterTmp, blockLength);\n" <<
            output::indent(3) << "if (es != comms::ErrorStatus::Success) {\n" <<
            output::indent(4) << "Base::value().pop_back();\n" <<
@@ -237,9 +318,20 @@ void writeGroupList(std::ostream& out)
            output::indent(1) << "{\n" <<
            output::indent(2) << "return TDimensionType::minLength();\n" <<
            output::indent(1) << "}\n\n" <<
+           output::indent(1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "m_version = value;\n\n" <<
+           output::indent(2) << common::fieldBaseDefStr() <<
+           output::indent(2) << "auto& list = Base::value();\n" <<
+           output::indent(2) << "bool updated = false;\n" <<
+           output::indent(2) << "for (auto& elem : list) {\n" <<
+           output::indent(3) << "updated = comms::util::tupleAccumulate(elem.value(), updated, VersionSetter(m_version));\n" <<
+           output::indent(2) << "}\n" <<
+           output::indent(2) << "return updated;\n" <<
+           output::indent(1) << "}\n\n" <<
            "private:\n" <<
-           output::indent(1) << "struct NoFailOnInvalidTag{};\n" <<
-           output::indent(1) << "struct FailOnInvalidTag{};\n\n" <<
+           output::indent(1) << "struct NoFailOnInvalidTag {};\n" <<
+           output::indent(1) << "struct FailOnInvalidTag {};\n\n" <<
            output::indent(1) << "comms::ErrorStatus checkFailOnInvalid() const\n" <<
            output::indent(1) << "{\n" <<
            output::indent(2) << common::fieldBaseDefStr() <<
@@ -263,19 +355,44 @@ void writeGroupList(std::ostream& out)
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "return comms::ErrorStatus::Success;\n" <<
            output::indent(1) << "}\n\n" <<
-           output::indent(1) << "static_assert(TElement::template minLengthUntil<TRootCount>() == TElement::template maxLengthUntil<TRootCount>(),\n" <<
-           output::indent(2) << "\"Root block must have fixed length\");\n" <<
-           "};\n\n";
+           output::indent(1) << "unsigned m_version = " << db.getSchemaVersion() << ";\n"
+           "};\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    return out.good();
 }
 
-void writeOpenFrameHeader(DB& db, std::ostream& out)
+bool writeOpenFrameHeader(DB& db)
 {
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + common::openFramingHeaderStr() + ".h");
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
     static const std::string BigEndianStr("comms::Field<comms::option::BigEndian>");
     std::string sync("0x5be0");
     if (ba::ends_with(db.getEndian(), "LittleEndian")) {
         sync = "0xeb50";
     }
-    out << "/// \\brief Simple Open Framing Header definition.\n"
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::openFramingHeaderStr() << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "#include <cstdint>\n\n"
+           "#include \"comms/Field.h\"\n"
+           "#include \"comms/field/Bundle.h\"\n"
+           "#include \"comms/field/IntValue.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Simple Open Framing Header definition.\n"
            "struct " << common::openFramingHeaderStr() << " : public\n" <<
            output::indent(1) << "comms::field::Bundle<\n" <<
            output::indent(2) << BigEndianStr << ",\n" <<
@@ -303,43 +420,18 @@ void writeOpenFrameHeader(DB& db, std::ostream& out)
            output::indent(2) << "messageLength,\n" <<
            output::indent(2) << "encodingType\n" <<
            output::indent(1) << ");\n"
-           "};\n\n";
+           "};\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    return out.good();
 }
 
-void writePad(std::ostream& out)
+bool writePad(DB& db)
 {
-    out << "/// \\brief Padding type definition.\n"
-           "/// \\tparam TFieldBase Base class of all the fields.\n"
-           "/// \\tparam TLen Length of the padding.\n"
-           "/// \\tparam TOpt Extra options...\n"
-           "template <\n" <<
-           output::indent(1) << "typename TFieldBase,\n" <<
-           output::indent(1) << "std::size_t TLen,\n" <<
-           output::indent(1) << "typename... TOpt\n" <<
-           ">\n"
-           "using " << common::padStr() << " =\n" <<
-           output::indent(1) << "comms::field::ArrayList<\n" <<
-           output::indent(2) << "TFieldBase,\n" <<
-           output::indent(2) << "std::uint8_t,\n" <<
-           output::indent(2) << "TOpt...,\n" <<
-           output::indent(2) << "comms::option::SequenceFixedSize<TLen>\n" <<
-           output::indent(1) << ">;\n\n";
-}
-
-
-} // namespace
-
-bool BuiltIn::write(DB& db)
-{
-    auto builtIns = db.getAllUsedBuiltInTypes();
-    bool hasGroupList = db.isGroupListRecorded();
-    bool hasPadding = db.isPaddingRecorded();
-
-    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace())) {
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
         return false;
     }
 
-    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinsDefFileName());
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + common::padStr() + ".h");
     auto filePath = bf::path(db.getRootPath()) / relPath;
     log::info() << "Generating " << relPath << std::endl;
     std::ofstream out(filePath.string());
@@ -349,31 +441,108 @@ bool BuiltIn::write(DB& db)
     }
 
     out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly defined types\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::padStr() << "\n"
            "\n\n"
            "#pragma once\n\n"
-           "#include <cstdint>\n"
+           "#include <cstdint>\n\n"
            "#include \"comms/Field.h\"\n"
-           "#include \"comms/fields.h\"\n"
-           "#include \"comms/options.h\"\n"
-           "namespace sbe2comms\n"
-           "{\n\n";
-    for (auto& t : builtIns) {
-        writeBuiltIn(out, t);
-    }
-
-    if (hasPadding) {
-        writePad(out);
-    }
-
-    if (hasGroupList) {
-        writeGroupList(out);
-    }
-
-    writeOpenFrameHeader(db, out);
-
-    out << "}\n\n";
+           "#include \"comms/field/ArrayList.h\"\n"
+           "#include \"comms/options.h\"\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Padding type definition.\n"
+           "/// \\tparam TFieldBase Base class of all the fields.\n"
+           "/// \\tparam TLen Length of the padding.\n"
+           "/// \\tparam TOpt Extra options...\n"
+           "template <\n" <<
+           output::indent(1) << "typename TFieldBase,\n" <<
+           output::indent(1) << "std::size_t TLen,\n" <<
+           output::indent(1) << "typename... TOpt\n" <<
+           ">\n"
+           "struct " << common::padStr() << " : public\n" <<
+           output::indent(1) << "comms::field::ArrayList<\n" <<
+           output::indent(2) << "TFieldBase,\n" <<
+           output::indent(2) << "std::uint8_t,\n" <<
+           output::indent(2) << "TOpt...,\n" <<
+           output::indent(2) << "comms::option::SequenceFixedSize<TLen>\n" <<
+           output::indent(1) << ">\n" <<
+           "{\n";
+    common::writeDefaultSetVersionFunc(out, 1);
+    out << "};\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
     return out.good();
+}
+
+bool writeVersionSetter(DB& db)
+{
+    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace(), common::builtinNamespaceNameStr())) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::builtinNamespaceNameStr() + '/' + common::versionSetterFileName());
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of helper class \\ref " << common::builtinNamespaceStr() << common::versionSetterStr() << "\n"
+           "\n\n"
+           "#pragma once\n\n"
+           "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n"
+           "/// \\brief Helper class to update version of the fields in tuple.\n"
+           "/// \\details Expected to be used with \\b comms::util::tupleAccumulate() function.\n"
+           "struct " << common::versionSetterStr() << '\n' <<
+           "{\n" <<
+           output::indent(1) << common::versionSetterStr() << "(unsigned version) : m_version(version) {}\n\n" <<
+           output::indent(1) << "template <typename TField>\n" <<
+           output::indent(1) << "bool operator()(bool soFar, TField& field)\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "return field.setVersion(m_version) || soFar;\n" <<
+           output::indent(1) << "}\n\n"
+           "private:\n" <<
+           output::indent(1) << "unsigned m_version = 0U;\n"
+           "};\n\n"
+           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    return out.good();
+}
+
+} // namespace
+
+BuiltIn::BuiltIn(DB& db)
+  : m_db(db)
+{
+}
+
+bool BuiltIn::write()
+{
+    auto builtIns = m_db.getAllUsedBuiltInTypes();
+    for (auto& t : builtIns) {
+        if (!writeBuiltIn(m_db, t)) {
+            return false;
+        }
+    }
+
+    if (m_db.isPaddingRecorded() && (!writePad(m_db))) {
+        return false;
+    }
+
+    if (m_db.isGroupListRecorded() && (!writeGroupList(m_db))) {
+        return false;
+    }
+
+    if (!writeOpenFrameHeader(m_db)) {
+        return false;
+    }
+
+    if (!writeVersionSetter(m_db)) {
+        return false;
+    }
+    return true;
 }
 
 } // namespace sbe2comms

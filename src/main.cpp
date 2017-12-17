@@ -26,12 +26,18 @@
 #include "MsgId.h"
 #include "MsgInterface.h"
 #include "AllMessages.h"
+#include "AllFields.h"
 #include "MessageHeaderLayer.h"
 #include "OpenFramingHeaderLayer.h"
 #include "TransportFrame.h"
+#include "FieldBase.h"
 #include "common.h"
 #include "output.h"
 #include "log.h"
+#include "Cmake.h"
+#include "TransportMessage.h"
+#include "Protocol.h"
+#include "Plugin.h"
 
 namespace bf = boost::filesystem;
 
@@ -40,7 +46,8 @@ namespace sbe2comms
 
 bool writeBuiltIn(DB& db)
 {
-    return BuiltIn::write(db);
+    BuiltIn obj(db);
+    return obj.write();
 }
 
 bool writeMessages(DB& db)
@@ -57,66 +64,15 @@ bool writeMessages(DB& db)
 
 bool writeTypes(DB& db)
 {
-    if (!common::createProtocolDefDir(db.getRootPath(), db.getProtocolNamespace())) {
-        return false;
-    }
-
-    auto fileRelPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::fieldsDefFileName());
-    log::info() << "Generating " << fileRelPath << std::endl;
-
-    auto filePath = (bf::path(db.getRootPath()) / fileRelPath).string();
-    std::ofstream stream(filePath);
-    if (!stream) {
-        log::error() << "Failed to create " << filePath << std::endl;
-        return false;
-    }
-
-    stream << "/// \\file\n"
-              "/// \\brief Contains definition of all the field types\n"
-              "\n\n"
-              "#pragma once\n\n"
-              "#include <cstdint>\n";
-    std::set<std::string> extraIncludes;
+    FieldBase fieldBase(db);
+    bool result = fieldBase.write();
     for (auto& t : db.getTypes()) {
         assert(t.second);
-        t.second->updateExtraIncludes(extraIncludes);
+        result = t.second->writeProtocolDef() && result;
     }
 
-    for (auto& i : extraIncludes) {
-        stream << "#include " << i << '\n';
-    }
-    auto& ns = db.getProtocolNamespace();
-    stream << "\n"
-              "#include \"comms/fields.h\"\n"
-              "#include \"comms/Field.h\"\n"
-              "#include \"" << common::pathTo(ns, common::msgIdFileName()) << "\"\n\n";
-    if (!ns.empty()) {
-        stream << "namespace " << ns << "\n"
-                  "{\n\n";
-    }
-
-    stream << "namespace field\n"
-              "{\n\n"
-              "/// \\brief Definition of common base class of all the fields.\n"
-              "using FieldBase = comms::Field<" << db.getEndian() << ">;\n\n";
-
-
-    bool result = true;
-    for (auto* t : db.getTypesList()) {
-        result = t->write(stream) && result;
-    }
-
-    stream << "} // namespace field\n\n";
-
-    if (!ns.empty()) {
-        stream << "} // namespace " << ns << "\n\n";
-    }
-
-    if (!stream.good()) {
-        log::error() << "The file " << fileRelPath << "hasn't been written properly!" << std::endl;
-        return false;
-    }
-
+    AllFields allFields(db);
+    result = allFields.write() && result;
     return result;
 }
 
@@ -221,6 +177,30 @@ bool writeTransportFrame(DB& db)
     return obj.write();
 }
 
+bool writeTransportMessage(DB& db)
+{
+    TransportMessage obj(db);
+    return obj.write();
+}
+
+bool writeProtocol(DB& db)
+{
+    Protocol obj(db);
+    return obj.write();
+}
+
+bool writePlugin(DB& db)
+{
+    Plugin obj(db);
+    return obj.write();
+}
+
+bool writeCmake(DB& db)
+{
+    Cmake obj(db);
+    return obj.write();
+}
+
 } // namespace sbe2comms
 
 int main(int argc, const char* argv[])
@@ -245,7 +225,11 @@ int main(int argc, const char* argv[])
         sbe2comms::writeAllMessages(db) &&
         sbe2comms::writeMessageHeaderLayer(db) &&
         sbe2comms::writeOpenFramingHeaderLayer(db) &&
-        sbe2comms::writeTransportFrame(db)
+        sbe2comms::writeTransportFrame(db) &&
+        sbe2comms::writeTransportMessage(db) &&
+        sbe2comms::writeProtocol(db) &&
+        sbe2comms::writePlugin(db) &&
+        sbe2comms::writeCmake(db)
     ;
 
     if (result) {

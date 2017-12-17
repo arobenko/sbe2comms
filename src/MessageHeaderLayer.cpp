@@ -52,18 +52,6 @@ bool MessageHeaderLayer::writeProtocolDef()
         return false;
     }
 
-    out << "/// \\file\n"
-           "/// \\brief Contains definition of MessageHeaderLayer transport layer.\n\n"
-           "#pragma once\n\n"
-           "#include \"comms/util/Tuple.h\"\n"
-           "#include \"comms/protocol/ProtocolLayerBase.h\"\n"
-           "#include \"comms/MsgFactory.h\"\n"
-           "#include \"" << common::fieldsDefFileName() << "\"\n"
-           "#include \"" << common::defaultOptionsFileName() << "\"\n\n";
-
-    auto& ns = m_db.getProtocolNamespace();
-    common::writeProtocolNamespaceBegin(ns, out);
-
     auto& messageHeaderType = m_db.getMessageHeaderType();
     if (messageHeaderType.empty()) {
         log::error() << "Unknown message header type" << std::endl;
@@ -76,9 +64,25 @@ bool MessageHeaderLayer::writeProtocolDef()
         return false;
     }
 
+    auto& ns = m_db.getProtocolNamespace();
+    std::set<std::string> headers;
+    headers.insert("\"comms/util/Tuple.h\"");
+    headers.insert("\"comms/protocol/ProtocolLayerBase.h\"");
+    headers.insert("\"comms/MsgFactory.h\"");
+    headers.insert('\"' + common::pathTo(ns, common::defaultOptionsFileName()) + '\"');
+    headers.insert('\"' + common::pathTo(ns, common::fieldNamespaceNameStr() + '/' + messageHeader->getName() + ".h") + '\"');
+
+
+    out << "/// \\file\n"
+           "/// \\brief Contains definition of MessageHeaderLayer transport layer.\n\n"
+           "#pragma once\n\n";
+
+    common::writeExtraHeaders(out, headers);
+    common::writeProtocolNamespaceBegin(ns, out);
+
     auto opts = messageHeader->getExtraOptInfos();
     auto& name = common::messageHeaderLayerStr();
-    auto fieldName = name + "Field";
+    auto fieldName = name + common::optFieldSuffixStr();
 
     out << "/// \\brief Re-definition of the \\\"messageHeader\\\" field to be used in \\ref MessageHeaderLayer\n"
            "/// \\tparam TOpt Protocol definition options, expected to be \\ref DefaultOptions or\n"
@@ -105,8 +109,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            "/// \\tparam TAllMessages Types of all \\b input messages, bundled in std::tuple,\n"
            "///     that this protocol stack must be able to \\b read() as well as create (using createMsg()).\n"
            "/// \\tparam TNextLayer Next transport layer type.\n"
-           "/// \\tparam TOpt Protocol definition options, used to retrieve extra options for\n"
-           "///     \\ref " << common::fieldNamespaceStr() << messageHeaderType << " member fields.\n"
+           "/// \\tparam TField Field of message header.\n"
            "/// \\tparam TFactoryOpt All the options that will be forwarded to definition of\n"
            "///     message factory type (comms::MsgFactory).\n"
            "/// \\headerfile MessageHeaderLayer.h\n"
@@ -114,23 +117,23 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(1) << "typename TMessage,\n" <<
            output::indent(1) << "typename TAllMessages,\n" <<
            output::indent(1) << "typename TNextLayer,\n" <<
-           output::indent(1) << "typename TOpt = DefaultOptions,\n" <<
+           output::indent(1) << "typename TField = " << fieldName << "<DefaultOptions>,\n" <<
            output::indent(1) << "typename TFactoryOpt = comms::option::EmptyOption\n"
            ">\n"
            "class " << name << " : public\n" <<
            output::indent(1) << "comms::protocol::ProtocolLayerBase<\n" <<
-           output::indent(2) << fieldName << "<TOpt>,\n" <<
+           output::indent(2) << "TField,\n" <<
            output::indent(2) << "TNextLayer,\n" <<
-           output::indent(2) << name << "<TMessage, TAllMessages, TNextLayer, TOpt, TFactoryOpt>\n" <<
+           output::indent(2) << name << "<TMessage, TAllMessages, TNextLayer, TField, TFactoryOpt>\n" <<
            output::indent(1) << ">\n"
            "{\n" <<
            output::indent(1) << "static_assert(comms::util::IsTuple<TAllMessages>::Value,\n" <<
            output::indent(2) << "\"TAllMessages must be of std::tuple type\");\n\n" <<
            output::indent(1) << "using BaseImpl =\n" <<
            output::indent(2) << "comms::protocol::ProtocolLayerBase<\n" <<
-           output::indent(3) << fieldName << "<TOpt>,\n" <<
+           output::indent(3) << "TField,\n" <<
            output::indent(3) << "TNextLayer,\n" <<
-           output::indent(3) << name << "<TMessage, TAllMessages, TNextLayer, TOpt, TFactoryOpt>\n" <<
+           output::indent(3) << name << "<TMessage, TAllMessages, TNextLayer, TField, TFactoryOpt>\n" <<
            output::indent(2) << ">;\n\n" <<
            output::indent(1) << "using Factory = comms::MsgFactory<TMessage, TAllMessages, TFactoryOpt>;\n\n" <<
            output::indent(1) << "static_assert(TMessage::InterfaceOptions::HasMsgIdType,\n" <<
@@ -209,7 +212,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(3) << "BaseImpl::updateMissingSize(header, size, missingSize);\n" <<
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
-           output::indent(3) << "return es;" <<
+           output::indent(3) << "return es;\n" <<
            output::indent(2) << "}\n\n" <<
            output::indent(2) << "auto id = header.field_templateId().value();\n" <<
            output::indent(2) << "do {\n" <<
@@ -223,9 +226,13 @@ bool MessageHeaderLayer::writeProtocolDef()
            output::indent(3) << "}\n\n" <<
            output::indent(3) << "return comms::ErrorStatus::InvalidMsgId;\n" <<
            output::indent(2) << "} while (false);\n\n" <<
+           output::indent(2) << "auto remLen = size - header.length();\n" <<
+           output::indent(2) << "if (remLen < header.field_blockLength().value()) {\n" <<
+           output::indent(3) << "return comms::ErrorStatus::NotEnoughData;\n" <<
+           output::indent(2) << "}\n\n" <<
            output::indent(2) << "msgPtr->setBlockLength(header.field_blockLength().value());\n" <<
            output::indent(2) << "msgPtr->setVersion(header.field_version().value());\n" <<
-           output::indent(2) << "es = nextLayerReader.read(msgPtr, iter, size - header.length(), missingSize);\n" <<
+           output::indent(2) << "es = nextLayerReader.read(msgPtr, iter, remLen, missingSize);\n" <<
            output::indent(2) << "if (es != comms::ErrorStatus::Success) {\n" <<
            output::indent(3) << "msgPtr.reset();\n" <<
            output::indent(2) << "}\n" <<

@@ -35,7 +35,8 @@ function (test_func name)
         OUTPUT ${mine_output_dir}.tmp
         DEPENDS ${schema_file} ${PROJECT_NAME}
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${mine_output_dir}.tmp
-        COMMAND $<TARGET_FILE:${PROJECT_NAME}> -o ${mine_output_dir}.tmp -n "mine" ${schema_file}
+        COMMAND $<TARGET_FILE:${PROJECT_NAME}> -o ${mine_output_dir}.tmp -n "mine"
+            --sofh-name=openFramingHeader ${schema_file}
     )
 
     set (orig_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${name}/orig)
@@ -67,6 +68,15 @@ function (test_func name)
     CXXTEST_ADD_TEST (${testName} ${runner} ${tests})
     add_dependencies(${testName} ${output_tgt})
     target_include_directories (${testName} PRIVATE "${mine_output_dir}/include" "${orig_output_dir}")
+
+    set (plugin_build_tgt ${name}_plugin_build_tgt)
+    add_custom_target(${plugin_build_tgt} ALL
+        COMMAND ${CMAKE_COMMAND}
+            -DPROJ_DIR=${mine_output_dir}
+            -DCOMMS_INSTALL_DIR="${COMMS_INSTALL_DIR}"
+            -P "${CMAKE_CURRENT_LIST_DIR}/BuildPlugin.cmake"
+        DEPENDS ${output_tgt} ${mine_output_dir}.tmp ${orig_output_dir}.tmp "${CMAKE_CURRENT_LIST_DIR}/BuildPlugin.cmake"
+    )
 
 endfunction ()
 
@@ -154,6 +164,16 @@ test_func (test17)
 test_func (test18)
 test_func (test19)
 test_func (test20)
+test_func (test21)
+test_func (test22)
+test_func (test23)
+test_func (test24)
+test_func (test25)
+test_func (test26)
+test_func (test27)
+test_func (test28)
+test_func (test29)
+test_func (test30)
 
 FILE(GLOB_RECURSE all_test_headers "*.h")
 add_custom_target(all_test_headers_tgt SOURCES ${all_test_headers})

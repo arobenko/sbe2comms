@@ -31,13 +31,19 @@ set (
     "MsgId.cpp"
     "MsgInterface.cpp"
     "AllMessages.cpp"
+    "AllFields.cpp"
     "MessageHeaderLayer.cpp"
     "OpenFramingHeaderLayer.cpp"
     "TransportFrame.cpp"
+    "FieldBase.cpp"
     "common.cpp"
     "prop.cpp"
     "output.cpp"
     "log.cpp"
+    "Cmake.cpp"
+    "TransportMessage.cpp"
+    "Protocol.cpp"
+    "Plugin.cpp"
 )
 
 add_executable(${PROJECT_NAME} ${src})

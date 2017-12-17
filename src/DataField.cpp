@@ -37,6 +37,12 @@ Field::Kind DataField::getKindImpl() const
     return Kind::Data;
 }
 
+unsigned DataField::getReferencedTypeSinceVersionImpl() const
+{
+    assert(m_type != nullptr);
+    return m_type->getSinceVersion();
+}
+
 bool DataField::parseImpl()
 {
     auto& type = getType();
@@ -65,6 +71,7 @@ bool DataField::parseImpl()
 
     compType->recordDataUse();
     m_type = typePtr;
+    recordExtraHeader(common::localHeader(getDb().getProtocolNamespace(), common::fieldNamespaceNameStr(), m_type->getName() + ".h"));
     return true;
 }
 
@@ -72,16 +79,16 @@ bool DataField::writeImpl(std::ostream& out, unsigned indent, const std::string&
 {
     assert(m_type != nullptr);
     writeHeader(out, indent, suffix);
-    std::string name;
-    if (suffix.empty()) {
-        name = getReferenceName();
+    std::string name = common::refName(getName(), suffix);
+
+    auto* typeSuffixPtr = &common::emptyString();
+    if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
+        typeSuffixPtr = &common::optFieldSuffixStr();
     }
-    else {
-        name = getName() + suffix;
-    }
+    auto typeRefName = common::refName(m_type->getName(), *typeSuffixPtr);
 
     out << output::indent(indent) << "using " << name << " = \n" <<
-           output::indent(indent + 1) << common::fieldNamespaceStr() << m_type->getReferenceName() << "<\n";
+           output::indent(indent + 1) << common::fieldNamespaceStr() << typeRefName << "<\n";
     auto extraOpts = m_type->getExtraOptInfos();
     for (auto& o : extraOpts) {
         out << output::indent(indent + 2) << common::optParamPrefixStr();
@@ -98,6 +105,35 @@ bool DataField::writeImpl(std::ostream& out, unsigned indent, const std::string&
 bool DataField::usesBuiltInTypeImpl() const
 {
     return false;
+}
+
+bool DataField::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope,
+    bool returnResult,
+    bool commsOptionalWrapped)
+{
+    std::string props;
+    common::scopeToPropertyDefNames(scope, getName(), commsOptionalWrapped, nullptr, &props);
+
+    std::string typePropsStr =
+        common::pluginNamespaceStr() +
+        common::fieldNamespaceStr() +
+        "createProps_" + m_type->getName() + "(\"" + getName() + "\"" + getCreatePropsCallSuffix() + ")";
+
+    if (commsOptionalWrapped && m_type->isCommsOptionalWrapped()) {
+        typePropsStr = "comms_champion::property::field::Optional(" + typePropsStr + ").field()";
+    }
+
+    out << output::indent(indent) << "auto " << props << " =\n" <<
+           output::indent(indent + 1) << typePropsStr << ";\n\n";
+
+    if (returnResult) {
+        out << output::indent(indent) << "return " << props << ";\n";
+    }
+
+    return true;
 }
 
 } // namespace sbe2comms

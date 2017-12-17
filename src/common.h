@@ -31,12 +31,14 @@ namespace common
 const std::string& charType();
 const std::string& uint64Type();
 const std::string& messageDirName();
+const std::string& fieldDirName();
+const std::string& fieldHeaderFileName();
+const std::string& fieldDefFileName();
 const std::string& includeDirName();
-const std::string& fieldsDefFileName();
-const std::string& builtinsDefFileName();
 const std::string& defaultOptionsFileName();
 const std::string& msgIdFileName();
 const std::string& msgInterfaceFileName();
+const std::string& msgInterfaceStr();
 const std::string& allMessagesFileName();
 const std::string& allMessagesStr();
 const std::string& defaultOptionsStr();
@@ -47,6 +49,7 @@ const std::string& elementSuffixStr();
 const std::string& extraOptionsTemplParamStr();
 const std::string& fieldBaseStr();
 const std::string& fieldBaseDefStr();
+const std::string& fieldBaseFileName();
 const std::string& messageBaseDefStr();
 const std::string& enumValSuffixStr();
 const std::string& enumNullValueStr();
@@ -55,8 +58,12 @@ const std::string& fieldNamespaceNameStr();
 const std::string& messageNamespaceStr();
 const std::string& messageNamespaceNameStr();
 const std::string& builtinNamespaceStr();
+const std::string& builtinNamespaceNameStr();
+const std::string& pluginNamespaceNameStr();
+const std::string& pluginNamespaceStr();
 const std::string& memembersSuffixStr();
 const std::string& fieldsSuffixStr();
+const std::string& optFieldSuffixStr();
 const std::string& eqEmptyOptionStr();
 const std::string& optParamPrefixStr();
 const std::string& blockLengthStr();
@@ -65,6 +72,8 @@ const std::string& groupListStr();
 const std::string& templateIdStr();
 const std::string& schemaIdStr();
 const std::string& versionStr();
+const std::string& messageLengthStr();
+const std::string& encodingTypeStr();
 const std::string& msgIdEnumName();
 const std::string& messageHeaderLayerFileName();
 const std::string& messageHeaderLayerStr();
@@ -75,10 +84,20 @@ const std::string& openFramingHeaderLayerFileName();
 const std::string& openFramingHeaderLayerStr();
 const std::string& openFramingHeaderFrameStr();
 const std::string& padStr();
+const std::string& versionSetterStr();
+const std::string& versionSetterFileName();
+const std::string& fieldNameParamNameStr();
+const std::string& cmakeListsFileName();
+const std::string& transportMessageNameStr();
+const std::string& protocolNameStr();
+const std::string& pluginNameStr();
+const std::string& serialisedHiddenStr();
 std::string num(std::intmax_t val);
 std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
-std::string pathTo(const std::string& ns, const std::string path);
+std::string pathTo(const std::string& ns, const std::string& path);
+std::string localHeader(const std::string& ns, const std::string& localNs, const std::string& path);
+std::string refName(const std::string& name, const std::string& suffix);
 const std::string& primitiveTypeToStdInt(const std::string& type);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
@@ -93,19 +112,42 @@ void writeFpOptConstructor(
     const std::string& customDefault = std::string());
 void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
 void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
+void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent);
+void writeOptFieldDefinition(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& name,
+    const std::string& optMode,
+    unsigned sinceVersion,
+    bool isFieldTemplate = false);
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
+void writePluginNamespaceBegin(const std::string& ns, std::ostream& out);
+void writePluginNamespaceEnd(const std::string& ns, std::ostream& out);
+void writeExtraHeaders(std::ostream& out, const std::set<std::string>& allHeaders);
 void recordExtraHeader(const std::string& newHeader, std::set<std::string>& allHeaders);
+
 std::string protocolDirRelPath(const std::string& ns, const std::string& extraDir = std::string());
+
 bool createProtocolDefDir(
     const std::string& root,
     const std::string& ns,
+    const std::string& extraDir = std::string());
+bool createPluginDefDir(
+    const std::string& root,
     const std::string& extraDir = std::string());
 
 std::pair<std::intmax_t, bool> intMinValue(const std::string& type, const std::string& value = std::string());
 std::pair<std::intmax_t, bool> intMaxValue(const std::string& type, const std::string& value = std::string());
 std::pair<std::uintmax_t, bool> intBigUnsignedMaxValue(const std::string& value = std::string());
 std::uintmax_t defaultBigUnsignedNullValue();
+void scopeToPropertyDefNames(
+    const std::string& scope,
+    const std::string& name,
+    bool commsOptionalWrapped,
+    std::string* fieldType,
+    std::string* propsName);
+
 } // namespace common
 
 } // namespace sbe2comms

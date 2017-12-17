@@ -33,15 +33,27 @@ public:
 protected:
     virtual Kind getKindImpl() const override;
     virtual bool parseImpl() override;
-    virtual bool writeImpl(std::ostream& out, unsigned indent) override;
+    virtual bool writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped) override;
     virtual std::size_t getSerializationLengthImpl() const override;
     virtual bool hasFixedLengthImpl() const override;
+    virtual bool writePluginPropertiesImpl(
+        std::ostream& out,
+        unsigned indent,
+        const std::string& scope) override;
 
 private:
     using BitsMap = std::map<unsigned, std::string>;
 
-    void writeSingle(std::ostream& out, unsigned indent, bool isElement = false);
-    void writeList(std::ostream& out, unsigned indent, unsigned count);
+    void writeSingle(
+        std::ostream& out,
+        unsigned indent,
+        bool commsOptionalWrapped,
+        bool isElement = false);
+    void writeList(
+        std::ostream& out,
+        unsigned indent,
+        bool commsOptionalWrapped,
+        unsigned count);
     bool readChoices();
     void writeSeq(std::ostream& out, unsigned indent);
     void writeNonSeq(std::ostream& out, unsigned indent);

@@ -79,25 +79,26 @@ bool SetType::parseImpl()
         log::warning() << "Ignoring \"length\" property of \"" << getName() << "\" type to match sbe-tool." << std::endl;
     }
 
+    addExtraInclude("\"comms/field/BitmaskValue.h\"");
     return true;
 }
 
-bool SetType::writeImpl(std::ostream& out, unsigned indent)
+bool SetType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     auto serLen = getSerializationLengthImpl();
     assert(0U < serLen);
 
     auto count = getAdjustedLengthProp();
     if (count != 1U) {
-        writeSingle(out, indent, true);
+        writeSingle(out, indent, commsOptionalWrapped, true);
     }
 
     if (count == 1U) {
-        writeSingle(out, indent);
+        writeSingle(out, indent, commsOptionalWrapped);
         return true;
     }
 
-    writeList(out, indent, count);
+    writeList(out, indent, commsOptionalWrapped, count);
 
     return true;
 }
@@ -135,18 +136,60 @@ bool SetType::hasFixedLengthImpl() const
     return getAdjustedLengthProp() != 0U;
 }
 
-void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
+bool SetType::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
 {
-    auto name = getName();
+    std::string fieldType;
+    std::string props;
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+    auto nameStr = common::fieldNameParamNameStr();
+    if (!scope.empty()) {
+        nameStr = '\"' + getName() + '\"';
+    }
+
+    bool commsOptionalWrapped = isCommsOptionalWrapped();
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+
+    out << output::indent(indent) << "using " << fieldType << " = " <<
+           common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + name) <<
+           "<>;\n" <<
+           output::indent(indent) << "auto " << props << " = \n" <<
+           output::indent(indent + 1) << "comms_champion::property::field::ForField<" << fieldType << ">()\n" <<
+           output::indent(indent + 2) << ".name(" << nameStr << ")";
+    for (auto& b : m_bits) {
+        out << '\n' <<
+               output::indent(indent + 2) << ".add(" << b.first << ", \"" << b.second << "\")";
+    }
+    out << ";\n\n";
+
+    writeSerialisedHiddenCheck(out, indent, props);
+
+    if (scope.empty() && (!commsOptionalWrapped)) {
+        out << output::indent(indent) << "return " << props << ".asMap();\n";
+    }
+
+    return true;
+}
+
+void SetType::writeSingle(
+    std::ostream& out,
+    unsigned indent,
+    bool commsOptionalWrapped,
+    bool isElement)
+{
     if (isElement) {
         writeElementHeader(out, indent);
-        name += common::elementSuffixStr();
     }
     else {
-        writeHeader(out, indent, true);
+        writeHeader(out, indent, commsOptionalWrapped, true);
     }
     common::writeExtraOptionsTemplParam(out, indent);
 
+    auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
+    auto name = common::refName(getName(), suffix);
     auto len = getSerializationLengthImpl();
     out << output::indent(indent) << "struct " << name << " : public\n" <<
            output::indent(indent + 1) << "comms::field::BitmaskValue<\n" <<
@@ -174,15 +217,22 @@ void SetType::writeSingle(std::ostream& out, unsigned indent, bool isElement)
     else {
         writeNonSeq(out, indent + 1);
     }
+
+    out << '\n';
+    common::writeDefaultSetVersionFunc(out, indent + 1);
     out << "};\n\n";
 }
 
-void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
+void SetType::writeList(
+    std::ostream& out,
+    unsigned indent,
+    bool commsOptionalWrapped,
+    unsigned count)
 {
-    writeHeader(out, indent, true);
+    writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
-
-    out << output::indent(indent) << "using " << getReferenceName() << " = \n" <<
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    out << output::indent(indent) << "struct " << common::refName(getName(), suffix) << " : public\n" <<
            output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
            output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
@@ -192,7 +242,10 @@ void SetType::writeList(std::ostream& out, unsigned indent, unsigned count)
                output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">";
     }
     out << '\n' <<
-           output::indent(indent + 1) << ">;\n\n";
+           output::indent(indent + 1) << ">\n" <<
+           output::indent(indent) << "{\n";
+    common::writeDefaultSetVersionFunc(out, indent + 1);
+    out << "};\n\n";
 }
 
 bool SetType::readChoices()

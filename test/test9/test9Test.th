@@ -116,9 +116,10 @@ private:
         TS_ASSERT_EQUALS(mineMsg.field_field9().value(), origMsg.field9());
 
         auto& field10Vec = mineMsg.field_field10().value();
-        auto origField10Iter = origMsg.field10();
-        typename std::decay<decltype(field10Vec)>::type origField10Vec(origField10Iter, origField10Iter + origMsg.field10Length());
-        TS_ASSERT_EQUALS(field10Vec, origField10Vec);
+        TS_ASSERT_EQUALS(field10Vec.size(), origMsg.field10Length());
+        for (auto idx = 0U; idx < field10Vec.size(); ++idx) {
+            TS_ASSERT_EQUALS(field10Vec[idx].value(), origMsg.field10(idx));
+        }
 
         auto& field11Vec = mineMsg.field_field11().value();
         TS_ASSERT_EQUALS(field11Vec.size(), origMsg.field11Length());

@@ -60,23 +60,29 @@ bool RefType::parseImpl()
         return false;
     }
 
+    addExtraInclude('\"' + m_type->getName() + ".h\"");
     return true;
 }
 
-bool RefType::writeImpl(std::ostream& out, unsigned indent)
+bool RefType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     assert(m_type != nullptr);
-    assert(m_type->isWritten());
 
     if (isBundle()) {
-        writeBundle(out, indent);
+        writeBundle(out, indent, commsOptionalWrapped);
         return true;
     }
 
-    writeHeader(out, indent, true);
+    writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
-    out << output::indent(indent) << "using " << getReferenceName() << " = " <<
-           common::fieldNamespaceStr() << m_type->getReferenceName() << "<TOpt...>;\n\n";
+
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+    auto typeSuffix = getTypeRefSuffix(commsOptionalWrapped);
+    auto typeName = common::refName(m_type->getName(), typeSuffix);
+
+    out << output::indent(indent) << "using " << name << " = " <<
+           common::fieldNamespaceStr() << typeName << "<TOpt...>;\n\n";
     return true;
 }
 
@@ -94,15 +100,6 @@ std::size_t RefType::getSerializationLengthImpl() const
     return m_type->getSerializationLength();
 }
 
-bool RefType::writeDependenciesImpl(std::ostream& out, unsigned indent)
-{
-    if (m_type == nullptr) {
-        return false;
-    }
-
-    return m_type->write(out, indent);
-}
-
 bool RefType::hasFixedLengthImpl() const
 {
     assert(m_type != nullptr);
@@ -114,6 +111,8 @@ Type::ExtraOptInfosList RefType::getExtraOptInfosImpl() const
     assert(m_type != nullptr);
     auto opts = m_type->getExtraOptInfos();
     for (auto& o : opts) {
+        auto newName = getName() + '_' + o.first;
+        o.first = newName;
         if (!ba::starts_with(o.second, common::fieldNamespaceStr())) {
             auto newRef = common::fieldNamespaceStr() + o.second;
             o.second = std::move(newRef);
@@ -121,6 +120,37 @@ Type::ExtraOptInfosList RefType::getExtraOptInfosImpl() const
     }
     return opts;
 }
+
+bool RefType::writePluginPropertiesImpl(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& scope)
+{
+    std::string fieldType;
+    std::string props;
+
+    scopeToPropertyDefNames(scope, &fieldType, &props);
+
+    assert(m_type != nullptr);
+    auto refPropsStr = "createProps_" + m_type->getName() + "(\"" + getName() + "\", " + common::serialisedHiddenStr() + ")";
+    if (m_type->isCommsOptionalWrapped()) {
+        refPropsStr = "comms_champion::property::field::Optional(" + refPropsStr + ").field()";
+    }
+
+    auto aliasTypeStr =
+            common::scopeFor(getDb().getProtocolNamespace(), common::fieldNamespaceStr() + scope + getName());
+    if (isCommsOptionalWrapped()) {
+        aliasTypeStr += common::optFieldSuffixStr();
+    }
+
+    out << output::indent(indent) << "using " << fieldType << " = " << aliasTypeStr << "<>;\n" <<
+           output::indent(indent) << "comms_champion::property::field::ForField<" << fieldType << "> " << props << "(\n" <<
+           output::indent(indent + 1) << refPropsStr << ");\n\n";
+
+    assert(!scope.empty());
+    return true;
+}
+
 
 Type* RefType::getReferenceType()
 {
@@ -150,9 +180,14 @@ bool RefType::isBundle() const
     return compType->isBundle();
 }
 
-void RefType::writeBundle(std::ostream& out, unsigned indent)
+void RefType::writeBundle(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
-    writeHeader(out, indent, false);
+    writeHeader(out, indent, commsOptionalWrapped, false);
+    auto& suffix = getNameSuffix(commsOptionalWrapped, false);
+    auto name = common::refName(getName(), suffix);
+    auto typeSuffix = getTypeRefSuffix(commsOptionalWrapped);
+    auto typeName = common::refName(m_type->getName(), typeSuffix);
+
     auto allOpts = getExtraOptInfos();
     for (auto& o : allOpts) {
         out << output::indent(indent) << "/// \\tparam " << OptPrefix <<
@@ -168,8 +203,8 @@ void RefType::writeBundle(std::ostream& out, unsigned indent)
         out << '\n';
     }
     out << output::indent(indent) << ">\n" <<
-           output::indent(indent) << "using " << getReferenceName() << " = " <<
-                      common::fieldNamespaceStr() << m_type->getReferenceName() << "<\n";
+           output::indent(indent) << "using " << name << " = " <<
+                      common::fieldNamespaceStr() << typeName << "<\n";
     for (auto& o : allOpts) {
         out << output::indent(indent + 1) << OptPrefix << o.first;
         bool comma = (&o != &allOpts.back());
@@ -179,6 +214,26 @@ void RefType::writeBundle(std::ostream& out, unsigned indent)
         out << '\n';
     }
     out << output::indent(indent) << ">;\n\n";
+}
+
+const std::string& RefType::getTypeRefSuffix(bool commsOptionalWrapped)
+{
+    assert(m_type != nullptr);
+    if (!m_type->isCommsOptionalWrapped()) {
+        return common::emptyString();
+    }
+
+    if (commsOptionalWrapped) {
+        return common::optFieldSuffixStr();
+    }
+
+    auto sinceVersion = getSinceVersion();
+    if ((getDb().getMinRemoteVersion() < sinceVersion) &&
+        (sinceVersion == m_type->getSinceVersion())) {
+        return common::optFieldSuffixStr();
+    }
+
+    return common::emptyString();
 }
 
 } // namespace sbe2comms
