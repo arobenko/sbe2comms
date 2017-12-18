@@ -49,6 +49,9 @@ set (
 add_executable(${PROJECT_NAME} ${src})
 target_link_libraries(${PROJECT_NAME} ${LIBXML2_LIBRARIES} ${Boost_LIBRARIES})
 
+install(TARGETS ${PROJECT_NAME}
+        RUNTIME DESTINATION ${SBE2COMMS_INSTALL_DIR}/bin
+)
 
 FILE(GLOB_RECURSE all_headers "*.h")
 add_custom_target(all_headers_tgt SOURCES ${all_headers})
