@@ -69,11 +69,17 @@ function (test_func name)
     add_dependencies(${testName} ${output_tgt})
     target_include_directories (${testName} PRIVATE "${mine_output_dir}/include" "${orig_output_dir}")
 
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        target_compile_options (${testName} PRIVATE "-Wno-cast-align")
+    endif ()
+
+
     set (plugin_build_tgt ${name}_plugin_build_tgt)
     add_custom_target(${plugin_build_tgt} ALL
         COMMAND ${CMAKE_COMMAND}
             -DPROJ_DIR=${mine_output_dir}
             -DCOMMS_INSTALL_DIR="${COMMS_INSTALL_DIR}"
+            -DCONFIG=$<CONFIG>
             -P "${CMAKE_CURRENT_LIST_DIR}/BuildPlugin.cmake"
         DEPENDS ${output_tgt} ${mine_output_dir}.tmp ${orig_output_dir}.tmp "${CMAKE_CURRENT_LIST_DIR}/BuildPlugin.cmake"
     )
@@ -81,6 +87,18 @@ function (test_func name)
 endfunction ()
 
 #################################################################
+
+function (add_clang_options name)
+    set (testName "${name}Test")
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        target_compile_options (${testName} PRIVATE ${ARGV})
+    endif ()
+
+endfunction ()
+
+#################################################################
+
 
 if ("${SBE_JAR}" STREQUAL "")
     message (STATUS "SBE_JAR hasn't been provided, unittesting is skipped")
@@ -174,6 +192,8 @@ test_func (test27)
 test_func (test28)
 test_func (test29)
 test_func (test30)
+
+add_clang_options (test11 "-Wno-c++11-narrowing")
 
 FILE(GLOB_RECURSE all_test_headers "*.h")
 add_custom_target(all_test_headers_tgt SOURCES ${all_test_headers})

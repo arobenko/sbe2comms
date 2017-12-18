@@ -133,7 +133,13 @@ bool Field::write(std::ostream& out, unsigned indent)
     }
 
     writeHeader(out, indent, common::emptyString());
-    common::writeOptFieldDefinition(out, indent, getName(), optMode, getSinceVersion());
+    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+           output::indent(indent + 1) << "comms::field::Optional<\n" <<
+           output::indent(indent + 2) << getName() << common::optFieldSuffixStr() << ",\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
+           output::indent(indent + 1) << ">\n";
+
+    common::writeOptFieldDefinitionBody(out, indent, getSinceVersion());
     return true;
 }
 

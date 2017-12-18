@@ -1,5 +1,6 @@
 # PROJ_DIR
 # COMMS_INSTALL_DIR
+# CONFIG
 
 set (build_dir "${PROJ_DIR}/build")
 file (MAKE_DIRECTORY ${build_dir})
@@ -14,7 +15,7 @@ if (NOT ${cmake_result} EQUAL 0)
 endif ()
 
 execute_process(
-    COMMAND ${CMAKE_COMMAND} --build ${build_dir} --target install --config $<CONFIG>
+    COMMAND ${CMAKE_COMMAND} --build ${build_dir} --target install --config ${CONFIG}
     WORKING_DIRECTORY ${build_dir}
     RESULT_VARIABLE cmake_result
 )

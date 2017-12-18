@@ -113,13 +113,11 @@ void writeFpOptConstructor(
 void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
 void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
 void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent);
-void writeOptFieldDefinition(
+void writeOptFieldDefinitionBody(
     std::ostream& out,
     unsigned indent,
-    const std::string& name,
-    const std::string& optMode,
-    unsigned sinceVersion,
-    bool isFieldTemplate = false);
+    unsigned sinceVersion);
+
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
 void writePluginNamespaceBegin(const std::string& ns, std::ostream& out);

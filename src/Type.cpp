@@ -318,8 +318,55 @@ bool Type::write(std::ostream& out, unsigned indent)
         return false;
     }
 
-    writeHeader(out, indent, false);
-    common::writeOptFieldDefinition(out, indent, getName(), optMode, getSinceVersion(), true);
+    writeHeader(out, indent, false, false);
+    auto templateParams = getAliasTemplateArguments();
+    if (templateParams.empty()) {
+        out << "/// tparam TOpt Extra options from \\b comms::option namespace.\n" <<
+               output::indent(indent) << "template <typename... TOpt>\n";
+    }
+    else {
+        out << output::indent(indent) << "/// \\note Receives same template parameters as \\ref " << getName() << common::optFieldSuffixStr() << "\n" <<
+               output::indent(indent) << "template <\n";
+        for (auto& p : templateParams) {
+            out << output::indent(indent + 1) << "typename " << p << " = comms::option::EmptyOption";
+            bool comma = (&p != &templateParams.back());
+            if (comma) {
+                out << ',';
+            }
+            out << '\n';
+        }
+        out << output::indent(indent) << ">\n";
+    }
+
+    auto fieldType = getName() + common::optFieldSuffixStr();
+
+    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+           output::indent(indent + 1) << "comms::field::Optional<\n" <<
+           output::indent(indent + 2) << fieldType << "<";
+
+    if (templateParams.empty()) {
+        out << "TOpt...";
+    }
+    else {
+        out << '\n';
+        for (auto& p : templateParams) {
+            out << output::indent(indent + 3) << p;
+            bool comma = (&p != &templateParams.back());
+            if (comma) {
+                out << ',';
+            }
+            out << '\n';
+        }
+
+        out << '\n' <<
+               output::indent(indent + 2);
+    }
+
+    out << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
+           output::indent(indent + 1) << ">\n";
+
+    common::writeOptFieldDefinitionBody(out, indent, getSinceVersion());
     return true;
 }
 
@@ -390,6 +437,12 @@ Type::ExtraOptInfosList Type::getExtraOptInfosImpl() const
 bool Type::canBeExtendedAsOptionalImpl() const
 {
     return false;
+}
+
+Type::AliasTemplateArgsList Type::getAliasTemplateArgumentsImpl() const
+{
+    AliasTemplateArgsList list;
+    return list;
 }
 
 void Type::writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped)

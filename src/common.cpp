@@ -773,26 +773,12 @@ void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent)
            output::indent(indent) << "}\n";
 }
 
-void writeOptFieldDefinition(
+void writeOptFieldDefinitionBody(
     std::ostream& out,
     unsigned indent,
-    const std::string& name,
-    const std::string& optMode,
-    unsigned sinceVersion,
-    bool isFieldTemplate)
+    unsigned sinceVersion)
 {
-    auto fieldType = name + optFieldSuffixStr();
-    if (isFieldTemplate) {
-        fieldType += "<TOpt...>";
-        out << output::indent(indent) << "template <typename... TOpt>\n";
-    }
-
-    out << output::indent(indent) << "struct " << renameKeyword(name) << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::Optional<\n" <<
-           output::indent(indent + 2) << fieldType << ",\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n" <<
+    out << output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << "/// \\brief Update current version.\n" <<
            output::indent(indent + 1) << "/// \\return \\b true if field's content has been updated.\n" <<
            output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<

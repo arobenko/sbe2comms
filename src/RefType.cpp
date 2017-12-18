@@ -151,6 +151,10 @@ bool RefType::writePluginPropertiesImpl(
     return true;
 }
 
+Type::AliasTemplateArgsList RefType::getAliasTemplateArgumentsImpl() const
+{
+    return m_type->getAliasTemplateArguments();
+}
 
 Type* RefType::getReferenceType()
 {

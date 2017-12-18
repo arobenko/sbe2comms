@@ -356,6 +356,20 @@ bool CompositeType::writePluginPropertiesImpl(
     return true;
 }
 
+Type::AliasTemplateArgsList CompositeType::getAliasTemplateArgumentsImpl() const
+{
+    AliasTemplateArgsList list;
+    auto allExtraOpts = getExtraOptInfos();
+    for (auto& o : allExtraOpts) {
+       list.push_back("TOpt_" + o.first);
+    }
+
+    if (dataUseRecorded() && isValidData()) {
+        list.push_back("TOpt");
+    }
+    return list;
+}
+
 bool CompositeType::prepareMembers()
 {
     assert(m_members.empty());
@@ -564,7 +578,7 @@ bool CompositeType::writeBundle(
                output::indent(indent + 1) << "}\n";
     }
 
-    out << output::indent(indent) << "};\n";
+    out << output::indent(indent) << "};\n\n";
 
     return true;
 }

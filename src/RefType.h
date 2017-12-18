@@ -41,6 +41,7 @@ protected:
         std::ostream& out,
         unsigned indent,
         const std::string& scope) override;
+    virtual AliasTemplateArgsList getAliasTemplateArgumentsImpl() const override;
 
 private:
     Type* getReferenceType();

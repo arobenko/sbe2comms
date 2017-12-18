@@ -39,6 +39,7 @@ public:
     using ExtraIncludes = std::set<std::string>;
     using ExtraOptInfo = std::pair<std::string, std::string>;
     using ExtraOptInfosList = std::list<ExtraOptInfo>;
+    using AliasTemplateArgsList = std::vector<std::string>;
 
     enum class Kind
     {
@@ -145,6 +146,11 @@ public:
 
     void updateNodeProperties();
 
+    AliasTemplateArgsList getAliasTemplateArguments() const
+    {
+        return getAliasTemplateArgumentsImpl();
+    }
+
 protected:
 
     DB& getDb()
@@ -174,6 +180,7 @@ protected:
         std::ostream& out,
         unsigned indent,
         const std::string& scope) = 0;
+    virtual AliasTemplateArgsList getAliasTemplateArgumentsImpl() const;
 
     void writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
     void writeHeader(
