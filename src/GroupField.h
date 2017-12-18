@@ -46,7 +46,7 @@ protected:
         unsigned indent,
         const std::string& scope,
         bool returnResult,
-        bool commsOptionalWrapped);
+        bool commsOptionalWrapped) override;
 
 private:
     bool prepareMembers();
