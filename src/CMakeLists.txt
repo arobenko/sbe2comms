@@ -44,6 +44,7 @@ set (
     "TransportMessage.cpp"
     "Protocol.cpp"
     "Plugin.cpp"
+    "Doxygen.cpp"
 )
 
 add_executable(${PROJECT_NAME} ${src})

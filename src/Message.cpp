@@ -48,10 +48,11 @@ std::string napespacePrefix(DB& db)
     return ns + '/';
 }
 
-void writeFileHeader(std::ostream& out, const std::string& name)
+void writeFileHeader(std::ostream& out, const std::string& name, DB& db)
 {
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of " << name << " message and its fields.\n\n"
+           "/// \\brief Contains definition of " << common::scopeFor(ns, common::messageNamespaceStr() + name) << " message and its fields.\n\n"
            "#pragma once\n\n";
 }
 
@@ -376,7 +377,7 @@ bool Message::writeMessageClass(std::ostream& out)
         "///     while providing \\b TMsgBase as common interface class as well as\n"
         "///     various implementation options.\n";
     if (!m_fields.empty()) {
-        out << "///     \\nSee \\ref " << n << common::fieldsSuffixStr() << " for definition of the fields this message contains\n"
+        out << "///     \\n See \\ref " << n << common::fieldsSuffixStr() << " for definition of the fields this message contains\n"
                "///         and COMMS_MSG_FIELDS_ACCESS() for fields access details.\n"
                "/// \\tparam TMsgBase Common interface class for all the messages.\n"
                "/// \\tparam TOpt Extra options to be passed to all fields.\n";
@@ -456,7 +457,7 @@ bool Message::writeMessageDef(const std::string& filename)
     }
 
     auto& msgName = getName();
-    writeFileHeader(stream, msgName);
+    writeFileHeader(stream, msgName, m_db);
     writeExtraDefHeaders(stream);
     openNamespaces(stream, m_db);
     bool result =

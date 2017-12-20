@@ -38,6 +38,7 @@
 #include "TransportMessage.h"
 #include "Protocol.h"
 #include "Plugin.h"
+#include "Doxygen.h"
 
 namespace bf = boost::filesystem;
 
@@ -93,19 +94,20 @@ bool writeDefaultOptions(DB& db)
         return false;
     }
 
+    auto& ns = db.getProtocolNamespace();
     stream << "/// \\file\n"
-              "/// \\brief Contains definition of default options.\n"
+              "/// \\brief Contains definition of \\ref " << common::scopeFor(ns, common::defaultOptionsStr()) << " default options class.\n"
               "\n\n"
               "#pragma once\n\n"
               "#include \"comms/options.h\"\n\n";
 
-    auto& ns = db.getProtocolNamespace();
     if (!ns.empty()) {
         stream << "namespace " << ns << "\n"
                   "{\n\n";
     }
 
-    stream << "struct " << common::defaultOptionsStr() << "\n"
+    stream << "/// \\brief Default options for the protocol.\n"
+              "struct " << common::defaultOptionsStr() << "\n"
               "{\n" <<
               output::indent(1) << "struct " << common::fieldNamespaceNameStr() << '\n' <<
               output::indent(1) << "{\n";
@@ -201,6 +203,12 @@ bool writeCmake(DB& db)
     return obj.write();
 }
 
+bool writeDoxygen(DB& db)
+{
+    Doxygen obj(db);
+    return obj.write();
+}
+
 } // namespace sbe2comms
 
 int main(int argc, const char* argv[])
@@ -229,7 +237,8 @@ int main(int argc, const char* argv[])
         sbe2comms::writeTransportMessage(db) &&
         sbe2comms::writeProtocol(db) &&
         sbe2comms::writePlugin(db) &&
-        sbe2comms::writeCmake(db)
+        sbe2comms::writeCmake(db) &&
+        sbe2comms::writeDoxygen(db)
     ;
 
     if (result) {

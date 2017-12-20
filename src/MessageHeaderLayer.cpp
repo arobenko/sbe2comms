@@ -74,7 +74,7 @@ bool MessageHeaderLayer::writeProtocolDef()
 
 
     out << "/// \\file\n"
-           "/// \\brief Contains definition of MessageHeaderLayer transport layer.\n\n"
+           "/// \\brief Contains definition of " << common::scopeFor(ns, common::messageHeaderLayerStr()) << " transport layer.\n\n"
            "#pragma once\n\n";
 
     common::writeExtraHeaders(out, headers);

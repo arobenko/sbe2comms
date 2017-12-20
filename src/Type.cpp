@@ -42,10 +42,11 @@ namespace sbe2comms
 namespace
 {
 
-void writeFileHeader(std::ostream& out, const std::string& name)
+void writeFileHeader(DB& db, std::ostream& out, const std::string& name)
 {
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of \\ref " << common::fieldNamespaceStr() << name << " field.\n\n"
+           "/// \\brief Contains definition of \\ref " << common::scopeFor(ns, common::fieldNamespaceStr() + name) << " field.\n\n"
            "#pragma once\n\n";
 }
 
@@ -296,7 +297,7 @@ bool Type::writeProtocolDef()
         return false;
     }
 
-    writeFileHeader(out, getName());
+    writeFileHeader(m_db, out, getName());
     common::writeExtraHeaders(out, m_extraIncludes);
     openNamespaces(out, m_db);
     bool result = write(out);

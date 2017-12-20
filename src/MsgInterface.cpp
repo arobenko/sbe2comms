@@ -52,15 +52,15 @@ bool MsgInterface::writeProtocolDef()
         return false;
     }
 
+    auto& ns = m_db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of common \\ref " << common::msgInterfaceStr() << " interface class.\n\n"
+           "/// \\brief Contains definition of common \\ref " << common::scopeFor(ns, common::msgInterfaceStr()) << " interface class.\n\n"
            "#pragma once\n\n"
            "#include \"comms/Message.h\"\n"
            "#include \"comms/options.h\"\n"
            "#include \"" << common::msgIdFileName() << "\"\n\n";
 
 
-    auto& ns = m_db.getProtocolNamespace();
     common::writeProtocolNamespaceBegin(ns, out);
 
     out << "/// \\brief Common interface class for all the messages.\n"

@@ -65,7 +65,7 @@ bool OpenFramingHeaderLayer::writeProtocolDef()
     }
 
     out << "/// \\file\n"
-           "/// \\brief Contains definition of OpenFramingHeaderLayer transport layer.\n\n"
+           "/// \\brief Contains definition of " << common::scopeFor(ns, common::openFramingHeaderLayerStr()) << " transport layer.\n\n"
            "#pragma once\n\n"
            "#include <iterator>\n"
            "#include <type_traits>\n\n"
