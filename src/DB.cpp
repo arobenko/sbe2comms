@@ -468,6 +468,10 @@ bool DB::processNamespace(const ProgramOptions& options)
     }
 
     ba::replace_all(m_namespace, " ", "_");
+    if (m_namespace.empty()) {
+        m_namespace = "protocol";
+    }
+
     return true;
 }
 

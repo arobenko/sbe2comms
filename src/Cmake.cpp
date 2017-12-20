@@ -40,6 +40,9 @@ Cmake::Cmake(DB& db)
     m_name(db.getPackageName())
 {
     ba::replace_all(m_name, " ", "_");
+    if (m_name.empty()) {
+        m_name = "protocol";
+    }
 }
 
 bool Cmake::write()
@@ -248,7 +251,7 @@ bool Cmake::writePlugin()
 {
     boost::system::error_code ec;
     bf::create_directories(m_db.getRootPath(), ec);
-    if (!common::createPluginDefDir(m_db.getRootPath(), common::pluginNamespaceNameStr())) {
+    if (!common::createPluginDefDir(m_db.getRootPath())) {
         return false;
     }
 

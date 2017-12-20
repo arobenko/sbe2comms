@@ -239,6 +239,8 @@ void EnumType::writeSingle(
     else {
         writeHeader(out, indent, commsOptionalWrapped, true);
     }
+    out << output::indent(indent) << "/// \\see \\ref " << enumName << '\n';
+
     auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
     auto name = common::refName(getName(), suffix);
     common::writeExtraOptionsTemplParam(out, indent);

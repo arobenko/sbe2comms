@@ -418,8 +418,12 @@ bool Doxygen::writeConf()
 bool Doxygen::writeNamespaces()
 {
     auto& ns = m_db.getProtocolNamespace();
+    auto nsFile = ns + ".dox";
+    if (ns.empty()) {
+        nsFile = "namespaces" + nsFile;
+    }
 
-    auto relPath = DocDirName + '/' + ns + ".dox";
+    auto relPath = DocDirName + '/' + nsFile;
     auto filePath = bf::path(m_db.getRootPath()) / relPath;
     log::info() << "Generating " << relPath << std::endl;
     std::ofstream out(filePath.string());
@@ -428,11 +432,14 @@ bool Doxygen::writeNamespaces()
         return false;
     }
 
-    out << "/// \\namespace " << ns << "\n"
-           "/// \\brief Main namespace for all classes / functions of this protocol library.\n\n" <<
-           "/// \\namespace " << ns << "::" << common::messageNamespaceNameStr() << "\n"
+    if (!ns.empty()) {
+        out << "/// \\namespace " << ns << "\n"
+               "/// \\brief Main namespace for all classes / functions of this protocol library.\n\n";
+    }
+
+    out << "/// \\namespace " << common::scopeFor(ns, common::messageNamespaceNameStr()) << "\n"
            "/// \\brief Namespace for all the messages defined in this protocol.\n\n"
-           "/// \\namespace " << ns << "::" << common::fieldNamespaceNameStr() << "\n"
+           "/// \\namespace " << common::scopeFor(ns, common::fieldNamespaceNameStr()) << "\n"
            "/// \\brief Namespace for all the stand alone fields defined in this protocol.\n\n"
            "/// \\namespace " << common::builtinNamespaceNameStr() << "\n"
            "/// \\brief Namespace for all implicitly defined (built-in) fields.\n\n";

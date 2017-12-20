@@ -147,7 +147,9 @@ bool Message::writeDefaultOptions(std::ostream& out, unsigned indent, const std:
 
     auto scopeUpd = getName() + common::fieldsSuffixStr();
     auto fieldScope = scope + scopeUpd + "::";
-    out << output::indent(indent) << "struct " << scopeUpd << '\n' <<
+    out << output::indent(indent) << "/// \\brief Scope for all the options for the fields of\n" <<
+           output::indent(indent) << "///     \\ref " << scope << getName() << " message.\n" <<
+           output::indent(indent) << "struct " << scopeUpd << '\n' <<
            output::indent(indent) << "{\n";
     bool result = true;
     for (auto& f : m_fields) {

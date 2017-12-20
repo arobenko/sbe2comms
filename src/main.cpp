@@ -107,22 +107,28 @@ bool writeDefaultOptions(DB& db)
     }
 
     stream << "/// \\brief Default options for the protocol.\n"
+              "/// \\details Defines \\b comms::option::EmptyOption to be extra option\n"
+              "///     of every defined field. To customize the protocol options, just\n"
+              "///     inherith from this struct and redefine relevant types.\n"
               "struct " << common::defaultOptionsStr() << "\n"
               "{\n" <<
+              output::indent(1) << "/// \\brief Scope for the options relevant to fields from\n" <<
+              output::indent(1) << "///     " << common::scopeFor(ns, common::fieldNamespaceNameStr()) << " namespace.\n" <<
               output::indent(1) << "struct " << common::fieldNamespaceNameStr() << '\n' <<
               output::indent(1) << "{\n";
 
     bool result = true;
-    auto fieldsScope = ns + "::" + common::fieldNamespaceStr();
+    auto fieldsScope = common::scopeFor(ns, common::fieldNamespaceStr());
     for (auto& t : db.getTypes()) {
         result = t.second->writeDefaultOptions(stream, 2, fieldsScope) && result;
     }
 
     stream << output::indent(1) << "}; // " << common::fieldNamespaceNameStr() << "\n\n" <<
+              output::indent(1) << "/// \\brief Scope for all the options relevant to messages' fields.\n" <<
               output::indent(1) << "struct " << common::messageNamespaceNameStr() << '\n' <<
               output::indent(1) << "{\n";
 
-    auto messagesScope = ns + "::" + common::messageNamespaceStr();
+    auto messagesScope = common::scopeFor(ns, common::messageNamespaceStr());
     for (auto& m : db.getMessages()) {
         assert(m.second);
         result = m.second->writeDefaultOptions(stream, 2, messagesScope) && result;
