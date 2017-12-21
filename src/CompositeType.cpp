@@ -594,6 +594,15 @@ bool CompositeType::writeData(
     }
 
     auto allExtraOpts = getAllExtraOpts();
+    for (auto& o : allExtraOpts) {
+        for (auto& internalO : o) {
+            if (!ba::starts_with(internalO.second, common::fieldNamespaceStr())) {
+                auto newRef = getName() + common::memembersSuffixStr() + "::" + internalO.second;
+                internalO.second = std::move(newRef);
+            }
+        }
+    }
+
     assert(allExtraOpts.size() == DataEncIdx_numOfValues);
     auto& lengthExtraOpt = allExtraOpts[DataEncIdx_length].front().first;
     auto& dataExtraOpt = allExtraOpts[DataEncIdx_data].front().first;

@@ -95,8 +95,9 @@ void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
 
 void writeBuiltInInt(std::ostream& out, const std::string& name)
 {
+    auto& refName = common::renameKeyword(name);
     out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << name << "\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << refName << "\n"
            "\n\n"
            "#pragma once\n\n"
            "#include <cstdint>\n"
