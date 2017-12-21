@@ -11,10 +11,16 @@
             <ref name="schemaId" type="ExtSchemaId"/>
             <ref name="version" type="ExtVersion"/>
         </composite>
+        <composite name="openFramingHeader" description="Simple Open Frame Header">
+            <ref name="messageLength" type="ExtMessageLength"/>
+            <ref name="encodingType" type="ExtEncodingType"/>
+        </composite>        
         <type name="ExtSchemaId" primitiveType="uint16"/>
         <type name="ExtBlockLength" primitiveType="uint16"/>
         <type name="ExtVersion" primitiveType="uint16"/>
         <type name="ExtTemplateId" primitiveType="uint16"/>
+        <type name="ExtMessageLength" primitiveType="uint16"/>
+        <type name="ExtEncodingType" primitiveType="uint16"/>
     </types>
     <message name="Msg1" id="5" description="TestMessage">
     </message>

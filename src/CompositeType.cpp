@@ -864,7 +864,7 @@ bool CompositeType::checkOpenFramingHeader()
             return false;
         }
 
-        if (!asBasicType(m.get())->isIntType()) {
+        if (!asBasicType(realM)->isIntType()) {
             return false;
         }
     }
@@ -885,11 +885,13 @@ bool CompositeType::checkOpenFramingHeader()
     assert(messageLengthIter != m_members.end());
     auto& messageLengthTypePtr = *messageLengthIter;
     assert(messageLengthTypePtr);
+    auto* realMessageLengthTypePtr = messageLengthTypePtr->getRealType();
 
     auto encTypeIter = findMemberFunc(common::encodingTypeStr());
     assert(encTypeIter != m_members.end());
     auto& encTypeTypePtr = *encTypeIter;
     assert(encTypeTypePtr);
+    auto* realEncTypeTypePtr = encTypeTypePtr->getRealType();
 
     auto encTypeLength = encTypeTypePtr->getSerializationLength();
     if (encTypeLength != 2U) {
@@ -903,7 +905,7 @@ bool CompositeType::checkOpenFramingHeader()
         messageLengthTypePtr->getSerializationLength() +
         encTypeLength;
 
-    messageLengthTypePtr->addExtraOption("comms::option::NumValueSerOffset<" + common::num(extraSerLength) + '>');
+    realMessageLengthTypePtr->addExtraOption("comms::option::NumValueSerOffset<" + common::num(extraSerLength) + '>');
 
     std::uintmax_t sync = 0x5be0;
     if (ba::ends_with(getDb().getEndian(), "LittleEndian")) {
@@ -912,13 +914,13 @@ bool CompositeType::checkOpenFramingHeader()
 
     auto syncStr = common::num(sync);
 
-    auto& encTypeProps = encTypeTypePtr->getProps();
+    auto& encTypeProps = realEncTypeTypePtr->getProps();
     auto& minValueStr = prop::minValue(encTypeProps);
     auto& maxValueStr = prop::maxValue(encTypeProps);
 
     do {
         if (minValueStr.empty()) {
-            xmlSetMinValueProp(encTypeTypePtr->getNode(), syncStr);
+            xmlSetMinValueProp(realEncTypeTypePtr->getNode(), syncStr);
             break;
         }
 
@@ -931,7 +933,7 @@ bool CompositeType::checkOpenFramingHeader()
         }
 
         if (minValue != sync) {
-            log::error() << "Invalid minValue attribute of \"" << encTypeTypePtr->getName() << "\" member of Simple Open Frame Header." << std::endl;
+            log::error() << "Invalid minValue attribute of \"" << realEncTypeTypePtr->getName() << "\" member of Simple Open Frame Header." << std::endl;
             return false;
         }
 
@@ -939,7 +941,7 @@ bool CompositeType::checkOpenFramingHeader()
 
     do {
         if (maxValueStr.empty()) {
-            xmlSetMaxValueProp(encTypeTypePtr->getNode(), syncStr);
+            xmlSetMaxValueProp(realEncTypeTypePtr->getNode(), syncStr);
             break;
         }
 
@@ -952,14 +954,14 @@ bool CompositeType::checkOpenFramingHeader()
         }
 
         if (maxValue != sync) {
-            log::error() << "Invalid maxValue attribute of \"" << encTypeTypePtr->getName() << "\" member of Simple Open Frame Header." << std::endl;
+            log::error() << "Invalid maxValue attribute of \"" << realEncTypeTypePtr->getName() << "\" member of Simple Open Frame Header." << std::endl;
             return false;
         }
 
     } while (false);
 
-    encTypeTypePtr->updateNodeProperties();
-    encTypeTypePtr->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
+    realEncTypeTypePtr->updateNodeProperties();
+    realEncTypeTypePtr->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
 
     return true;
 }
