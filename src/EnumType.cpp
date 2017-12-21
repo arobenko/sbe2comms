@@ -98,6 +98,10 @@ bool EnumType::parseImpl()
         addExtraInclude("<algorithm>");
     }
 
+    if (m_msgId) {
+        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::emptyString(), common::msgIdFileName()));
+    }
+
     if (getLengthProp() != 1U) {
         log::warning() << "Ignoring \"length\" property of \"" << getName() << "\" type to match sbe-tool." << std::endl;
     }

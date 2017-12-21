@@ -767,9 +767,12 @@ bool Message::writePluginSrc()
         out << output::indent(1) << "props.append(" << createFieldPropsFuncPrefix << f->getName() << "());\n";
     }
 
-    out << '\n' <<
-           output::indent(1) << "assert(props.size() == " << getReferenceName() << "::FieldIdx_numOfValues);\n" <<
-           output::indent(1) << "return props;\n"
+    out << '\n';
+    if (!m_fields.empty()) {
+        out << output::indent(1) << "assert(props.size() == " << getReferenceName() << "::FieldIdx_numOfValues);\n";
+    }
+
+    out << output::indent(1) << "return props;\n"
            "}\n\n"
            "} // namespace\n\n"
            "const char* " << getReferenceName() << "::nameImpl() const\n"

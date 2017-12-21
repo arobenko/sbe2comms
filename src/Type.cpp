@@ -446,6 +446,11 @@ Type::AliasTemplateArgsList Type::getAliasTemplateArgumentsImpl() const
     return list;
 }
 
+Type* Type::getRealTypeImpl()
+{
+    return this;
+}
+
 void Type::writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
     if (!commsOptionalWrapped) {

@@ -97,6 +97,8 @@ public:
 
     bool isIntroducedType(const std::string& name) const;
 
+    TypePtr updateType(const std::string& name, TypePtr newType);
+
     const Type* getBuiltInType(const std::string& name);
 
     bool isRecordedBuiltInType(const std::string& name) const;

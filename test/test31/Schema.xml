@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<messageSchema package="test31"
+               id="1"
+               semanticVersion="5.2"
+               description="Unit Test"
+               byteOrder="littleEndian">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <ref name="blockLength" type="ExtBlockLength"/>
+            <ref name="templateId" type="ExtTemplateId"/>
+            <ref name="schemaId" type="ExtSchemaId"/>
+            <ref name="version" type="ExtVersion"/>
+        </composite>
+        <type name="ExtSchemaId" primitiveType="uint16"/>
+        <type name="ExtBlockLength" primitiveType="uint16"/>
+        <type name="ExtVersion" primitiveType="uint16"/>
+        <type name="ExtTemplateId" primitiveType="uint16"/>
+    </types>
+    <message name="Msg1" id="5" description="TestMessage">
+    </message>
+</messageSchema>

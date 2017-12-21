@@ -217,6 +217,20 @@ bool DB::isIntroducedType(const std::string& name) const
     return findType(name) != nullptr;
 }
 
+TypePtr DB::updateType(const std::string& name, TypePtr newType)
+{
+    auto iter = m_types.find(name);
+    if (iter == m_types.end()) {
+        assert(!"Mustn't happen");
+        return TypePtr();
+    }
+
+    assert(iter->second);
+    TypePtr ret = std::move(iter->second);
+    iter->second = std::move(newType);
+    return ret;
+}
+
 const Type* DB::getBuiltInType(const std::string& name)
 {
     auto iter = m_builtInTypes.find(name);

@@ -192,6 +192,7 @@ test_func (test27)
 test_func (test28)
 test_func (test29)
 test_func (test30)
+test_func (test31)
 
 add_clang_options (test11 "-Wno-c++11-narrowing")
 

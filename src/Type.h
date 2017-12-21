@@ -151,6 +151,11 @@ public:
         return getAliasTemplateArgumentsImpl();
     }
 
+    Type* getRealType()
+    {
+        return getRealTypeImpl();
+    }
+
 protected:
 
     DB& getDb()
@@ -181,6 +186,7 @@ protected:
         unsigned indent,
         const std::string& scope) = 0;
     virtual AliasTemplateArgsList getAliasTemplateArgumentsImpl() const;
+    virtual Type* getRealTypeImpl();
 
     void writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
     void writeHeader(

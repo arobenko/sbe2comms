@@ -743,19 +743,20 @@ bool CompositeType::checkMessageHeader()
     }
 
     for (auto& m : m_members) {
-        if (m->getKind() != Type::Kind::Basic) {
+        auto* realM = m->getRealType();
+        if (realM->getKind() != Type::Kind::Basic) {
             log::error() << "The member \"" << m->getName() << "\" of message header composite \"" << getName() << "\" " <<
-                            "is expected to be of basic type";
+                            "is expected to be of basic type or ref to it";
             return false;
         }
 
-        if (m->getLengthProp() != 1) {
+        if (realM->getLengthProp() != 1) {
             log::error() << "The member \"" << m->getName() << "\" of message header composite \"" << getName() << "\" " <<
                             "must have length property equal to 1.";
             return false;
         }
 
-        if (!asBasicType(m.get())->isIntType()) {
+        if (!asBasicType(realM)->isIntType()) {
             return false;
         }
     }
@@ -776,31 +777,47 @@ bool CompositeType::checkMessageHeader()
     assert(schemaIdIter != m_members.end());
     auto& schemaIdTypePtr = *schemaIdIter;
     assert(schemaIdTypePtr);
+    auto* schemaIdRealType = schemaIdTypePtr->getRealType();
     auto schemaIdValue = static_cast<std::intmax_t>(getDb().getSchemaId());
-    schemaIdTypePtr->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaIdValue) + '>');
-    schemaIdTypePtr->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
+    schemaIdRealType->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaIdValue) + '>');
+    schemaIdRealType->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
 
     auto versionIter = findMemberFunc(common::versionStr());
     assert(versionIter != m_members.end());
     auto& versionTypePtr = *versionIter;
     assert(versionTypePtr);
+    auto* versionRealType = versionTypePtr->getRealType();
     auto schemaVersionValue = static_cast<std::intmax_t>(getDb().getSchemaVersion());
-    versionTypePtr->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaVersionValue) + '>');
+    versionRealType->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaVersionValue) + '>');
 
     auto templateIdIter = findMemberFunc(common::templateIdStr());
     assert(templateIdIter != m_members.end());
     auto& templateIdTypePtr = *templateIdIter;
-    assert(templateIdTypePtr->getKind() == Type::Kind::Basic);
-    auto* newNode = getDb().createMsgIdEnumNode(templateIdTypePtr->getName(), asBasicType(*templateIdTypePtr).getPrimitiveType());
-    templateIdTypePtr = Type::create(getDb(), newNode);
-    assert(templateIdTypePtr);
-    assert(templateIdTypePtr->getKind() == Type::Kind::Enum);
-    if (!templateIdTypePtr->parse()) {
+    auto* templateIdRealType = templateIdTypePtr->getRealType();
+    assert(templateIdRealType->getKind() == Type::Kind::Basic);
+    auto* newNode = getDb().createMsgIdEnumNode(templateIdRealType->getName(), asBasicType(*templateIdRealType).getPrimitiveType());
+    auto newTemplateIdTypePtr = Type::create(getDb(), newNode);
+    assert(newTemplateIdTypePtr);
+    assert(newTemplateIdTypePtr->getKind() == Type::Kind::Enum);
+    asEnumType(*newTemplateIdTypePtr).setMessageId();
+    if (!newTemplateIdTypePtr->parse()) {
         log::error() << "Failed to parse modified templateId" << std::endl;
         return false;
     }
 
-    asEnumType(*templateIdTypePtr).setMessageId();
+    if (templateIdTypePtr.get() == templateIdRealType) {
+        // templateId is NOT ref to external type
+        templateIdTypePtr = std::move(newTemplateIdTypePtr);
+        return true;
+    }
+
+    // templateId is reference to external type.
+    auto oldType = getDb().updateType(templateIdRealType->getName(), std::move(newTemplateIdTypePtr));
+    static_cast<void>(oldType);
+    if (!templateIdTypePtr->parse()) {
+        log::error() << "Failed to re-parse \"" << templateIdTypePtr->getName() << "\" member of \"" << getName() << "\" composite" << std::endl;
+        return false;
+    }
     return true;
 }
 
@@ -834,13 +851,14 @@ bool CompositeType::checkOpenFramingHeader()
     }
 
     for (auto& m : m_members) {
-        if (m->getKind() != Type::Kind::Basic) {
+        auto* realM = m->getRealType();
+        if (realM->getKind() != Type::Kind::Basic) {
             log::warning() << "The member \"" << m->getName() << "\" of Simple Open Framing Header composite \"" << getName() << "\" " <<
-                            "is not of basic type";
+                            "is not of basic type or ref to it";
             return false;
         }
 
-        if (m->getLengthProp() != 1) {
+        if (realM->getLengthProp() != 1) {
             log::error() << "The member \"" << m->getName() << "\" of Simple Open Framing Header composite \"" << getName() << "\" " <<
                             "must have length property equal to 1.";
             return false;

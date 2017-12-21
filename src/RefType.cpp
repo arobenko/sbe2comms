@@ -153,7 +153,14 @@ bool RefType::writePluginPropertiesImpl(
 
 Type::AliasTemplateArgsList RefType::getAliasTemplateArgumentsImpl() const
 {
+    assert(m_type != nullptr);
     return m_type->getAliasTemplateArguments();
+}
+
+Type* RefType::getRealTypeImpl()
+{
+    assert(m_type != nullptr);
+    return m_type->getRealType();
 }
 
 Type* RefType::getReferenceType()
