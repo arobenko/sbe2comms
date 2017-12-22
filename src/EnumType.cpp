@@ -251,7 +251,6 @@ void EnumType::writeSingle(
 
     auto ranges = getValidRanges();
     bool tooManyRanges = MaxRangesCount < ranges.size();
-    bool asType = (!isOptional()) && (!tooManyRanges);
     assert(!ranges.empty());
     std::intmax_t defValue = 0;
     if (isOptional()) {
@@ -271,65 +270,47 @@ void EnumType::writeSingle(
         defValue = defValIter->first;
     }
 
-    auto writeRangesFunc =
-        [&out, &ranges](unsigned ind)
-            {
-            for (auto& r : ranges) {
-                out << ",\n" <<
-                       output::indent(ind);
-                if (r.first == r.second) {
-                    out << "comms::option::ValidNumValue<" << common::num(r.first) << ">";
-                }
-                else {
-                    out << "comms::option::ValidNumValueRange<" << common::num(r.first) << ", " << common::num(r.second) << ">";
-                }
-            }
-        };
-
-    auto writeDefaultValueFunc =
-        [&out, defValue](unsigned ind)
+    auto writeClassDefFunc =
+        [this, &out, &enumName, defValue, &ranges, tooManyRanges](unsigned ind)
         {
-            if (defValue == 0) {
-                return;
+            out << output::indent(ind) << "comms::field::EnumValue<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << enumName << ",\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+            if (defValue != 0) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">";
             }
 
-            out << ",\n" <<
-                   output::indent(ind) << "comms::option::DefaultNumValue<" << common::num(defValue) << ">";
+            if (!tooManyRanges) {
+                for (auto& r : ranges) {
+                    out << ",\n" <<
+                           output::indent(ind + 1);
+                    if (r.first == r.second) {
+                        out << "comms::option::ValidNumValue<" << common::num(r.first) << ">";
+                    }
+                    else {
+                        out << "comms::option::ValidNumValueRange<" << common::num(r.first) << ", " << common::num(r.second) << ">";
+                    }
+                }
+            }
+            out << '\n' <<
+            output::indent(ind) << ">";
         };
 
-    if (asType) {
-        out << output::indent(indent) << "struct " << name << " : public\n" <<
-               output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
-               output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-               output::indent(indent + 2) << enumName << ",\n" <<
-               output::indent(indent + 2) << "TOpt...";
-        writeDefaultValueFunc(indent + 2);
-        writeRangesFunc(indent + 2);
-        out << '\n' <<
-               output::indent(indent + 1) << ">\n" <<
-               output::indent(indent) << "{\n";
-        common::writeDefaultSetVersionFunc(out, indent + 1);
-        out << output::indent(indent) << "};\n\n";
-        return;
-    }
-
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::EnumValue<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << enumName << ",\n" <<
-           output::indent(indent + 2) << "TOpt...";
-    writeDefaultValueFunc(indent + 2);
-    if (!tooManyRanges) {
-        writeRangesFunc(indent + 2);
-    }
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n";
+
     if (tooManyRanges) {
         out << output::indent(indent + 1) << "/// \\brief Custom implementation of validity check.\n" <<
                output::indent(indent + 1) << "bool valid() const\n" <<
                output::indent(indent + 1) << "{\n" <<
-               output::indent(indent + 2) << common::fieldBaseDefStr() <<
                output::indent(indent + 2) << "static const " << enumName << " Values[] = {\n";
         std::intmax_t last = 0;
         bool firstValue = true;
@@ -352,7 +333,7 @@ void EnumType::writeSingle(
     }
 
     if (isOptional()) {
-        common::writeEnumNullCheckUpdateFuncs(out, indent + 1);
+        common::writeEnumNullCheckUpdateFuncs(out, indent + 1, true);
     }
 
     out << '\n';
@@ -371,18 +352,31 @@ void EnumType::writeList(
     common::writeExtraOptionsTemplParam(out, indent);
     auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << common::refName(getName(), common::elementSuffixStr()) << "<>,\n" <<
-           output::indent(indent + 2) << "TOpt...";
-    if (count != 0U) {
-        out << ",\n" <<
-               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">";
-    }
+
+    auto writeClassDefFunc =
+        [this, &out, count](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::ArrayList<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << common::refName(getName(), common::elementSuffixStr()) << "<>,\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+            if (count != 0U) {
+                out << ",\n" <<
+                    output::indent(ind + 1) << "comms::option::SequenceFixedSize<" << count << ">";
+            }
+            out << '\n' <<
+                   output::indent(ind) << ">";
+
+        };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n" <<
+           output::indent(indent) << "public:\n";
     common::writeDefaultSetVersionFunc(out, indent + 1);
     out << output::indent(indent) << "};\n\n";
 }

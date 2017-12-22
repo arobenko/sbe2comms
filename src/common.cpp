@@ -746,13 +746,16 @@ void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid)
 }
 
 
-void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
+void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase)
 {
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::value() == Base::ValueType::" << enumNullValueStr() << ";\n" <<
+           output::indent(indent) << "{\n";
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "return Base::value() == Base::ValueType::" << enumNullValueStr() << ";\n" <<
            output::indent(indent) << "}\n\n" <<
            output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
            output::indent(indent) << "void setNull()\n" <<

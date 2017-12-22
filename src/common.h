@@ -111,7 +111,7 @@ void writeFpOptConstructor(
     const std::string& name,
     const std::string& customDefault = std::string());
 void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
-void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
+void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase = false);
 void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent);
 void writeOptFieldDefinitionBody(
     std::ostream& out,
