@@ -382,6 +382,30 @@ bool writeOpenFrameHeader(DB& db)
     if (ba::ends_with(db.getEndian(), "LittleEndian")) {
         sync = "0xeb50";
     }
+
+    auto writeBundleDefFunc =
+        [&out, sync](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::Bundle<\n" <<
+                   output::indent(ind + 1) << BigEndianStr << ",\n" <<
+                   output::indent(ind + 1) << "std::tuple<\n" <<
+                   output::indent(ind + 2) << "comms::field::IntValue<\n" <<
+                   output::indent(ind + 3) << BigEndianStr << ",\n" <<
+                   output::indent(ind + 3) << "std::uint32_t,\n" <<
+                   output::indent(ind + 3) << "comms::option::NumValueSerOffset<sizeof(std::uint32_t) + sizeof(std::uint16_t)>\n" <<
+                   output::indent(ind + 2) << ">,\n" <<
+                   output::indent(ind + 2) << "comms::field::IntValue<\n" <<
+                   output::indent(ind + 3) << BigEndianStr << ",\n" <<
+                   output::indent(ind + 3) << "std::uint16_t,\n" <<
+                   output::indent(ind + 3) << "comms::option::ValidNumValue<" << sync << ">,\n" <<
+                   output::indent(ind + 3) << "comms::option::DefaultNumValue<" << sync << ">,\n" <<
+                   output::indent(ind + 3) << "comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>\n" <<
+                   output::indent(ind + 2) << ">\n" <<
+                   output::indent(ind + 1) << ">\n" <<
+                   output::indent(ind) << ">";
+
+        };
+
     out << "/// \\file\n"
            "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::openFramingHeaderStr() << "\n"
            "\n\n"
@@ -394,25 +418,14 @@ bool writeOpenFrameHeader(DB& db)
            "namespace " << common::builtinNamespaceNameStr() << "\n"
            "{\n\n"
            "/// \\brief Simple Open Framing Header definition.\n"
-           "struct " << common::openFramingHeaderStr() << " : public\n" <<
-           output::indent(1) << "comms::field::Bundle<\n" <<
-           output::indent(2) << BigEndianStr << ",\n" <<
-           output::indent(2) << "std::tuple<\n" <<
-           output::indent(3) << "comms::field::IntValue<\n" <<
-           output::indent(4) << BigEndianStr << ",\n" <<
-           output::indent(4) << "std::uint32_t,\n" <<
-           output::indent(4) << "comms::option::NumValueSerOffset<sizeof(std::uint32_t) + sizeof(std::uint16_t)>\n" <<
-           output::indent(3) << ">,\n" <<
-           output::indent(3) << "comms::field::IntValue<\n" <<
-           output::indent(4) << BigEndianStr << ",\n" <<
-           output::indent(4) << "std::uint16_t,\n" <<
-           output::indent(4) << "comms::option::ValidNumValue<" << sync << ">,\n" <<
-           output::indent(4) << "comms::option::DefaultNumValue<" << sync << ">,\n" <<
-           output::indent(4) << "comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>\n" <<
-           output::indent(3) << ">\n" <<
-           output::indent(2) << ">\n" <<
-           output::indent(1) << ">\n" <<
+           "struct " << common::openFramingHeaderStr() << " : public\n";
+    writeBundleDefFunc(1);
+    out << "\n"
            "{\n" <<
+           output::indent(1) << "using Base =\n";
+    writeBundleDefFunc(2);
+    out << ";\n\n"
+           "public:\n" <<
            output::indent(1) << "/// \\brief Allow access to internal fields.\n" <<
            output::indent(1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
            output::indent(1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<

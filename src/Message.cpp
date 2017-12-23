@@ -386,24 +386,35 @@ bool Message::writeMessageClass(std::ostream& out)
     }
 
     auto id = common::scopeFor(m_db.getProtocolNamespace(), common::msgIdEnumName()) + '_' + n;
+
+    auto writeClassDefFunc =
+        [this, &out, &id, &n](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::MessageBase<\n" <<
+                   output::indent(ind + 1) << "TMsgBase,\n" <<
+                   output::indent(ind + 1) << "comms::option::StaticNumIdImpl<" << id << ">,\n" <<
+                   output::indent(ind + 1) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >,\n";
+
+            if (m_fields.empty()) {
+                out << output::indent(ind + 1) << "comms::option::ZeroFieldsImpl\n";
+            }
+            else {
+                out << output::indent(ind + 1) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>,\n" <<
+                       output::indent(ind + 1) << "comms::option::HasDoRefresh\n";
+            }
+            out << output::indent(ind) << ">";
+        };
+
     out <<
         "template <typename TMsgBase, typename TOpt = " << common::defaultOptionsStr() << ">\n"
-        "class " << getReferenceName() << " : public\n" <<
-        output::indent(1) << "comms::MessageBase<\n" <<
-        output::indent(2) << "TMsgBase,\n" <<
-        output::indent(2) << "comms::option::StaticNumIdImpl<" << id << ">,\n" <<
-        output::indent(2) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >,\n";
-    if (m_fields.empty()) {
-        out << output::indent(2) << "comms::option::ZeroFieldsImpl\n";
-    }
-    else {
-        out << output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>,\n" <<
-               output::indent(2) << "comms::option::HasDoRefresh\n";
-    }
-    out <<
-        output::indent(1) << ">\n"
-        "{\n"
-        "public:\n";
+        "class " << getReferenceName() << " : public\n";
+    writeClassDefFunc(1);
+    out << '\n' <<
+           "{\n" <<
+           output::indent(1) << "using Base =\n";
+    writeClassDefFunc(1);
+    out << ";\n\n"
+           "public:\n";
     writeFieldsAccess(out);
     writeConstructors(out);
     writeReadFunc(out);
@@ -509,7 +520,6 @@ void Message::writeConstructors(std::ostream& out)
         out << output::indent(1) << "/// \\details Sets the \\\"blockLength\\\" value.\n" <<
                output::indent(1) << name << "()\n" <<
                output::indent(1) << "{\n" <<
-               output::indent(2) << common::messageBaseDefStr() <<
                output::indent(2) << "Base::setBlockLength(Base::template doMaxLengthUntil<FieldIdx_" << nonBasicFieldName << ">());\n" <<
                output::indent(1) << "}\n\n";
     }
@@ -530,7 +540,6 @@ void Message::writeReadFunc(std::ostream& out)
            output::indent(1) << "template <typename TIter>\n" <<
            output::indent(1) << "comms::ErrorStatus doRead(TIter& iter, std::size_t len)\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << common::messageBaseDefStr() <<
            output::indent(2) << "GASSERT(Base::getBlockLength() <= len);\n";
     static const std::string advanceStr("std::advance(iter, Base::getBlockLength());\n");
     do {
@@ -591,7 +600,6 @@ void Message::writeRefreshFunc(std::ostream& out)
     out << output::indent(1) << "/// \\brief Custom refresh functionality.\n" <<
            output::indent(1) << "bool doRefresh()\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << common::messageBaseDefStr() <<
            output::indent(2) << "bool updated = updateFieldsVersion();\n";
 
     auto nonBasicFieldIter =
@@ -634,7 +642,6 @@ void Message::writePrivateMembers(std::ostream& out)
     out << "private:\n" <<
            output::indent(1) << "bool updateFieldsVersion()\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << common::messageBaseDefStr() <<
            output::indent(2) << "return comms::util::tupleAccumulate(Base::fields(), false, " <<
                                 common::builtinNamespaceStr() << common::versionSetterStr() << "(Base::getVersion()));\n" <<
            output::indent(1) << "}\n;";

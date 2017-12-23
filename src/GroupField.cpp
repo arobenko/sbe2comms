@@ -411,14 +411,23 @@ void GroupField::writeBundle(std::ostream& out, unsigned indent)
 {
     out << output::indent(indent) << "/// \\brief Element of \\ref " << getName() << " list.\n";
 
-    out << output::indent(indent) << "struct " << getName() << common::elementSuffixStr() << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::Bundle<\n" <<
-           output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << "typename " << getName() << common::memembersSuffixStr() << "::All";
+    auto writeClassDefFunc =
+        [this, &out](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::Bundle<\n" <<
+                   output::indent(ind + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << "typename " << getName() << common::memembersSuffixStr() << "::All\n" <<
+                   output::indent(ind) << ">";
+        };
 
+    out << output::indent(indent) << "class " << getName() << common::elementSuffixStr() << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
            output::indent(indent) << "{\n"<<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n" <<
            output::indent(indent + 1) << "/// \\brief Allow access to internal fields.\n" <<
            output::indent(indent + 1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
            output::indent(indent + 1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
