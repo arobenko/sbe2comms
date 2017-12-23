@@ -516,24 +516,37 @@ bool CompositeType::writeBundle(
     writeExtraOptsTemplParams(out, indent, extraOpts);
     auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::Bundle<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::memembersSuffixStr() << "::All<\n";
-    for (auto& o : extraOpts) {
-        for (auto& internalO : o) {
-            out << output::indent(indent + 3) << OptPrefix << internalO.first;
 
-            bool comma = ((&o != &extraOpts.back()) || (&internalO != &o.back()));
-            if (comma) {
-                out << ',';
+    auto writeClassDefFunc =
+        [this, &out, &extraOpts](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::Bundle<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << getName() << common::memembersSuffixStr() << "::All<\n";
+            for (auto& o : extraOpts) {
+                for (auto& internalO : o) {
+                    out << output::indent(ind + 2) << OptPrefix << internalO.first;
+
+                    bool comma = ((&o != &extraOpts.back()) || (&internalO != &o.back()));
+                    if (comma) {
+                        out << ',';
+                    }
+                    out << '\n';
+                }
             }
-            out << '\n';
-        }
-    }
-    out << output::indent(indent + 2) << ">\n" <<
-           output::indent(indent + 1) << ">\n" <<
+            out << output::indent(ind + 1) << ">\n" <<
+                   output::indent(ind) << ">";
+
+        };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
+    out << '\n' <<
            output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n" <<
            output::indent(indent + 1) << "/// \\brief Allow access to internal fields.\n" <<
            output::indent(indent + 1) << "/// \\details See definition of \\b COMMS_FIELD_MEMBERS_ACCESS macro\n" <<
            output::indent(indent + 1) << "///     related to \\b comms::field::Bundle class from COMMS library\n" <<
@@ -560,7 +573,6 @@ bool CompositeType::writeBundle(
            output::indent(indent + 1) << "/// \\return \\b true if any of the fields returns \\b true.\n" <<
            output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
            output::indent(indent + 1) << "{\n" <<
-           output::indent(indent + 2) << common::fieldBaseDefStr() <<
            output::indent(indent + 2) << "return comms::util::tupleAccumulate(Base::value(), false, " << common::builtinNamespaceStr() << common::versionSetterStr() << "(value));\n" <<
            output::indent(indent + 1) << "}\n";
 
@@ -614,15 +626,27 @@ bool CompositeType::writeData(
     auto& dataMem = *m_members[DataEncIdx_data];
     auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     auto name = common::refName(getName(), suffix);
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceSerLengthFieldPrefix<\n" <<
-           output::indent(indent + 3) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << '<' << OptPrefix << lengthExtraOpt << ">\n" <<
-           output::indent(indent + 2) << ">,\n" <<
-           output::indent(indent + 2) << OptPrefix << dataExtraOpt << ",\n" <<
-           output::indent(indent + 2) << "TOpt\n" <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+
+    auto writeClassDefFunc =
+        [this, &out, &lengthExtraOpt, &dataExtraOpt, &dataMem, &lenMem](unsigned ind)
+        {
+            out << output::indent(ind) << getName() << common::memembersSuffixStr() << "::" << dataMem.getReferenceName() << "<\n" <<
+                   output::indent(ind + 1) << "comms::option::SequenceSerLengthFieldPrefix<\n" <<
+                   output::indent(ind + 2) << getName() << common::memembersSuffixStr() << "::" << lenMem.getReferenceName() << '<' << OptPrefix << lengthExtraOpt << ">\n" <<
+                   output::indent(ind + 1) << ">,\n" <<
+                   output::indent(ind + 1) << OptPrefix << dataExtraOpt << ",\n" <<
+                   output::indent(ind + 1) << "TOpt\n" <<
+                   output::indent(ind) << ">";
+        };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
+    out << '\n' <<
+           output::indent(indent) <<  "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n";
     common::writeDefaultSetVersionFunc(out, indent + 1);
     out << output::indent(indent) << "};\n\n";
 
