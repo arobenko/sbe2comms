@@ -103,14 +103,23 @@ const std::string& primitiveTypeToStdInt(const std::string& type);
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
 void writeExtraOptionsDoc(std::ostream& out, unsigned indent);
 void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent);
-void writeIntNullCheckUpdateFuncs(std::ostream& out, unsigned indent, const std::string& valStr);
-void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
+void writeIntNullCheckUpdateFuncs(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& valStr,
+    bool externalBase = false);
+void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase = false);
 void writeFpOptConstructor(
     std::ostream& out,
     unsigned indent,
     const std::string& name,
-    const std::string& customDefault = std::string());
-void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
+    const std::string& customDefault = std::string(),
+    bool externalBase = false);
+void writeFpValidCheckFunc(
+    std::ostream& out,
+    unsigned indent,
+    bool nanValid = false,
+    bool externalBase = false);
 void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase = false);
 void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent);
 void writeOptFieldDefinitionBody(

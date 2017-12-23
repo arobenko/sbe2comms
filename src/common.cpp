@@ -669,30 +669,45 @@ void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent)
     out << output::indent(indent) << extraOptionsTemplParamStr();
 }
 
-void writeIntNullCheckUpdateFuncs(std::ostream& out, unsigned indent, const std::string& valStr)
+void writeIntNullCheckUpdateFuncs(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& valStr,
+    bool externalBase)
 {
     std::string nullValStr("static_cast<typename Base::ValueType>(" + valStr + ")");
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::value() == " << nullValStr << ";\n" <<
+           output::indent(indent) << "{\n";
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "return Base::value() == " << nullValStr << ";\n" <<
            output::indent(indent) << "}\n\n" <<
            output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
            output::indent(indent) << "void setNull()\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "Base::value() = " << nullValStr << ";\n" <<
+           output::indent(indent) << "{\n";
+
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "Base::value() = " << nullValStr << ";\n" <<
            output::indent(indent) << "}\n";
 }
 
-void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
+void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase)
 {
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return std::isnan(Base::value());\n" <<
+           output::indent(indent) << "{\n";
+
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "return std::isnan(Base::value());\n" <<
            output::indent(indent) << "}\n\n" <<
            output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
            output::indent(indent) << "void setNull()\n" <<
@@ -706,7 +721,8 @@ void writeFpOptConstructor(
     std::ostream& out,
     unsigned indent,
     const std::string& name,
-    const std::string& customDefault)
+    const std::string& customDefault,
+    bool externalBase)
 {
     out << output::indent(indent) << "/// \\brief Default constructor.\n" <<
            output::indent(indent) << "/// \\details Initializes field's value to ";
@@ -718,9 +734,12 @@ void writeFpOptConstructor(
     }
     out << '\n' <<
            output::indent(indent) << name << "()\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "Base::value() = ";
+           output::indent(indent) << "{\n";
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "Base::value() = ";
     if (customDefault.empty()) {
         out << "std::numeric_limits<typename Base::ValueType>::quiet_NaN()";
     }
@@ -731,13 +750,20 @@ void writeFpOptConstructor(
            output::indent(indent) << "}\n";
 }
 
-void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid)
+void writeFpValidCheckFunc(
+    std::ostream& out,
+    unsigned indent,
+    bool nanValid,
+    bool externalBase)
 {
     out << output::indent(indent) << "/// \\brief Value validity check function.\n" <<
            output::indent(indent) << "bool valid() const\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << common::fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::valid()";
+           output::indent(indent) << "{\n";
+    if (!externalBase) {
+        out << output::indent(indent + 1) << common::fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "return Base::valid()";
     if (!nanValid) {
         out << " && (!std::isnan(Base::value()))";
     }
