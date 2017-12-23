@@ -293,12 +293,6 @@ const std::string& fieldBaseFileName()
     return Str;
 }
 
-const std::string& messageBaseDefStr()
-{
-    static const std::string Str("using Base = typename std::decay<decltype(toMessageBase(*this))>::type;\n");
-    return Str;
-}
-
 const std::string& enumValSuffixStr()
 {
     static const std::string Str("Val");
