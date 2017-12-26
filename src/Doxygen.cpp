@@ -441,7 +441,7 @@ bool Doxygen::writeNamespaces()
            "/// \\brief Namespace for all the messages defined in this protocol.\n\n"
            "/// \\namespace " << common::scopeFor(ns, common::fieldNamespaceNameStr()) << "\n"
            "/// \\brief Namespace for all the stand alone fields defined in this protocol.\n\n"
-           "/// \\namespace " << common::builtinNamespaceNameStr() << "\n"
+           "/// \\namespace " << common::scopeFor(ns, common::builtinNamespaceNameStr()) << "\n"
            "/// \\brief Namespace for all implicitly defined (built-in) fields.\n\n";
     return true;
 }

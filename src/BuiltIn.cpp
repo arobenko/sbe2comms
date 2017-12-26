@@ -38,6 +38,18 @@ namespace sbe2comms
 namespace
 {
 
+void writeNamespaceBegin(std::ostream& out, const std::string& ns)
+{
+    common::writeProtocolNamespaceBegin(ns, out);
+    out << "namespace " << common::builtinNamespaceNameStr() << "\n"
+           "{\n\n";
+}
+
+void writeNamespaceEnd(std::ostream& out, const std::string& ns)
+{
+    out << "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    common::writeProtocolNamespaceEnd(ns, out);
+}
 
 void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& name)
 {
@@ -93,20 +105,19 @@ void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
     out << "};\n\n";
 }
 
-void writeBuiltInInt(std::ostream& out, const std::string& name)
+void writeBuiltInInt(DB& db, std::ostream& out, const std::string& name)
 {
     auto& refName = common::renameKeyword(name);
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << refName << "\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::scopeFor(ns, common::builtinNamespaceStr() + refName) << "\n"
            "\n\n"
            "#pragma once\n\n"
            "#include <cstdint>\n"
            "#include \"comms/Field.h\"\n"
            "#include \"comms/field/IntValue.h\"\n"
-           "#include \"comms/options.h\"\n\n"
-           "namespace " << common::builtinNamespaceNameStr() << "\n"
-           "{\n\n";
-
+           "#include \"comms/options.h\"\n\n";
+    writeNamespaceBegin(out, ns);
 
     if (name == common::uint64Type()) {
         writeBuiltInBigUnsignedInt(out, name);
@@ -115,22 +126,22 @@ void writeBuiltInInt(std::ostream& out, const std::string& name)
         writeBuiltInRegularInt(out, name);
     }
 
-    out << "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    writeNamespaceEnd(out, ns);
 }
 
-void writeBuiltInFloat(std::ostream& out, const std::string& name)
+void writeBuiltInFloat(DB& db, std::ostream& out, const std::string& name)
 {
     auto& refName = common::renameKeyword(name);
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << refName << "\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::scopeFor(ns, common::builtinNamespaceStr() + refName) << "\n"
            "\n\n"
            "#pragma once\n\n"
            "#include \"comms/Field.h\"\n"
            "#include \"comms/field/FloatValue.h\"\n"
-           "#include \"comms/options.h\"\n\n"
-           "namespace " << common::builtinNamespaceNameStr() << "\n"
-           "{\n\n"
-           "/// \\brief Definition of built-in \"" << name << "\" type\n"
+           "#include \"comms/options.h\"\n\n";
+    writeNamespaceBegin(out, ns);
+    out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
            "/// \\tparam TFieldBase Base class of the field type.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
            "template <typename TFieldBase, typename... TOpt>\n"
@@ -142,8 +153,8 @@ void writeBuiltInFloat(std::ostream& out, const std::string& name)
            output::indent(1) << ">\n" <<
            "{\n";
     common::writeDefaultSetVersionFunc(out, 1);
-    out << "};\n\n"
-           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    out << "};\n\n";
+    writeNamespaceEnd(out, ns);
 }
 
 bool writeBuiltIn(DB& db, const std::string& name)
@@ -168,10 +179,10 @@ bool writeBuiltIn(DB& db, const std::string& name)
 
     auto iter = std::find(std::begin(FloatTypes), std::end(FloatTypes), name);
     if (iter != std::end(FloatTypes)) {
-        writeBuiltInFloat(out, name);
+        writeBuiltInFloat(db, out, name);
         return out.good();
     }
-    writeBuiltInInt(out, name);
+    writeBuiltInInt(db, out, name);
     return out.good();
 }
 
@@ -190,8 +201,9 @@ bool writeGroupList(DB& db)
         return false;
     }
 
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::groupListStr() << "\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::scopeFor(ns, common::builtinNamespaceStr() + common::groupListStr()) << "\n"
            "\n\n"
            "#pragma once\n\n"
            "#include <cstdint>\n"
@@ -201,10 +213,9 @@ bool writeGroupList(DB& db)
            "#include \"comms/field/Optional.h\"\n"
            "#include \"comms/options.h\"\n"
            "#include \"comms/util/Tuple.h\"\n\n"
-           "#include \"VersionSetter.h\"\n\n"
-           "namespace " << common::builtinNamespaceNameStr() << "\n"
-           "{\n\n"
-           "/// \\brief Generic list type to be used to defaine a \"group\" list.\n"
+           "#include \"VersionSetter.h\"\n\n";
+    writeNamespaceBegin(out, ns);
+    out << "/// \\brief Generic list type to be used to defaine a \"group\" list.\n"
            "/// \\tparam TFieldBase Common base class of all the fields.\n"
            "/// \\tparam TElement Element of the list, expected to be a variant of \\b comms::field::Bundle.\n"
            "/// \\tparam TDimensionType Dimention type field with \"blockLength\" and \"numInGroup\" members.\n"
@@ -357,8 +368,8 @@ bool writeGroupList(DB& db)
            output::indent(2) << "return comms::ErrorStatus::Success;\n" <<
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "unsigned m_version = " << db.getSchemaVersion() << ";\n"
-           "};\n\n"
-           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+           "};\n\n";
+    writeNamespaceEnd(out, ns);
     return out.good();
 }
 
@@ -406,18 +417,18 @@ bool writeOpenFrameHeader(DB& db)
 
         };
 
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::openFramingHeaderStr() << "\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::scopeFor(ns, common::builtinNamespaceStr() + common::openFramingHeaderStr()) << "\n"
            "\n\n"
            "#pragma once\n\n"
            "#include <cstdint>\n\n"
            "#include \"comms/Field.h\"\n"
            "#include \"comms/field/Bundle.h\"\n"
            "#include \"comms/field/IntValue.h\"\n"
-           "#include \"comms/options.h\"\n\n"
-           "namespace " << common::builtinNamespaceNameStr() << "\n"
-           "{\n\n"
-           "/// \\brief Simple Open Framing Header definition.\n"
+           "#include \"comms/options.h\"\n\n";
+    writeNamespaceBegin(out, ns);
+    out << "/// \\brief Simple Open Framing Header definition.\n"
            "struct " << common::openFramingHeaderStr() << " : public\n";
     writeBundleDefFunc(1);
     out << "\n"
@@ -434,8 +445,8 @@ bool writeOpenFrameHeader(DB& db)
            output::indent(2) << "messageLength,\n" <<
            output::indent(2) << "encodingType\n" <<
            output::indent(1) << ");\n"
-           "};\n\n"
-           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+           "};\n\n";
+    writeNamespaceEnd(out, ns);
     return out.good();
 }
 
@@ -454,17 +465,17 @@ bool writePad(DB& db)
         return false;
     }
 
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of implicitly defined \\ref " << common::builtinNamespaceStr() << common::padStr() << "\n"
+           "/// \\brief Contains definition of implicitly defined \\ref " << common::scopeFor(ns, common::builtinNamespaceStr() + common::padStr()) << "\n"
            "\n\n"
            "#pragma once\n\n"
            "#include <cstdint>\n\n"
            "#include \"comms/Field.h\"\n"
            "#include \"comms/field/ArrayList.h\"\n"
-           "#include \"comms/options.h\"\n\n"
-           "namespace " << common::builtinNamespaceNameStr() << "\n"
-           "{\n\n"
-           "/// \\brief Padding type definition.\n"
+           "#include \"comms/options.h\"\n\n";
+    writeNamespaceBegin(out, ns);
+    out << "/// \\brief Padding type definition.\n"
            "/// \\tparam TFieldBase Base class of all the fields.\n"
            "/// \\tparam TLen Length of the padding.\n"
            "/// \\tparam TOpt Extra options...\n"
@@ -482,8 +493,8 @@ bool writePad(DB& db)
            output::indent(1) << ">\n" <<
            "{\n";
     common::writeDefaultSetVersionFunc(out, 1);
-    out << "};\n\n"
-           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+    out << "};\n\n";
+    writeNamespaceEnd(out, ns);
     return out.good();
 }
 
@@ -502,13 +513,13 @@ bool writeVersionSetter(DB& db)
         return false;
     }
 
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of helper class \\ref " << common::builtinNamespaceStr() << common::versionSetterStr() << "\n"
+           "/// \\brief Contains definition of helper class \\ref " << common::scopeFor(ns, common::builtinNamespaceStr() + common::versionSetterStr()) << "\n"
            "\n\n"
-           "#pragma once\n\n"
-           "namespace " << common::builtinNamespaceNameStr() << "\n"
-           "{\n\n"
-           "/// \\brief Helper class to update version of the fields in tuple.\n"
+           "#pragma once\n\n";
+    writeNamespaceBegin(out, ns);
+    out << "/// \\brief Helper class to update version of the fields in tuple.\n"
            "/// \\details Expected to be used with \\b comms::util::tupleAccumulate() function.\n"
            "struct " << common::versionSetterStr() << '\n' <<
            "{\n" <<
@@ -520,8 +531,8 @@ bool writeVersionSetter(DB& db)
            output::indent(1) << "}\n\n"
            "private:\n" <<
            output::indent(1) << "unsigned m_version = 0U;\n"
-           "};\n\n"
-           "} // namespace " << common::builtinNamespaceNameStr() << "\n\n";
+           "};\n\n";
+    writeNamespaceEnd(out, ns);
     return out.good();
 }
 
