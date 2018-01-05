@@ -185,6 +185,7 @@ bool MsgInterface::writePluginHeader()
            output::indent(3) << "comms_champion::property::field::IntValue()\n" <<
            output::indent(4) << ".name(\"" << common::versionStr() << "\")\n" <<
            output::indent(4) << ".serialisedHidden()\n" <<
+           output::indent(4) << ".hiddenWhenReadOnly()\n" <<
            output::indent(4) << ".asMap();\n" <<
            output::indent(1) << "}\n\n" <<
            output::indent(1) << "static QVariantList createExtraTransportFields()\n" <<
