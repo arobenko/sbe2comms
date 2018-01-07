@@ -75,7 +75,7 @@ bool TransportFrame::writeProtocolDef()
 
     out << "/// \\brief Definition of transport frame involving only message header\n"
            "///     (\\ref " << common::fieldNamespaceStr() << messageHeaderType << ").\n"
-           "/// \\tparam TMsgBase Common base (interface) class of all the messages.\n"
+           "/// \\tparam TMsgBase Common base (interface) class of all the \\b input messages.\n"
            "/// \\tparam TMessages All the message types that need to be recognized in the\n"
            "///     input and created.\n"
            "/// \\tparam TOpt Protocol definition options, expected to be \\ref DefaultOptions or\n"
@@ -112,7 +112,7 @@ bool TransportFrame::writeProtocolDef()
            output::indent(1) << ">;\n\n" <<
            "/// \\brief Definition of transport frame involving both message header\n"
            "///     and simple open framing header.\n"
-           "/// \\tparam TMsgBase Common base (interface) class of all the messages.\n"
+           "/// \\tparam TMsgBase Common base (interface) class of all the \\b input messages.\n"
            "/// \\tparam TMessages All the message types that need to be recognized in the\n"
            "///     input and created.\n"
            "/// \\tparam TOpt Protocol definition options, expected to be \\ref DefaultOptions or\n"
