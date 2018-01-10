@@ -757,9 +757,12 @@ void writeFpValidCheckFunc(
         out << output::indent(indent + 1) << common::fieldBaseDefStr();
     }
 
-    out << output::indent(indent + 1) << "return Base::valid()";
+    out << output::indent(indent + 1) << "return\n" <<
+           output::indent(indent + 2) << "(Base::valid()) &&\n" <<
+           output::indent(indent + 2) << "(!std::isinf(Base::value()))";
     if (!nanValid) {
-        out << " && (!std::isnan(Base::value()))";
+        out << " &&\n" <<
+               output::indent(indent + 2) << "(!std::isnan(Base::value()))";
     }
     out << ";\n" <<
            output::indent(indent) << "}\n";

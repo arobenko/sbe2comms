@@ -176,6 +176,11 @@ unsigned Message::getId() const
     return prop::id(m_props);
 }
 
+bool Message::hasFields() const
+{
+    return !m_fields.empty();
+}
+
 bool Message::createFields()
 {
     assert(m_fields.empty());
