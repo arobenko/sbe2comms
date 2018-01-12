@@ -247,6 +247,9 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("field"),
         makePairFunc("message"),
         makePairFunc("sbe2comms"),
+
+        // other names
+        makePairFunc("All"),
     };
 
     auto iter = Keywords.find(value);
