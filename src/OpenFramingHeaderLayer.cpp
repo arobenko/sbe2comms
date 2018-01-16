@@ -107,7 +107,10 @@ bool OpenFramingHeaderLayer::writeProtocolDef()
     out << "/// \\brief Protocol layer that uses \\ref " << redefName << " field as a prefix to all the\n"
            "///        subsequent data written by other (next) layers.\n"
            "/// \\details The main purpose of this layer is to provide information about\n" <<
-           "///     the remaining size of the serialised message. \n"
+           "///     the remaining size of the serialised message. Inherits from \\b comms::protocol::ProtocolLayerBase.\n"
+           "///     Please read the documentation of the latter for details on inherited public\n"
+           "///     interface. Please also read <b>Protocol Stack Tutorial</b> page from the \\b COMMS\n"
+           "///     library documentation.\n"
            "/// \\tparam TNextLayer Next transport layer in protocol stack.\n"
            "/// \\tparam TField Field of the Simple Open Framing Header.\n";;
 
