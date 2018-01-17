@@ -91,6 +91,7 @@ bool MsgInterface::writeProtocolDef()
     out << "/// \\brief Common interface class for all the messages.\n"
            "/// \\tparam TOpt Extra options from \\b comms::option namespace.\n"
            "/// \\see \\ref ExtraTransportFields\n"
+           "/// \\headerfile " << common::localHeader(ns, common::msgInterfaceFileName()) << "\n"
            "template <typename... TOpt>\n"
            "class " << common::msgInterfaceStr() << " : public\n";
     writeBaseClassDefFunc(1);

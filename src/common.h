@@ -96,6 +96,7 @@ std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
 std::string pathTo(const std::string& ns, const std::string& path);
 std::string localHeader(const std::string& ns, const std::string& localNs, const std::string& path);
+std::string localHeader(const std::string& ns, const std::string& path);
 std::string refName(const std::string& name, const std::string& suffix);
 const std::string& primitiveTypeToStdInt(const std::string& type);
 

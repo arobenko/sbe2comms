@@ -487,7 +487,7 @@ bool Doxygen::writeMain()
     out << "/// \\mainpage " << m_db.getPackageName() << " Binary Protocol\n"
            "/// \\tableofcontents\n"
            "/// This library implements \"" << m_db.getPackageName() << "\" binary protocol in terms of\n"
-           "/// <a href=\"\">COMMS Library</a>.\n"
+           "/// <a href=\"https://github.com/arobenko/comms_champion#comms-library\">COMMS Library</a>.\n"
            "/// It is highly recommended to have documentation of the latter also opened and used for reference\n"
            "/// in order to fully understand this tutorial.\n"
            "/// \n"

@@ -162,9 +162,9 @@ bool TransportFrame::writePluginDef()
     auto& pluginNs = common::pluginNamespaceNameStr();
 
     out << "#pragma once\n\n"
-           "#include " << common::localHeader(ns, common::emptyString(), common::transportFrameFileName()) << '\n' <<
-           "#include " << common::localHeader(pluginNs, common::emptyString(), common::msgInterfaceFileName()) << '\n' <<
-           "#include " << common::localHeader(pluginNs, common::emptyString(), common::allMessagesFileName()) << "\n\n";
+           "#include " << common::localHeader(ns, common::transportFrameFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, common::msgInterfaceFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, common::allMessagesFileName()) << "\n\n";
 
     common::writePluginNamespaceBegin(ns, out);
 

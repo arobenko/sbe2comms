@@ -143,8 +143,8 @@ bool Plugin::writeSrc(bool openFrame)
     }
 
     auto header = *name + common::pluginNameStr() + ".h";
-    out << "#include " << common::localHeader(common::pluginNamespaceNameStr(), common::emptyString(), header) << '\n' <<
-           "#include " << common::localHeader(common::pluginNamespaceNameStr(), common::emptyString(), common::protocolNameStr() + ".h") << "\n\n" <<
+    out << "#include " << common::localHeader(common::pluginNamespaceNameStr(), header) << '\n' <<
+           "#include " << common::localHeader(common::pluginNamespaceNameStr(), common::protocolNameStr() + ".h") << "\n\n" <<
            "namespace cc = comms_champion;\n\n";
 
     auto& ns = m_db.getProtocolNamespace();

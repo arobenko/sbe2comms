@@ -91,12 +91,13 @@ void closePluginNamespaces(std::ostream& out, DB& db)
 }
 
 
-void openFieldsDef(std::ostream& out, const std::string& name)
+void openFieldsDef(std::ostream& out, const std::string& ns, const std::string& name)
 {
     out <<
         "/// \\brief Accumulates details of all the " << name << " message fields.\n"
         "/// \\tparam TOpt Extra options to be passed to all fields.\n"
         "/// \\see \\ref " << name << "\n"
+        "/// \\headerfile " << common::localHeader(ns, common::messageNamespaceNameStr(), name + ".h") << "\n"
         "template <typename TOpt = " << common::defaultOptionsStr() << ">\n" <<
         "struct " << name << common::fieldsSuffixStr() << "\n"
         "{\n";
@@ -336,7 +337,7 @@ bool Message::writeFields(std::ostream& out)
         return true;
     }
     auto& msgName = getName();
-    openFieldsDef(out, msgName);
+    openFieldsDef(out, m_db.getProtocolNamespace(), msgName);
     bool result = true;
     for (auto& f : m_fields) {
         result = f->write(out, 1) && result;
@@ -389,6 +390,7 @@ bool Message::writeMessageClass(std::ostream& out)
                "/// \\tparam TMsgBase Common interface class for all the messages.\n"
                "/// \\tparam TOpt Extra options to be passed to all fields.\n";
     }
+    out << "/// \\headerfile " << common::localHeader(m_db.getProtocolNamespace(), common::messageNamespaceNameStr(), n + ".h") << "\n";
 
     auto id = common::scopeFor(m_db.getProtocolNamespace(), common::msgIdEnumName()) + '_' + n;
 

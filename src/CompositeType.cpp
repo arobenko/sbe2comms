@@ -162,7 +162,7 @@ bool CompositeType::parseImpl()
             return false;
         }
 
-        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::emptyString(), common::msgIdFileName()));
+        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::msgIdFileName()));
     }
 
     if ((isOpenFramingHeader()) && (!checkOpenFramingHeader())) {

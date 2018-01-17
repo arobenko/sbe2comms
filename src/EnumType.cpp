@@ -99,7 +99,7 @@ bool EnumType::parseImpl()
     }
 
     if (m_msgId) {
-        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::emptyString(), common::msgIdFileName()));
+        addExtraInclude(common::localHeader(getDb().getProtocolNamespace(), common::msgIdFileName()));
     }
 
     if (getLengthProp() != 1U) {

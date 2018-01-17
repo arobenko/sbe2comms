@@ -115,7 +115,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            "/// \\tparam TField Field of message header.\n"
            "/// \\tparam TFactoryOpt All the options that will be forwarded to definition of\n"
            "///     message factory type (comms::MsgFactory).\n"
-           "/// \\headerfile MessageHeaderLayer.h\n"
+           "/// \\headerfile " << common::localHeader(ns, name + ".h") << "\n"
            "template <\n" <<
            output::indent(1) << "typename TMessage,\n" <<
            output::indent(1) << "typename TAllMessages,\n" <<

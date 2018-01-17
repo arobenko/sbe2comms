@@ -70,7 +70,7 @@ bool OpenFramingHeaderLayer::writeProtocolDef()
            "#include <iterator>\n"
            "#include <type_traits>\n\n"
            "#include \"comms/protocol/ProtocolLayerBase.h\"\n"
-           "#include " << common::localHeader(ns, common::emptyString(), common::defaultOptionsFileName()) << "\n" <<
+           "#include " << common::localHeader(ns, common::defaultOptionsFileName()) << "\n" <<
            "#include " << fieldInc << "\n\n";
 
     common::writeProtocolNamespaceBegin(ns, out);
@@ -112,7 +112,8 @@ bool OpenFramingHeaderLayer::writeProtocolDef()
            "///     interface. Please also read <b>Protocol Stack Tutorial</b> page from the \\b COMMS\n"
            "///     library documentation.\n"
            "/// \\tparam TNextLayer Next transport layer in protocol stack.\n"
-           "/// \\tparam TField Field of the Simple Open Framing Header.\n";;
+           "/// \\tparam TField Field of the Simple Open Framing Header.\n"
+           "/// \\headerfile " << common::localHeader(ns, common::openFramingHeaderLayerFileName()) << "\n";
 
     auto writeBaseDefFunc =
         [&out, &name](unsigned indent)

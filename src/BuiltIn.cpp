@@ -38,6 +38,11 @@ namespace sbe2comms
 namespace
 {
 
+void writeHeaderfileInfo(std::ostream& out, const std::string& ns, const std::string& name)
+{
+    out << "/// \\headerfile " << common::localHeader(ns, common::builtinNamespaceNameStr(), name + ".h") << "\n";
+}
+
 void writeNamespaceBegin(std::ostream& out, const std::string& ns)
 {
     common::writeProtocolNamespaceBegin(ns, out);
@@ -51,7 +56,7 @@ void writeNamespaceEnd(std::ostream& out, const std::string& ns)
     common::writeProtocolNamespaceEnd(ns, out);
 }
 
-void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& name)
+void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& ns, const std::string& name)
 {
     auto type = "std::" + name + "_t";
     auto maxVal = common::intBigUnsignedMaxValue();
@@ -59,8 +64,9 @@ void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& name)
 
     out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
            "/// \\tparam TFieldBase Base class of the field type.\n"
-           "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
-           "template <typename TFieldBase, typename... TOpt>\n"
+           "/// \\tparam TOpt Extra options from \\b comms::option namespace \n";
+    writeHeaderfileInfo(out, ns, name);
+    out << "template <typename TFieldBase, typename... TOpt>\n"
            "struct " << common::renameKeyword(name) << " : public\n" <<
            output::indent(1) << "comms::field::IntValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
@@ -73,7 +79,7 @@ void writeBuiltInBigUnsignedInt(std::ostream& out, const std::string& name)
     out << "};\n\n";
 }
 
-void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
+void writeBuiltInRegularInt(std::ostream& out, const std::string& ns, const std::string& name)
 {
     auto minVal = common::intMinValue(name);
     auto maxVal = common::intMaxValue(name);
@@ -86,8 +92,9 @@ void writeBuiltInRegularInt(std::ostream& out, const std::string& name)
 
     out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
            "/// \\tparam TFieldBase Base class of the field type.\n"
-           "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
-           "template <typename TFieldBase, typename... TOpt>\n"
+           "/// \\tparam TOpt Extra options from \\b comms::option namespace \n";
+    writeHeaderfileInfo(out, ns, name);
+    out << "template <typename TFieldBase, typename... TOpt>\n"
            "struct " << common::renameKeyword(name) << " : public\n" <<
            output::indent(1) << "comms::field::IntValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
@@ -120,10 +127,10 @@ void writeBuiltInInt(DB& db, std::ostream& out, const std::string& name)
     writeNamespaceBegin(out, ns);
 
     if (name == common::uint64Type()) {
-        writeBuiltInBigUnsignedInt(out, name);
+        writeBuiltInBigUnsignedInt(out, ns, name);
     }
     else {
-        writeBuiltInRegularInt(out, name);
+        writeBuiltInRegularInt(out, ns, name);
     }
 
     writeNamespaceEnd(out, ns);
@@ -143,8 +150,9 @@ void writeBuiltInFloat(DB& db, std::ostream& out, const std::string& name)
     writeNamespaceBegin(out, ns);
     out << "/// \\brief Definition of built-in \"" << name << "\" type\n"
            "/// \\tparam TFieldBase Base class of the field type.\n"
-           "/// \\tparam TOpt Extra options from \\b comms::option namespace \n"
-           "template <typename TFieldBase, typename... TOpt>\n"
+           "/// \\tparam TOpt Extra options from \\b comms::option namespace \n";
+    writeHeaderfileInfo(out, ns, name);
+    out << "template <typename TFieldBase, typename... TOpt>\n"
            "struct " << refName << " : public\n" <<
            output::indent(1) << "comms::field::FloatValue<\n" <<
            output::indent(2) << "TFieldBase,\n" <<
@@ -220,8 +228,9 @@ bool writeGroupList(DB& db)
            "/// \\tparam TElement Element of the list, expected to be a variant of \\b comms::field::Bundle.\n"
            "/// \\tparam TDimensionType Dimention type field with \"blockLength\" and \"numInGroup\" members.\n"
            "/// \\tparam TRootCount Number of root block fields in the element.\n"
-           "/// \\tparam TOpt Extra options for the list class.\n"
-           "template <\n" <<
+           "/// \\tparam TOpt Extra options for the list class.\n";
+    writeHeaderfileInfo(out, ns, common::groupListStr());
+    out << "template <\n" <<
            output::indent(1) << "typename TFieldBase,\n" <<
            output::indent(1) << "typename TElement,\n" <<
            output::indent(1) << "typename TDimensionType,\n" <<
@@ -428,8 +437,9 @@ bool writeOpenFrameHeader(DB& db)
            "#include \"comms/field/IntValue.h\"\n"
            "#include \"comms/options.h\"\n\n";
     writeNamespaceBegin(out, ns);
-    out << "/// \\brief Simple Open Framing Header definition.\n"
-           "struct " << common::openFramingHeaderStr() << " : public\n";
+    out << "/// \\brief Simple Open Framing Header definition.\n";
+    writeHeaderfileInfo(out, ns, common::openFramingHeaderStr());
+    out << "struct " << common::openFramingHeaderStr() << " : public\n";
     writeBundleDefFunc(1);
     out << "\n"
            "{\n" <<
@@ -478,8 +488,9 @@ bool writePad(DB& db)
     out << "/// \\brief Padding type definition.\n"
            "/// \\tparam TFieldBase Base class of all the fields.\n"
            "/// \\tparam TLen Length of the padding.\n"
-           "/// \\tparam TOpt Extra options...\n"
-           "template <\n" <<
+           "/// \\tparam TOpt Extra options...\n";
+    writeHeaderfileInfo(out, ns, common::padStr());
+    out << "template <\n" <<
            output::indent(1) << "typename TFieldBase,\n" <<
            output::indent(1) << "std::size_t TLen,\n" <<
            output::indent(1) << "typename... TOpt\n" <<
@@ -520,8 +531,9 @@ bool writeVersionSetter(DB& db)
            "#pragma once\n\n";
     writeNamespaceBegin(out, ns);
     out << "/// \\brief Helper class to update version of the fields in tuple.\n"
-           "/// \\details Expected to be used with \\b comms::util::tupleAccumulate() function.\n"
-           "struct " << common::versionSetterStr() << '\n' <<
+           "/// \\details Expected to be used with \\b comms::util::tupleAccumulate() function.\n";
+    writeHeaderfileInfo(out, ns, common::versionSetterStr());
+    out << "struct " << common::versionSetterStr() << '\n' <<
            "{\n" <<
            output::indent(1) << common::versionSetterStr() << "(unsigned version) : m_version(version) {}\n\n" <<
            output::indent(1) << "template <typename TField>\n" <<

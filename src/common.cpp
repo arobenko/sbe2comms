@@ -1094,6 +1094,11 @@ void scopeToPropertyDefNames(
 
 }
 
+std::string localHeader(const std::string& ns, const std::string& path)
+{
+    return localHeader(ns, emptyString(), path);
+}
+
 } // namespace common
 
 } // namespace sbe2comms

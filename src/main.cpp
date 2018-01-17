@@ -110,6 +110,7 @@ bool writeDefaultOptions(DB& db)
               "/// \\details Defines \\b comms::option::EmptyOption to be extra option\n"
               "///     of every defined field. To customize the protocol options, just\n"
               "///     inherith from this struct and redefine relevant types.\n"
+              "/// \\headerfile " << common::localHeader(ns, common::defaultOptionsFileName()) << "\n"
               "struct " << common::defaultOptionsStr() << "\n"
               "{\n" <<
               output::indent(1) << "/// \\brief Scope for the options relevant to fields from\n" <<
