@@ -84,6 +84,8 @@ private:
     bool isMessageHeader() const;
     bool checkMessageHeader();
     bool checkOpenFramingHeader();
+    bool updateRangeOfSchemaId(Type& schemaId);
+    bool updateRangeOfVersion(Type& version);
 
     Members m_members;
     bool m_dataUse = false;

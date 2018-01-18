@@ -805,6 +805,7 @@ bool CompositeType::checkMessageHeader()
     auto schemaIdValue = static_cast<std::intmax_t>(getDb().getSchemaId());
     schemaIdRealType->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaIdValue) + '>');
     schemaIdRealType->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
+    updateRangeOfSchemaId(*schemaIdRealType);
 
     auto versionIter = findMemberFunc(common::versionStr());
     assert(versionIter != m_members.end());
@@ -813,6 +814,7 @@ bool CompositeType::checkMessageHeader()
     auto* versionRealType = versionTypePtr->getRealType();
     auto schemaVersionValue = static_cast<std::intmax_t>(getDb().getSchemaVersion());
     versionRealType->addExtraOption("comms::option::DefaultNumValue<" + common::num(schemaVersionValue) + '>');
+    updateRangeOfVersion(*versionRealType);
 
     auto templateIdIter = findMemberFunc(common::templateIdStr());
     assert(templateIdIter != m_members.end());
@@ -987,6 +989,91 @@ bool CompositeType::checkOpenFramingHeader()
     realEncTypeTypePtr->updateNodeProperties();
     realEncTypeTypePtr->addExtraOption("comms::option::FailOnInvalid<comms::ErrorStatus::ProtocolError>");
 
+    return true;
+}
+
+bool CompositeType::updateRangeOfSchemaId(Type& schemaId)
+{
+    auto& schemaIdProps = schemaId.getProps();
+    auto& minSchemaIdStr = prop::minValue(schemaIdProps);
+    auto& maxSchemaIdStr = prop::maxValue(schemaIdProps);
+    auto schemaIdStr = common::num(static_cast<std::intmax_t>(getDb().getSchemaId()));
+
+    do {
+        if (minSchemaIdStr.empty()) {
+            xmlSetMinValueProp(schemaId.getNode(), schemaIdStr);
+            break;
+        }
+
+        unsigned minValue = 0U;
+        try {
+            minValue = static_cast<unsigned>(std::stoul(minSchemaIdStr));
+        }
+        catch (...) {
+            // do nothing;
+        }
+
+        if (minValue != getDb().getSchemaId()) {
+            log::error() << "Invalid minValue attribute of \"" << schemaId.getName() << "\" member of Simple Open Frame Header." << std::endl;
+            return false;
+        }
+
+    } while (false);
+
+    do {
+        if (maxSchemaIdStr.empty()) {
+            xmlSetMaxValueProp(schemaId.getNode(), schemaIdStr);
+            break;
+        }
+
+        unsigned maxValue = 0U;
+        try {
+            maxValue = static_cast<unsigned>(std::stoul(maxSchemaIdStr));
+        }
+        catch (...) {
+            // do nothing;
+        }
+
+        if (maxValue != getDb().getSchemaId()) {
+            log::error() << "Invalid maxValue attribute of \"" << schemaId.getName() << "\" member of Simple Open Frame Header." << std::endl;
+            return false;
+        }
+
+    } while (false);
+
+    schemaId.updateNodeProperties();
+    return true;
+}
+
+bool CompositeType::updateRangeOfVersion(Type& version)
+{
+    unsigned minVersion = getDb().getMinRemoteVersion();
+    auto& versionProps = version.getProps();
+    auto& minVersionStr = prop::minValue(versionProps);
+    auto versionStr = common::num(static_cast<std::intmax_t>(minVersion));
+
+    do {
+        if (minVersionStr.empty()) {
+            xmlSetMinValueProp(version.getNode(), versionStr);
+            break;
+        }
+
+        unsigned minValue = 0U;
+        try {
+            minValue = static_cast<unsigned>(std::stoul(versionStr));
+        }
+        catch (...) {
+            // do nothing;
+        }
+
+        if (minValue != minVersion) {
+            log::error() << "Invalid minValue attribute of \"" << version.getName() << "\" member of Simple Open Frame Header." << std::endl;
+            return false;
+        }
+
+    } while (false);
+
+    version.updateNodeProperties();
     return true;
 }
 
