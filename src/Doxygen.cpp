@@ -2292,7 +2292,18 @@ bool Doxygen::writeMain()
            "/// for more details.\n"
            "///\n"
            "/// \\section main_page_reserved_names Reserved Names\n"
-           "/// TODO\n"
+           "/// All the names of fields and messages from the \\b SBE shema are taken\n"
+           "/// \"as-is\" and become names of the relevant classes. If the chosen name\n"
+           "/// turns out to be a C++ keyword, then \\b _ (underscore) suffix is\n"
+           "/// appended to the name of the class. The same update is performed if\n"
+           "/// the name is the same as one of the generated namespaces (\n"
+           "/// \\ref " << ns << ", \\b " << common::messageNamespaceNameStr() <<
+           ", \\b " << common::fieldNamespaceNameStr() << ", \\b " <<
+           common::builtinNamespaceNameStr() << ") or namespaces and/or\n"
+           "/// function names used by the \\b COMMS library.\n"
+           "/// Also generated padding fields (see \\ref main_page_pad) will have\n"
+           "/// \\b padX_ (with \\b _ suffix) format where \\b X is a sequential\n"
+           "/// number of the padding field.\n"
            "///\n\n";
     return true;
 }
