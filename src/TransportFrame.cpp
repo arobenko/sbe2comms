@@ -102,7 +102,7 @@ bool TransportFrame::writeProtocolDef()
            output::indent(2) << "TMessages,\n" <<
            output::indent(2) << "comms::protocol::MsgDataLayer<\n" <<
            output::indent(3) << "comms::field::ArrayList<\n" <<
-           output::indent(4) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+           output::indent(4) << common::fieldBaseFullScope(ns) << ",\n" <<
            output::indent(4) << "std::uint8_t,\n" <<
            output::indent(4) << "TDataStorageOpt\n" <<
            output::indent(3) << ">\n" <<

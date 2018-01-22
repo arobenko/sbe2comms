@@ -48,6 +48,7 @@ const std::string& extraOptionsDocStr();
 const std::string& elementSuffixStr();
 const std::string& extraOptionsTemplParamStr();
 const std::string& fieldBaseStr();
+std::string fieldBaseFullScope(const std::string& ns);
 const std::string& fieldBaseDefStr();
 const std::string& fieldBaseFileName();
 const std::string& enumValSuffixStr();

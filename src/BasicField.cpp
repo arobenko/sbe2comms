@@ -392,7 +392,7 @@ void BasicField::writePaddingAlias(std::ostream& out, unsigned indent, const std
     auto& ns = getNamespaceForType(getDb(), m_type->getName());
 
     out << output::indent(indent) << "using " << name << " = " << ns << common::padStr() << "<\n" <<
-           output::indent(indent + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 1) << common::fieldBaseFullScope(getDb().getProtocolNamespace()) << ",\n" <<
            output::indent(indent + 1) << common::num(m_type->getSerializationLength()) << ",\n" <<
            output::indent(indent + 1) << getFieldOptString() << '\n' <<
            output::indent(indent) << ">;\n\n";
@@ -453,7 +453,7 @@ void BasicField::writeSimpleAlias(std::ostream& out, unsigned indent, const std:
 
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
     if (builtIn) {
-        out << output::indent(indent + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+        out << output::indent(indent + 1) << common::fieldBaseFullScope(getDb().getProtocolNamespace()) << ",\n" <<
                output::indent(indent + 1) << getFieldOptString() << '\n' <<
                output::indent(indent) << ">;\n\n";
         return;
@@ -485,7 +485,8 @@ void BasicField::writeConstant(std::ostream& out, unsigned indent, const std::st
     out << output::indent(indent) << "using " << name << " =\n" <<
            output::indent(indent + 1) << fieldRefName << "<\n";
     if (builtIn) {
-        out << output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+        auto& ns = getDb().getProtocolNamespace();
+        out << output::indent(indent + 2) << common::fieldBaseFullScope(ns) << ",\n";
     }
     else {
         out << output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n";
@@ -540,7 +541,8 @@ void BasicField::writeOptionalBasicBigUnsignedInt(std::ostream& out, unsigned in
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
     if (builtIn) {
-        out << output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+        auto& ns = getDb().getProtocolNamespace();
+        out << output::indent(indent + 2) << common::fieldBaseFullScope(ns) << ",\n";
     }
     else {
         out << output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n";
@@ -576,7 +578,8 @@ void BasicField::writeOptionalBasicInt(std::ostream& out, unsigned indent, const
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
     if (builtIn) {
-        out << output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+        auto& ns = getDb().getProtocolNamespace();
+        out << output::indent(indent + 2) << common::fieldBaseFullScope(ns) << ",\n";
     }
     else {
         out << output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n";
@@ -607,7 +610,8 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
            output::indent(indent + 1) << fieldRefName << "<\n";
     bool builtIn = getDb().isRecordedBuiltInType(m_type->getName());
     if (builtIn) {
-        out << output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n";
+        auto& ns = getDb().getProtocolNamespace();
+        out << output::indent(indent + 2) << common::fieldBaseFullScope(ns) << ",\n";
     }
     else {
         out << output::indent(indent + 2) << getTypeOptString(*m_type) << ",\n";

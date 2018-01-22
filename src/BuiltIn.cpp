@@ -339,9 +339,9 @@ bool writeGroupList(DB& db)
            output::indent(1) << "{\n" <<
            output::indent(2) << "return TDimensionType::minLength();\n" <<
            output::indent(1) << "}\n\n" <<
-           output::indent(1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(1) << "bool setVersion(unsigned val)\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << "m_version = value;\n\n" <<
+           output::indent(2) << "m_version = val;\n\n" <<
            output::indent(2) << common::fieldBaseDefStr() <<
            output::indent(2) << "auto& list = Base::value();\n" <<
            output::indent(2) << "bool updated = false;\n" <<

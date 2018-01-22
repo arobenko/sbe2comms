@@ -555,7 +555,7 @@ bool CompositeType::writeBundle(
     auto memsScope = getName() + common::memembersSuffixStr() + "::";
     for (auto& m : m_members) {
         auto& mProps = m->getProps();
-        out << output::indent(indent + 1) << "///     \\li \\b " << prop::name(mProps) << " for \\ref " << memsScope << prop::name(mProps) << '.' << std::endl;
+        out << output::indent(indent + 1) << "///     \\li \\b " << prop::name(mProps) << " for \\ref " << memsScope << common::renameKeyword(prop::name(mProps)) << '.' << std::endl;
     }
     out << output::indent(indent + 1) << "COMMS_FIELD_MEMBERS_ACCESS(\n";
     for (auto& m : m_members) {
@@ -571,9 +571,9 @@ bool CompositeType::writeBundle(
            output::indent(indent + 1) << "/// \\brief Update current message version.\n" <<
            output::indent(indent + 1) << "/// \\details Calls setVersion() of every member.\n" <<
            output::indent(indent + 1) << "/// \\return \\b true if any of the fields returns \\b true.\n" <<
-           output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(indent + 1) << "bool setVersion(unsigned val)\n" <<
            output::indent(indent + 1) << "{\n" <<
-           output::indent(indent + 2) << "return comms::util::tupleAccumulate(Base::value(), false, " << common::builtinNamespaceStr() << common::versionSetterStr() << "(value));\n" <<
+           output::indent(indent + 2) << "return comms::util::tupleAccumulate(Base::value(), false, " << common::builtinNamespaceStr() << common::versionSetterStr() << "(val));\n" <<
            output::indent(indent + 1) << "}\n";
 
     if (isBundleOptional()) {

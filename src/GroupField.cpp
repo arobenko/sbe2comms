@@ -119,9 +119,10 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
         name = getName() + suffix;
     }
 
+    auto& ns = getDb().getProtocolNamespace();
     out << output::indent(indent) << "using " << name << " =\n" <<
            output::indent(indent + 1) << common::builtinNamespaceStr() << common::groupListStr() << "<\n" <<
-           output::indent(indent + 2) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+           output::indent(indent + 2) << common::fieldBaseFullScope(ns) << ",\n" <<
            output::indent(indent + 2) << getName() << common::elementSuffixStr() << ",\n" <<
            output::indent(indent + 2) << common::fieldNamespaceStr() << getDimensionType() << "<\n";
     for (auto& o : extraOpts) {
@@ -222,6 +223,7 @@ bool GroupField::prepareMembers()
     auto blockLength = getBlockLength();
     auto scope = getScope() + getName() + common::memembersSuffixStr() + "::";
     auto lastSinceVersion = 0U;
+    auto lastKind = Field::Kind::Basic;
     unsigned thisFieldSinceVersion = 0U;
     std::set<std::string> memNames;
 
@@ -294,26 +296,30 @@ bool GroupField::prepareMembers()
             continue;
         }
 
-        if ((!rootBlock) && (mem->getKind() == Kind::Basic)) {
+        auto memKind = mem->getKind();
+        if ((!rootBlock) && (memKind == Kind::Basic)) {
             log::error() << "Basic member \"" << mem->getName() << "\" of \"" << getName() << "\" group cannot follow other group or data" << std::endl;
             return false;
         }
 
-        if ((dataMembers) && (mem->getKind() != Kind::Data)) {
+        if ((dataMembers) && (memKind != Kind::Data)) {
             log::error() << "member \"" << mem->getName() << "\" of \"" << getName() << "\" group cannot follow other group or data" << std::endl;
             return false;
         }
 
-        if (mem->getKind() == Kind::Data) {
+        if (memKind == Kind::Data) {
             dataMembers = true;
         }
 
         auto sinceVersion = mem->getSinceVersion();
-        if (sinceVersion < lastSinceVersion) {
+        if ((sinceVersion < lastSinceVersion) &&
+            ((lastKind == memKind) || (lastKind != Field::Kind::Basic))){
             log::error() << "Unexpected \"sinceVersion\" attribute value of \"" << mem->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
             return false;
         }
+
         lastSinceVersion = sinceVersion;
+        lastKind = memKind;
 
         do {
             if (!rootBlock) {
@@ -321,7 +327,7 @@ bool GroupField::prepareMembers()
             }
 
             auto offset = mem->getOffset();
-            if (mem->getKind() != Kind::Basic) {
+            if (memKind != Kind::Basic) {
                 rootBlock = false;
                 offset = std::max(offset, blockLength);
             }
@@ -349,7 +355,7 @@ bool GroupField::prepareMembers()
         } while (false);
 
         if (rootBlock) {
-            assert(mem->getKind() == Kind::Basic);
+            assert(memKind == Kind::Basic);
             expOffset += static_cast<const BasicField*>(mem.get())->getSerializationLength();
         }
         memNames.insert(mem->getName());
@@ -415,7 +421,7 @@ void GroupField::writeBundle(std::ostream& out, unsigned indent)
         [this, &out](unsigned ind)
         {
             out << output::indent(ind) << "comms::field::Bundle<\n" <<
-                   output::indent(ind + 1) << common::fieldNamespaceStr() << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << common::fieldBaseFullScope(getDb().getProtocolNamespace()) << ",\n" <<
                    output::indent(ind + 1) << "typename " << getName() << common::memembersSuffixStr() << "::All\n" <<
                    output::indent(ind) << ">";
         };

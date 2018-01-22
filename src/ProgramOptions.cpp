@@ -54,7 +54,7 @@ po::options_description createDescription()
             "Force schema version. Must not be greater than version specified in schema file.")
         (FullMinRemoteVerStr.c_str(), po::value<unsigned>()->default_value(0U),
             "Set minimal supported remote version. Defaults to 0.")
-        (CommsChampionTagStr.c_str(), po::value<std::string>()->default_value("master"),
+        (CommsChampionTagStr.c_str(), po::value<std::string>()->default_value("v0.23"),
             "Default tag/branch of the CommsChampion project.")
         (OpenFrameHeaderNameStr.c_str(), po::value<std::string>()->default_value(std::string()),
             "Name for Simple Open Framing Header definition \"composite\" type.")

@@ -284,6 +284,11 @@ const std::string& fieldBaseStr()
     return Str;
 }
 
+std::string fieldBaseFullScope(const std::string& ns)
+{
+    return scopeFor(ns, common::fieldNamespaceStr() + fieldBaseStr());
+}
+
 const std::string& fieldBaseDefStr()
 {
     static const std::string Str("using Base = typename std::decay<decltype(toFieldBase(*this))>::type;\n");

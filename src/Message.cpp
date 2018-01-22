@@ -193,6 +193,7 @@ bool Message::createFields()
     auto blockLength = prop::blockLength(m_props);
     auto scope = getName() + common::fieldsSuffixStr() + "::";
     unsigned lastSinceVersion = 0U;
+    Field::Kind lastKind = Field::Kind::Basic;
     std::set<std::string> fieldNames;
 
     auto addPaddingFunc =
@@ -257,24 +258,27 @@ bool Message::createFields()
             continue;
         }
 
-        if ((!rootBlock) && (fieldPtr->getKind() == Field::Kind::Basic)) {
+        auto thisKind = fieldPtr->getKind();
+        if ((!rootBlock) && (thisKind == Field::Kind::Basic)) {
             log::error() << "Basic field \"" << fieldPtr->getName() << "\" of \"" << getName() << "\" message cannot follow group or data" << std::endl;
             return false;
         }
 
-        if ((dataMembers) && (fieldPtr->getKind() != Field::Kind::Data)) {
+        if ((dataMembers) && (thisKind != Field::Kind::Data)) {
             log::error() << "Field \"" << fieldPtr->getName() << "\" of \"" << getName() << "\" message cannot follow other group or data" << std::endl;
             return false;
         }
 
         auto sinceVersion = fieldPtr->getSinceVersion();
-        if (sinceVersion < lastSinceVersion) {
+        if ((sinceVersion < lastSinceVersion) &&
+            ((lastKind == thisKind) || (lastKind != Field::Kind::Basic))) {
             log::error() << "Unexpected \"sinceVersion\" attribute value of \"" << fieldPtr->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
             return false;
         }
         lastSinceVersion = sinceVersion;
+        lastKind = thisKind;
 
-        if (fieldPtr->getKind() == Field::Kind::Data) {
+        if (thisKind == Field::Kind::Data) {
             dataMembers = true;
         }
 
@@ -284,7 +288,7 @@ bool Message::createFields()
             }
 
             auto offset = fieldPtr->getOffset();
-            if (fieldPtr->getKind() != Field::Kind::Basic) {
+            if (thisKind != Field::Kind::Basic) {
                 rootBlock = false;
                 offset = std::max(offset, blockLength);
             }
@@ -313,7 +317,7 @@ bool Message::createFields()
         } while (false);
 
         if (rootBlock) {
-            assert(fieldPtr->getKind() == Field::Kind::Basic);
+            assert(thisKind == Field::Kind::Basic);
             expOffset += static_cast<const BasicField*>(fieldPtr.get())->getSerializationLength();
         }
 

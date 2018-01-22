@@ -197,7 +197,7 @@ void SetType::writeSingle(
         [this, &out, len, reservedMask](unsigned ind)
         {
             out << output::indent(ind) << "comms::field::BitmaskValue<\n" <<
-                   output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << common::fieldBaseFullScope(getDb().getProtocolNamespace()) << ",\n" <<
                    output::indent(ind + 1) << "TOpt...,\n" <<
                    output::indent(ind + 1) << "comms::option::FixedLength<" << len << ">";
 
@@ -247,7 +247,7 @@ void SetType::writeList(
         [this, &out, count](unsigned ind)
         {
             out << output::indent(ind) << "comms::field::ArrayList<\n" <<
-                   output::indent(ind + 1) << common::fieldBaseStr() << ",\n" <<
+                   output::indent(ind + 1) << common::fieldBaseFullScope(getDb().getProtocolNamespace()) << ",\n" <<
                    output::indent(ind + 1) << getName() << common::elementSuffixStr() << "<>,\n" <<
                    output::indent(ind + 1) << "TOpt...";
             if (count != 0U) {

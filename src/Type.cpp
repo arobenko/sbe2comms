@@ -573,14 +573,14 @@ const std::string& Type::getNameSuffix(bool commsOptionalWrapped, bool isElement
     return common::emptyString();
 }
 
-const std::string& Type::getFieldBaseString() const
+std::string Type::getFieldBaseString() const
 {
     if (m_forcedBigEndianBase) {
         static const std::string Str("comms::Field<comms::option::BigEndian>");
         return Str;
     }
 
-    return common::fieldBaseStr();
+    return common::fieldBaseFullScope(m_db.getProtocolNamespace());
 }
 
 void Type::writeSerialisedHiddenCheck(std::ostream& out, unsigned indent, const std::string& prop)
