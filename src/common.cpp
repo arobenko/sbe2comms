@@ -815,12 +815,12 @@ void writeOptFieldDefinitionBody(
     out << output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << "/// \\brief Update current version.\n" <<
            output::indent(indent + 1) << "/// \\return \\b true if field's content has been updated.\n" <<
-           output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(indent + 1) << "bool setVersion(unsigned val)\n" <<
            output::indent(indent + 1) << "{\n" <<
            output::indent(indent + 2) << fieldBaseDefStr() <<
-           output::indent(indent + 2) << "bool updated = Base::field().setVersion(value);\n" <<
+           output::indent(indent + 2) << "bool updated = Base::field().setVersion(val);\n" <<
            output::indent(indent + 2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
-           output::indent(indent + 2) << "if (value < " << sinceVersion << "U) {\n" <<
+           output::indent(indent + 2) << "if (val < " << sinceVersion << "U) {\n" <<
            output::indent(indent + 3) << "mode = comms::field::OptionalMode::Missing;\n" <<
            output::indent(indent + 2) << "}\n\n" <<
            output::indent(indent + 2) << "if (Base::getMode() != mode) {\n" <<
