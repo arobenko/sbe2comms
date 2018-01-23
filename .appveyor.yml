@@ -23,8 +23,8 @@ environment:
 
 install:
     - call appveyor_install.bat
-    - ps: (new-object net.webclient).DownloadFile('http://xmlsoft.org/sources/win32/libxml2-2.7.8.win32.zip', 'libxml2.zip')
-    - ps: Expand-Archive libxml2.zip -DestinationPath C:\libxml2
+    - ps: (new-object net.webclient).DownloadFile('http://xmlsoft.org/sources/win32/libxml2-2.7.8.win32.zip', 'C:\libxml2.zip')
+    - ps: Expand-Archive C:\libxml2.zip -DestinationPath C:\libxml2
 
 build_script:
     - mkdir build.%PLATFORM%.%CONFIGURATION%
