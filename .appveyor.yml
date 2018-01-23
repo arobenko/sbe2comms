@@ -29,7 +29,7 @@ install:
 build_script:
     - mkdir build.%PLATFORM%.%CONFIGURATION%
     - cd build.%PLATFORM%.%CONFIGURATION%
-    - cmake .. -DCMAKE_BUILD_TYPE=%CONFIGURATION% -G "NMake Makefiles" -DBOOST_ROOT="C:\Libraries\boost_1_59_0" -DLIBXML2_INCLUDE_DIR="C:\libxml2\include"
+    - cmake .. -DCMAKE_BUILD_TYPE=%CONFIGURATION% -G "NMake Makefiles" -DBOOST_ROOT="C:\Libraries\boost_1_59_0" -DLIBXML2_INCLUDE_DIR="C:/libxml2/include" -DLIBXML2_LIBRARIES="C:/libxml2/lib
     - nmake install
 
  
