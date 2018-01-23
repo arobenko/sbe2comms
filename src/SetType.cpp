@@ -85,8 +85,7 @@ bool SetType::parseImpl()
 
 bool SetType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
-    auto serLen = getSerializationLengthImpl();
-    assert(0U < serLen);
+    assert(0U < getSerializationLengthImpl());
 
     auto count = getAdjustedLengthProp();
     if (count != 1U) {

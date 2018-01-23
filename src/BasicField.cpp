@@ -527,8 +527,7 @@ void BasicField::writeOptionalBasicBigUnsignedInt(std::ostream& out, unsigned in
 {
     assert(m_type != nullptr);
     assert(m_type->getKind() == Type::Kind::Basic);
-    auto* basicType = static_cast<const BasicType*>(m_type);
-    assert(basicType->isIntType());
+    assert(asBasicType(m_type)->isIntType());
     std::uintmax_t nullValue = common::defaultBigUnsignedNullValue();
     auto nullValueStr = common::num(nullValue);
     auto* fieldSuffixPtr = &common::emptyString();
@@ -598,8 +597,7 @@ void BasicField::writeOptionalBasicFp(std::ostream& out, unsigned indent, const 
 {
     assert(m_type != nullptr);
     assert(m_type->getKind() == Type::Kind::Basic);
-    auto* basicType = static_cast<const BasicType*>(m_type);
-    assert(basicType->isFpType());
+    assert(asBasicType(m_type)->isFpType());
     auto* fieldSuffixPtr = &common::emptyString();
     if (m_type->isCommsOptionalWrapped() && isCommsOptionalWrapped()) {
         fieldSuffixPtr = &common::optFieldSuffixStr();
