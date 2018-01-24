@@ -578,7 +578,8 @@ void Message::writeReadFunc(std::ostream& out)
         }
 
         if (nonBasicFieldIter == m_fields.end()) {
-            out << output::indent(2) << "auto iterTmp = iter;\n" <<
+            out << output::indent(2) << "static_cast<void>(len);\n" <<
+                   output::indent(2) << "auto iterTmp = iter;\n" <<
                    output::indent(2) << "auto es = Base::doRead(iterTmp, Base::getBlockLength());\n" <<
                    output::indent(2) << "if (es == comms::ErrorStatus::Success) {\n" <<
                    output::indent(3) << advanceStr <<
