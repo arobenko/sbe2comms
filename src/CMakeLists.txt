@@ -26,18 +26,20 @@ while (TRUE)
         GIT_REPOSITORY "git://git.gnome.org/libxml2"
         GIT_TAG "v2.9.7"
         CONFIGURE_COMMAND
-            cscript ${LIBXML2_BIN_DIR}/configure.js ftp=no html=no iconv=no compiler=msvc static=yes bindir=win32\\install\\bin incdir=win32\\install\\include libdir=win32\\install\\lib sodir=install\\bin
+            cscript ${LIBXML2_BIN_DIR}/configure.js ftp=no html=no iconv=no compiler=msvc static=yes bindir=install\\bin incdir=install\\include libdir=install\\lib sodir=install\\bin
         SOURCE_DIR "${LIBXML2_SRC_DIR}"
         BINARY_DIR "${LIBXML2_BIN_DIR}"
         BUILD_COMMAND
             nmake /f Makefile.msvc
+        COMMAND
+            dir
         INSTALL_COMMAND
-            nmake /f Makefile.msvc install
+            nmake /f Makefile.msvc install"
     )
 
     set (LIBXML2_FOUND TRUE)
-    set (LIBXML2_INCLUDE_DIR "${LIBXML2_BIN_DIR}/install/include")
-    set (LIBXML2_LIBRARIES "${LIBXML2_BIN_DIR}/install/lib/libxml2_a.lib")
+    set (LIBXML2_INCLUDE_DIR "${LIBXML2_SRC_DIR}/install/include")
+    set (LIBXML2_LIBRARIES "${LIBXML2_SRC_DIR}/install/lib/libxml2_a.lib")
     break()
 endwhile ()
 
