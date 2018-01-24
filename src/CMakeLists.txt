@@ -31,8 +31,6 @@ while (TRUE)
         BINARY_DIR "${LIBXML2_BIN_DIR}"
         BUILD_COMMAND
             nmake /f Makefile.msvc
-        COMMAND
-            dir
         INSTALL_COMMAND
             nmake /f Makefile.msvc install"
     )
