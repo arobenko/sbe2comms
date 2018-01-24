@@ -19,6 +19,8 @@ while (TRUE)
     set (LIBXML2_BIN_DIR "${LIBXML2_SRC_DIR}/win32")
     include(ExternalProject)
     ExternalProject_Add(
+        ${INTERNAL_LIBXML_TGT}
+        PREFIX "${LIBXML2_SRC_DIR}"
         GIT_REPOSITORY "git://git.gnome.org/libxml2"
         GIT_TAG "v2.9.7"
         CONFIGURE_COMMAND
