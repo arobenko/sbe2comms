@@ -21,11 +21,12 @@ while (TRUE)
     ExternalProject_Add(
         ${INTERNAL_LIBXML_TGT}
         PREFIX "${LIBXML2_SRC_DIR}"
+        STAMP_DIR "${LIBXML2_BIN_DIR}"
         GIT_REPOSITORY "git://git.gnome.org/libxml2"
         GIT_TAG "v2.9.7"
         CONFIGURE_COMMAND
             "cscript configure.js ftp=no html=no iconv=no compiler=msvc static=yes bindir=install\\bin incdir=install\\include libdir=install\\lib sodir=install\\bin"
-        SOURCE_DIR "${LIBXML2_SRC_DIR}"
+        SOURCE_DIR "${LIBXML2_BIN_DIR}"
         BINARY_DIR "${LIBXML2_BIN_DIR}"
         BUILD_COMMAND
             "nmake /f Makefile.msvc"
