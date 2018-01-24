@@ -34,6 +34,7 @@ while (TRUE)
     set (LIBXML2_FOUND TRUE)
     set (LIBXML2_INCLUDE_DIR "${LIBXML2_BIN_DIR}/install/include")
     set (LIBXML2_LIBRARIES "${LIBXML2_BIN_DIR}/install/lib/libxml2_a.lib")
+    break()
 endwhile ()
 
 if (NOT LIBXML2_FOUND)
