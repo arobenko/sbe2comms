@@ -19,16 +19,16 @@ while (TRUE)
     set (LIBXML2_BIN_DIR "${LIBXML2_SRC_DIR}/win32")
     include(ExternalProject)
     ExternalProject_Add(
-        GIT_REPOSITORY git://git.gnome.org/libxml2
+        GIT_REPOSITORY "git://git.gnome.org/libxml2"
         GIT_TAG "v2.9.7"
         CONFIGURE_COMMAND
-            cscript configure.js ftp=no html=no iconv=no compiler=msvc static=yes bindir=install\\bin incdir=install\\include libdir=install\\lib sodir=install\\bin
-        SOURCE_DIR ${LIBXML2_SRC_DIR}
-        BINARY_DIR ${LIBXML2_BIN_DIR}
+            "cscript configure.js ftp=no html=no iconv=no compiler=msvc static=yes bindir=install\\bin incdir=install\\include libdir=install\\lib sodir=install\\bin"
+        SOURCE_DIR "${LIBXML2_SRC_DIR}"
+        BINARY_DIR "${LIBXML2_BIN_DIR}"
         BUILD_COMMAND
-            nmake /f Makefile.msvc
+            "nmake /f Makefile.msvc"
         INSTALL_COMMAND
-            nmake /f Makefile.msvc install
+            "nmake /f Makefile.msvc install"
     )
 
     set (LIBXML2_FOUND TRUE)
