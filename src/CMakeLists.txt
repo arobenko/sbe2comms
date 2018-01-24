@@ -15,18 +15,19 @@ while (TRUE)
     endif ()
 
     set (INTERNAL_LIBXML_TGT "libxml2_tgt")
-    set (LIBXML2_SRC_DIR "${CMAKE_CURRENT_BINARY_DIR}/libxml2")
+    set (LIBXML2_DIR "${CMAKE_CURRENT_BINARY_DIR}/libxml2")
+    set (LIBXML2_SRC_DIR "${LIBXML2_DIR}/src")
     set (LIBXML2_BIN_DIR "${LIBXML2_SRC_DIR}/win32")
     include(ExternalProject)
     ExternalProject_Add(
         ${INTERNAL_LIBXML_TGT}
-        PREFIX "${LIBXML2_SRC_DIR}"
-        STAMP_DIR "${LIBXML2_BIN_DIR}"
+        PREFIX "${LIBXML2_DIR}"
+        STAMP_DIR "${LIBXML2_DIR}"
         GIT_REPOSITORY "git://git.gnome.org/libxml2"
         GIT_TAG "v2.9.7"
         CONFIGURE_COMMAND
             "cscript configure.js ftp=no html=no iconv=no compiler=msvc static=yes bindir=install\\bin incdir=install\\include libdir=install\\lib sodir=install\\bin"
-        SOURCE_DIR "${LIBXML2_BIN_DIR}"
+        SOURCE_DIR "${LIBXML2_SRC_DIR}"
         BINARY_DIR "${LIBXML2_BIN_DIR}"
         BUILD_COMMAND
             "nmake /f Makefile.msvc"
