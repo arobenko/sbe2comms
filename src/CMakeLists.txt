@@ -1,5 +1,44 @@
+set (INTERNAL_LIBXML_TGT)
+while (TRUE)
+    if (UNIX)
+        # Use libxml2 from system repositories
+        break()
+    endif ()
 
-find_package(LibXml2 REQUIRED)
+    if ((NOT "${LIBXML2_INCLUDE_DIR}" STREQUAL "") AND (NOT "${}" STREQUAL ""))
+        # External build of libxml2 is provided
+        break()
+    endif ()
+
+    if (NOT MSVC)
+        message (FATAL_ERROR "At this moment only MSVC compiler is supported for windows builds")
+    endif ()
+
+    set (INTERNAL_LIBXML_TGT "libxml2_tgt")
+    set (LIBXML2_SRC_DIR "${CMAKE_CURRENT_BINARY_DIR}/libxml2")
+    set (LIBXML2_BIN_DIR "${LIBXML2_SRC_DIR}/win32")
+    include(ExternalProject)
+    ExternalProject_Add(
+        GIT_REPOSITORY git://git.gnome.org/libxml2
+        GIT_TAG "v2.9.7"
+        CONFIGURE_COMMAND
+            cscript configure.js ftp=no html=no iconv=no compiler=msvc static=yes bindir=install\\bin incdir=install\\include libdir=install\\lib sodir=install\\bin
+        SOURCE_DIR ${LIBXML2_SRC_DIR}
+        BINARY_DIR ${LIBXML2_BIN_DIR}
+        BUILD_COMMAND
+            nmake /f Makefile.msvc
+        INSTALL_COMMAND
+            nmake /f Makefile.msvc install
+    )
+
+    set (LIBXML2_FOUND TRUE)
+    set (LIBXML2_INCLUDE_DIR "${LIBXML2_BIN_DIR}/install/include")
+    set (LIBXML2_LIBRARIES "${LIBXML2_BIN_DIR}/install/lib/libxml2_a.lib")
+endwhile ()
+
+if (NOT LIBXML2_FOUND)
+    find_package(LibXml2 REQUIRED)
+endif ()
 include_directories(${LIBXML2_INCLUDE_DIR})
 add_definitions(${LIBXML2_DEFINITIONS})
 
@@ -49,6 +88,10 @@ set (
 
 add_executable(${PROJECT_NAME} ${src})
 target_link_libraries(${PROJECT_NAME} ${LIBXML2_LIBRARIES} ${Boost_LIBRARIES})
+
+if (NOT "${INTERNAL_LIBXML_TGT}" STREQUAL "")
+    add_dependencies(${PROJECT_NAME} ${INTERNAL_LIBXML_TGT})
+endif ()
 
 install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION ${SBE2COMMS_INSTALL_DIR}/bin

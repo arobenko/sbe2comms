@@ -23,13 +23,11 @@ environment:
 
 install:
     - call appveyor_install.bat
-    - ps: (new-object net.webclient).DownloadFile('http://xmlsoft.org/sources/win32/libxml2-2.7.8.win32.zip', 'C:\libxml2.zip')
-    - ps: Expand-Archive C:\libxml2.zip -DestinationPath C:\
 
 build_script:
     - mkdir build.%PLATFORM%.%CONFIGURATION%
     - cd build.%PLATFORM%.%CONFIGURATION%
-    - cmake .. -DCMAKE_BUILD_TYPE=%CONFIGURATION% -G "NMake Makefiles" -DBOOST_ROOT="C:\Libraries\boost_1_59_0" -DLIBXML2_INCLUDE_DIR="C:/libxml2-2.7.8.win32/include" -DLIBXML2_LIBRARIES="C:/libxml2-2.7.8.win32/lib
+    - cmake .. -DCMAKE_BUILD_TYPE=%CONFIGURATION% -G "NMake Makefiles" -DBOOST_ROOT="C:\Libraries\boost_1_59_0" 
     - nmake install
 
  
