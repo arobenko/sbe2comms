@@ -94,6 +94,10 @@ set (
 add_executable(${PROJECT_NAME} ${src})
 target_link_libraries(${PROJECT_NAME} ${LIBXML2_LIBRARIES} ${Boost_LIBRARIES})
 
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} Setupapi.lib Ws2_32.lib imm32.lib winmm.lib)
+endif ()
+
 if (NOT "${INTERNAL_LIBXML_TGT}" STREQUAL "")
     add_dependencies(${PROJECT_NAME} ${INTERNAL_LIBXML_TGT})
 endif ()
