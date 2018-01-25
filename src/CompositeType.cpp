@@ -931,7 +931,8 @@ bool CompositeType::checkOpenFramingHeader()
         messageLengthTypePtr->getSerializationLength() +
         encTypeLength;
 
-    realMessageLengthTypePtr->addExtraOption("comms::option::NumValueSerOffset<" + common::num(extraSerLength) + '>');
+    auto extraSerLengthStr = common::num(static_cast<std::intmax_t>(extraSerLength));
+    realMessageLengthTypePtr->addExtraOption("comms::option::NumValueSerOffset<" + extraSerLengthStr + '>');
 
     std::uintmax_t sync = 0x5be0;
     if (ba::ends_with(getDb().getEndian(), "LittleEndian")) {
