@@ -391,9 +391,10 @@ void BasicField::writePaddingAlias(std::ostream& out, unsigned indent, const std
     assert(m_type != nullptr);
     auto& ns = getNamespaceForType(getDb(), m_type->getName());
 
+    auto serLenStr = common::num(static_cast<std::intmax_t>(m_type->getSerializationLength()));
     out << output::indent(indent) << "using " << name << " = " << ns << common::padStr() << "<\n" <<
            output::indent(indent + 1) << common::fieldBaseFullScope(getDb().getProtocolNamespace()) << ",\n" <<
-           output::indent(indent + 1) << common::num(m_type->getSerializationLength()) << ",\n" <<
+           output::indent(indent + 1) << serLenStr << ",\n" <<
            output::indent(indent + 1) << getFieldOptString() << '\n' <<
            output::indent(indent) << ">;\n\n";
     return;
