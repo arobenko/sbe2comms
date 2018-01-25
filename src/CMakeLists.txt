@@ -31,15 +31,13 @@ while (TRUE)
         BINARY_DIR "${LIBXML2_BIN_DIR}"
         BUILD_COMMAND
             nmake /f Makefile.msvc
-        COMMAND
-            dir
         INSTALL_COMMAND
             nmake /f Makefile.msvc install
     )
 
     set (LIBXML2_FOUND TRUE)
-    set (LIBXML2_INCLUDE_DIR "${LIBXML2_SRC_DIR}/install/include")
-    set (LIBXML2_LIBRARIES "${LIBXML2_SRC_DIR}/install/lib/libxml2_a.lib")
+    set (LIBXML2_INCLUDE_DIR "${LIBXML2_BIN_DIR}/install/include/libxml2")
+    set (LIBXML2_LIBRARIES "${LIBXML2_BIN_DIR}/install/lib/libxml2_a.lib")
     break()
 endwhile ()
 
