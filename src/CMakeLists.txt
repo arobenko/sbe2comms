@@ -18,6 +18,12 @@ while (TRUE)
     set (LIBXML2_DIR "${CMAKE_CURRENT_BINARY_DIR}/libxml2")
     set (LIBXML2_SRC_DIR "${LIBXML2_DIR}/src")
     set (LIBXML2_BIN_DIR "${LIBXML2_SRC_DIR}/win32")
+
+    set (LIBXML2_CRUNTIME)
+    if (("${CMAKE_BUILD_TYPE}" STREQUAL "") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
+        set (LIBXML2_CRUNTIME "cruntime=/MDd")
+    endif ()
+
     include(ExternalProject)
     ExternalProject_Add(
         ${INTERNAL_LIBXML_TGT}
@@ -26,7 +32,7 @@ while (TRUE)
         GIT_REPOSITORY "git://git.gnome.org/libxml2"
         GIT_TAG "v2.9.7"
         CONFIGURE_COMMAND
-            cscript ${LIBXML2_BIN_DIR}/configure.js ftp=no html=no iconv=no compiler=msvc static=yes bindir=install\\bin incdir=install\\include libdir=install\\lib sodir=install\\bin
+            cscript ${LIBXML2_BIN_DIR}/configure.js ftp=no html=no iconv=no compiler=msvc static=yes ${LIBXML2_CRUNTIME} bindir=install\\bin incdir=install\\include libdir=install\\lib sodir=install\\bin
         SOURCE_DIR "${LIBXML2_SRC_DIR}"
         BINARY_DIR "${LIBXML2_BIN_DIR}"
         BUILD_COMMAND
