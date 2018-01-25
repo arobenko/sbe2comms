@@ -100,7 +100,7 @@ bool GroupField::writeImpl(std::ostream& out, unsigned indent, const std::string
     writeBundle(out, indent);
     writeHeader(out, indent, suffix);
 
-    unsigned basicFieldCount =
+    auto basicFieldCount =
         std::count_if(
             m_members.begin(), m_members.end(),
             [](const FieldPtr& m) -> bool
