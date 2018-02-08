@@ -22,6 +22,7 @@
 namespace sbe2comms
 {
 
+class DB;
 class MessageSchema
 {
 public:
@@ -32,6 +33,8 @@ public:
     unsigned id() const;
     const std::string& byteOrder() const;
     const std::string& headerType() const;
+
+    static bool write(DB& db);
 
 private:
     XmlPropsMap m_props;

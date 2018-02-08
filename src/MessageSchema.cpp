@@ -16,7 +16,20 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "MessageSchema.h"
+
+#include <fstream>
+
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include "prop.h"
+#include "DB.h"
+#include "common.h"
+#include "log.h"
+#include "output.h"
+
+namespace bf = boost::filesystem;
+namespace ba = boost::algorithm;
 
 namespace sbe2comms
 {
@@ -49,6 +62,83 @@ const std::string& MessageSchema::byteOrder() const
 const std::string& MessageSchema::headerType() const
 {
     return prop::headerType(m_props);
+}
+
+bool MessageSchema::write(DB& db)
+{
+    auto& ns = db.getProtocolNamespace();
+    if (!common::createProtocolDefDir(db.getRootPath(), ns)) {
+        return false;
+    }
+
+    auto relPath = common::protocolDirRelPath(db.getProtocolNamespace(), common::messageSchemaFileNameStr());
+    auto filePath = bf::path(db.getRootPath()) / relPath;
+    log::info() << "Generating " << relPath << std::endl;
+    std::ofstream out(filePath.string());
+    if (!out) {
+        log::error() << "Failed to create " << filePath.string() << std::endl;
+        return false;
+    }
+
+    auto& msgHeaderType = db.getMessageHeaderType();
+    if (msgHeaderType.empty()) {
+        log::error() << "Unknown message header type." << std::endl;
+        return false;                        
+    }
+
+    out << "/// \\file\n"
+           "/// \\brief Contains compile time constants and types relevant to the schema.\n\n"
+           "#pragma once\n\n"
+           "#include \"comms/traits.h\"\n\n" 
+           "#include " << common::localHeader(ns, common::fieldNamespaceNameStr(), msgHeaderType + ".h") << "\n";
+
+    if (db.hasSimpleOpenFramingHeaderTypeDefined()) {
+        out << "#include " << common::localHeader(ns, common::fieldNamespaceNameStr(), db.getSimpleOpenFramingHeaderTypeName() + ".h") << "\n";
+    }
+    else {
+        out << "#include " << common::localHeader(ns, common::builtinNamespaceNameStr(), common::openFramingHeaderStr() + ".h") << "\n";
+    }
+    out << "\n";
+
+    common::writeProtocolNamespaceBegin(ns, out);
+    out << "class " << common::messageSchemaStr() << "\n"
+           "{\n" <<
+           output::indent(1) << "/// \\brief Endianness tag ussed by the COMMS library\n" <<
+           output::indent(1) << "using Endian = comms::traits::endian::";
+    if (ba::contains(db.getEndian(), "Big")) {
+        out << "Big";
+    }
+    else {
+        out << "Little";
+    }
+    
+    out << ";\n\n" <<
+           output::indent(1) << "/// \\brief Message header field type\n" <<
+           output::indent(1) << "using MessageHeader = " << common::scopeFor(ns, common::fieldNamespaceStr() + db.getMessageHeaderType()) << ";\n\n" <<
+           output::indent(1) << "/// \\brief Simple open framing header field type\n" <<
+           output::indent(1) << "using SimpleOpenFramingHeader = ";
+
+    if (db.hasSimpleOpenFramingHeaderTypeDefined()) {
+        out << common::scopeFor(ns, common::fieldNamespaceStr() + db.getSimpleOpenFramingHeaderTypeName());
+    }
+    else {
+        out << common::scopeFor(ns, common::builtinNamespaceStr() + common::openFramingHeaderStr());
+    }
+    out << ";\n\n" <<
+           output::indent(1) << "/// \\brief Version of the schema\n" <<
+           output::indent(1) << "static const unsigned version()\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "return " << db.getSchemaVersion() << "U;\n" <<
+           output::indent(1) << "}\n\n" <<
+           output::indent(1) <<  "/// \\brief ID of the schema\n" <<
+           output::indent(1) << "static const unsigned id()\n" <<
+           output::indent(1) << "{\n" <<
+           output::indent(2) << "return " << db.getSchemaId() << "U;\n" <<
+           output::indent(1) << "}\n" <<
+           "};\n\n";
+
+    common::writeProtocolNamespaceEnd(ns, out);
+    return true;
 }
 
 } // namespace sbe2comms

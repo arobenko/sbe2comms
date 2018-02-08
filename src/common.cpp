@@ -547,6 +547,18 @@ const std::string& serialisedHiddenStr()
     return Str;
 }
 
+const std::string& messageSchemaStr()
+{
+    static const std::string Str("MessageSchema");
+    return Str;
+}
+
+const std::string& messageSchemaFileNameStr()
+{
+    static const std::string Str(messageSchemaStr() + ".h");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     if (std::numeric_limits<std::int32_t>::max() < val) {

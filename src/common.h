@@ -92,6 +92,8 @@ const std::string& transportMessageNameStr();
 const std::string& protocolNameStr();
 const std::string& pluginNameStr();
 const std::string& serialisedHiddenStr();
+const std::string& messageSchemaStr();
+const std::string& messageSchemaFileNameStr();
 std::string num(std::intmax_t val);
 std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);

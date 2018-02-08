@@ -39,11 +39,17 @@
 #include "Protocol.h"
 #include "Plugin.h"
 #include "Doxygen.h"
+#include "MessageSchema.h"
 
 namespace bf = boost::filesystem;
 
 namespace sbe2comms
 {
+
+bool writeMessageSchema(DB& db)
+{
+    return MessageSchema::write(db);
+}
 
 bool writeBuiltIn(DB& db)
 {
@@ -231,6 +237,7 @@ int main(int argc, const char* argv[])
     sbe2comms::DB db;
     bool result =
         db.parseSchema(options) &&
+        sbe2comms::writeMessageSchema(db) &&
         sbe2comms::writeBuiltIn(db) &&
         sbe2comms::writeMessages(db) &&
         sbe2comms::writeTypes(db) &&
