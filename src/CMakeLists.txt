@@ -20,7 +20,7 @@ while (TRUE)
     set (LIBXML2_BIN_DIR "${LIBXML2_SRC_DIR}/win32")
 
     set (LIBXML2_CRUNTIME)
-    if (("${CMAKE_BUILD_TYPE}" STREQUAL "") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
+    if (("${CMAKE_BUILD_TYPE}" STREQUAL "") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "None") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
         set (LIBXML2_CRUNTIME "cruntime=/MDd")
     endif ()
 

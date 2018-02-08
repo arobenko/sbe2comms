@@ -85,6 +85,12 @@ Note, that on Windows platform with **Visual Studio** compiler the build of
 but only if external build of it is not provided (using **LIBXML2_INCLUDE_DIR** and
 **LIBXML2_LIBRARIES** variables).
 
+Also note, that there may be a linker error reporting of having symbols from
+the **boost** libraries defined multiple types. It usually happens when custom
+build of the libraries contains both static (**.lib**) and dynamic (**.dll**)
+files available. In this case please please pass additional 
+**-DBoost_USE_STATIC_LIBS=ON** option to cmake invocation.
+
 The **sbe2comms** compiler itself as well as generated code is expected to get
 compiled without problems with the following compilers:
 
@@ -117,7 +123,7 @@ The code of **sbe2comms** compiler is available under
 generated code itself has no specific licence attached to it, and the developer is
 free to choose one. However, the generated code
 uses [COMMS library](https://github.com/arobenko/comms_champion#comms-library), which
-uses **GPLv3** / **Commercial** classing dual licensing scheme. Unless, the 
+uses **GPLv3** / **Commercial** classic dual licensing scheme. Unless, the 
 commercial closed source license is obtained for the **COMMS** library, 
 the generated code must also remain open source. See 
 [here](https://github.com/arobenko/comms_champion/blob/master/LICENSE.md)
