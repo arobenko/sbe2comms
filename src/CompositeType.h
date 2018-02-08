@@ -64,6 +64,7 @@ protected:
         std::ostream& out,
         unsigned indent,
         const std::string& scope) override;
+    virtual AliasTemplateArgsList getAliasTemplateArgumentsImpl() const override;
 
 private:
     using AllExtraOptInfos = std::vector<ExtraOptInfosList>;
@@ -83,6 +84,8 @@ private:
     bool isMessageHeader() const;
     bool checkMessageHeader();
     bool checkOpenFramingHeader();
+    bool updateRangeOfSchemaId(Type& schemaId);
+    bool updateRangeOfVersion(Type& version);
 
     Members m_members;
     bool m_dataUse = false;

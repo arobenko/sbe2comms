@@ -48,9 +48,9 @@ const std::string& extraOptionsDocStr();
 const std::string& elementSuffixStr();
 const std::string& extraOptionsTemplParamStr();
 const std::string& fieldBaseStr();
+std::string fieldBaseFullScope(const std::string& ns);
 const std::string& fieldBaseDefStr();
 const std::string& fieldBaseFileName();
-const std::string& messageBaseDefStr();
 const std::string& enumValSuffixStr();
 const std::string& enumNullValueStr();
 const std::string& fieldNamespaceStr();
@@ -92,34 +92,44 @@ const std::string& transportMessageNameStr();
 const std::string& protocolNameStr();
 const std::string& pluginNameStr();
 const std::string& serialisedHiddenStr();
+const std::string& messageSchemaStr();
+const std::string& messageSchemaFileNameStr();
 std::string num(std::intmax_t val);
 std::string num(std::uintmax_t val);
 std::string scopeFor(const std::string& ns, const std::string type);
 std::string pathTo(const std::string& ns, const std::string& path);
 std::string localHeader(const std::string& ns, const std::string& localNs, const std::string& path);
+std::string localHeader(const std::string& ns, const std::string& path);
 std::string refName(const std::string& name, const std::string& suffix);
 const std::string& primitiveTypeToStdInt(const std::string& type);
 
 void writeDetails(std::ostream& out, unsigned indent, const std::string& desc);
 void writeExtraOptionsDoc(std::ostream& out, unsigned indent);
 void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent);
-void writeIntNullCheckUpdateFuncs(std::ostream& out, unsigned indent, const std::string& valStr);
-void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
+void writeIntNullCheckUpdateFuncs(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& valStr,
+    bool externalBase = false);
+void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase = false);
 void writeFpOptConstructor(
     std::ostream& out,
     unsigned indent,
     const std::string& name,
-    const std::string& customDefault = std::string());
-void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid = false);
-void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent);
-void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent);
-void writeOptFieldDefinition(
+    const std::string& customDefault = std::string(),
+    bool externalBase = false);
+void writeFpValidCheckFunc(
     std::ostream& out,
     unsigned indent,
-    const std::string& name,
-    const std::string& optMode,
-    unsigned sinceVersion,
-    bool isFieldTemplate = false);
+    bool nanValid = false,
+    bool externalBase = false);
+void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase = false);
+void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent);
+void writeOptFieldDefinitionBody(
+    std::ostream& out,
+    unsigned indent,
+    unsigned sinceVersion);
+
 void writeProtocolNamespaceBegin(const std::string& ns, std::ostream& out);
 void writeProtocolNamespaceEnd(const std::string& ns, std::ostream& out);
 void writePluginNamespaceBegin(const std::string& ns, std::ostream& out);

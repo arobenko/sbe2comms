@@ -48,10 +48,11 @@ std::string napespacePrefix(DB& db)
     return ns + '/';
 }
 
-void writeFileHeader(std::ostream& out, const std::string& name)
+void writeFileHeader(std::ostream& out, const std::string& name, DB& db)
 {
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of " << name << " message and its fields.\n\n"
+           "/// \\brief Contains definition of " << common::scopeFor(ns, common::messageNamespaceStr() + name) << " message and its fields.\n\n"
            "#pragma once\n\n";
 }
 
@@ -90,12 +91,13 @@ void closePluginNamespaces(std::ostream& out, DB& db)
 }
 
 
-void openFieldsDef(std::ostream& out, const std::string& name)
+void openFieldsDef(std::ostream& out, const std::string& ns, const std::string& name)
 {
     out <<
         "/// \\brief Accumulates details of all the " << name << " message fields.\n"
         "/// \\tparam TOpt Extra options to be passed to all fields.\n"
         "/// \\see \\ref " << name << "\n"
+        "/// \\headerfile " << common::localHeader(ns, common::messageNamespaceNameStr(), name + ".h") << "\n"
         "template <typename TOpt = " << common::defaultOptionsStr() << ">\n" <<
         "struct " << name << common::fieldsSuffixStr() << "\n"
         "{\n";
@@ -146,7 +148,9 @@ bool Message::writeDefaultOptions(std::ostream& out, unsigned indent, const std:
 
     auto scopeUpd = getName() + common::fieldsSuffixStr();
     auto fieldScope = scope + scopeUpd + "::";
-    out << output::indent(indent) << "struct " << scopeUpd << '\n' <<
+    out << output::indent(indent) << "/// \\brief Scope for all the options for the fields of\n" <<
+           output::indent(indent) << "///     \\ref " << scope << getName() << " message.\n" <<
+           output::indent(indent) << "struct " << scopeUpd << '\n' <<
            output::indent(indent) << "{\n";
     bool result = true;
     for (auto& f : m_fields) {
@@ -173,6 +177,11 @@ unsigned Message::getId() const
     return prop::id(m_props);
 }
 
+bool Message::hasFields() const
+{
+    return !m_fields.empty();
+}
+
 bool Message::createFields()
 {
     assert(m_fields.empty());
@@ -184,6 +193,7 @@ bool Message::createFields()
     auto blockLength = prop::blockLength(m_props);
     auto scope = getName() + common::fieldsSuffixStr() + "::";
     unsigned lastSinceVersion = 0U;
+    Field::Kind lastKind = Field::Kind::Basic;
     std::set<std::string> fieldNames;
 
     auto addPaddingFunc =
@@ -248,24 +258,27 @@ bool Message::createFields()
             continue;
         }
 
-        if ((!rootBlock) && (fieldPtr->getKind() == Field::Kind::Basic)) {
+        auto thisKind = fieldPtr->getKind();
+        if ((!rootBlock) && (thisKind == Field::Kind::Basic)) {
             log::error() << "Basic field \"" << fieldPtr->getName() << "\" of \"" << getName() << "\" message cannot follow group or data" << std::endl;
             return false;
         }
 
-        if ((dataMembers) && (fieldPtr->getKind() != Field::Kind::Data)) {
+        if ((dataMembers) && (thisKind != Field::Kind::Data)) {
             log::error() << "Field \"" << fieldPtr->getName() << "\" of \"" << getName() << "\" message cannot follow other group or data" << std::endl;
             return false;
         }
 
         auto sinceVersion = fieldPtr->getSinceVersion();
-        if (sinceVersion < lastSinceVersion) {
+        if ((sinceVersion < lastSinceVersion) &&
+            ((lastKind == thisKind) || (lastKind != Field::Kind::Basic))) {
             log::error() << "Unexpected \"sinceVersion\" attribute value of \"" << fieldPtr->getName() << "\", expected to be greater or equal to " << lastSinceVersion << std::endl;
             return false;
         }
         lastSinceVersion = sinceVersion;
+        lastKind = thisKind;
 
-        if (fieldPtr->getKind() == Field::Kind::Data) {
+        if (thisKind == Field::Kind::Data) {
             dataMembers = true;
         }
 
@@ -275,7 +288,7 @@ bool Message::createFields()
             }
 
             auto offset = fieldPtr->getOffset();
-            if (fieldPtr->getKind() != Field::Kind::Basic) {
+            if (thisKind != Field::Kind::Basic) {
                 rootBlock = false;
                 offset = std::max(offset, blockLength);
             }
@@ -304,7 +317,7 @@ bool Message::createFields()
         } while (false);
 
         if (rootBlock) {
-            assert(fieldPtr->getKind() == Field::Kind::Basic);
+            assert(thisKind == Field::Kind::Basic);
             expOffset += static_cast<const BasicField*>(fieldPtr.get())->getSerializationLength();
         }
 
@@ -328,7 +341,7 @@ bool Message::writeFields(std::ostream& out)
         return true;
     }
     auto& msgName = getName();
-    openFieldsDef(out, msgName);
+    openFieldsDef(out, m_db.getProtocolNamespace(), msgName);
     bool result = true;
     for (auto& f : m_fields) {
         result = f->write(out, 1) && result;
@@ -376,31 +389,43 @@ bool Message::writeMessageClass(std::ostream& out)
         "///     while providing \\b TMsgBase as common interface class as well as\n"
         "///     various implementation options.\n";
     if (!m_fields.empty()) {
-        out << "///     \\nSee \\ref " << n << common::fieldsSuffixStr() << " for definition of the fields this message contains\n"
+        out << "///     \\n See \\ref " << n << common::fieldsSuffixStr() << " for definition of the fields this message contains\n"
                "///         and COMMS_MSG_FIELDS_ACCESS() for fields access details.\n"
                "/// \\tparam TMsgBase Common interface class for all the messages.\n"
                "/// \\tparam TOpt Extra options to be passed to all fields.\n";
     }
+    out << "/// \\headerfile " << common::localHeader(m_db.getProtocolNamespace(), common::messageNamespaceNameStr(), n + ".h") << "\n";
 
     auto id = common::scopeFor(m_db.getProtocolNamespace(), common::msgIdEnumName()) + '_' + n;
+
+    auto writeClassDefFunc =
+        [this, &out, &id, &n](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::MessageBase<\n" <<
+                   output::indent(ind + 1) << "TMsgBase,\n" <<
+                   output::indent(ind + 1) << "comms::option::StaticNumIdImpl<" << id << ">,\n" <<
+                   output::indent(ind + 1) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >,\n";
+
+            if (m_fields.empty()) {
+                out << output::indent(ind + 1) << "comms::option::ZeroFieldsImpl\n";
+            }
+            else {
+                out << output::indent(ind + 1) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>,\n" <<
+                       output::indent(ind + 1) << "comms::option::HasDoRefresh\n";
+            }
+            out << output::indent(ind) << ">";
+        };
+
     out <<
         "template <typename TMsgBase, typename TOpt = " << common::defaultOptionsStr() << ">\n"
-        "class " << getReferenceName() << " : public\n" <<
-        output::indent(1) << "comms::MessageBase<\n" <<
-        output::indent(2) << "TMsgBase,\n" <<
-        output::indent(2) << "comms::option::StaticNumIdImpl<" << id << ">,\n" <<
-        output::indent(2) << "comms::option::MsgType<" << getReferenceName() << "<TMsgBase, TOpt> >,\n";
-    if (m_fields.empty()) {
-        out << output::indent(2) << "comms::option::ZeroFieldsImpl\n";
-    }
-    else {
-        out << output::indent(2) << "comms::option::FieldsImpl<typename " << n << common::fieldsSuffixStr() << "<TOpt>::All>,\n" <<
-               output::indent(2) << "comms::option::HasDoRefresh\n";
-    }
-    out <<
-        output::indent(1) << ">\n"
-        "{\n"
-        "public:\n";
+        "class " << getReferenceName() << " : public\n";
+    writeClassDefFunc(1);
+    out << '\n' <<
+           "{\n" <<
+           output::indent(1) << "using Base =\n";
+    writeClassDefFunc(1);
+    out << ";\n\n"
+           "public:\n";
     writeFieldsAccess(out);
     writeConstructors(out);
     writeReadFunc(out);
@@ -456,7 +481,7 @@ bool Message::writeMessageDef(const std::string& filename)
     }
 
     auto& msgName = getName();
-    writeFileHeader(stream, msgName);
+    writeFileHeader(stream, msgName, m_db);
     writeExtraDefHeaders(stream);
     openNamespaces(stream, m_db);
     bool result =
@@ -506,7 +531,6 @@ void Message::writeConstructors(std::ostream& out)
         out << output::indent(1) << "/// \\details Sets the \\\"blockLength\\\" value.\n" <<
                output::indent(1) << name << "()\n" <<
                output::indent(1) << "{\n" <<
-               output::indent(2) << common::messageBaseDefStr() <<
                output::indent(2) << "Base::setBlockLength(Base::template doMaxLengthUntil<FieldIdx_" << nonBasicFieldName << ">());\n" <<
                output::indent(1) << "}\n\n";
     }
@@ -527,7 +551,6 @@ void Message::writeReadFunc(std::ostream& out)
            output::indent(1) << "template <typename TIter>\n" <<
            output::indent(1) << "comms::ErrorStatus doRead(TIter& iter, std::size_t len)\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << common::messageBaseDefStr() <<
            output::indent(2) << "GASSERT(Base::getBlockLength() <= len);\n";
     static const std::string advanceStr("std::advance(iter, Base::getBlockLength());\n");
     do {
@@ -555,7 +578,8 @@ void Message::writeReadFunc(std::ostream& out)
         }
 
         if (nonBasicFieldIter == m_fields.end()) {
-            out << output::indent(2) << "auto iterTmp = iter;\n" <<
+            out << output::indent(2) << "static_cast<void>(len);\n" <<
+                   output::indent(2) << "auto iterTmp = iter;\n" <<
                    output::indent(2) << "auto es = Base::doRead(iterTmp, Base::getBlockLength());\n" <<
                    output::indent(2) << "if (es == comms::ErrorStatus::Success) {\n" <<
                    output::indent(3) << advanceStr <<
@@ -588,7 +612,6 @@ void Message::writeRefreshFunc(std::ostream& out)
     out << output::indent(1) << "/// \\brief Custom refresh functionality.\n" <<
            output::indent(1) << "bool doRefresh()\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << common::messageBaseDefStr() <<
            output::indent(2) << "bool updated = updateFieldsVersion();\n";
 
     auto nonBasicFieldIter =
@@ -631,7 +654,6 @@ void Message::writePrivateMembers(std::ostream& out)
     out << "private:\n" <<
            output::indent(1) << "bool updateFieldsVersion()\n" <<
            output::indent(1) << "{\n" <<
-           output::indent(2) << common::messageBaseDefStr() <<
            output::indent(2) << "return comms::util::tupleAccumulate(Base::fields(), false, " <<
                                 common::builtinNamespaceStr() << common::versionSetterStr() << "(Base::getVersion()));\n" <<
            output::indent(1) << "}\n;";
@@ -764,9 +786,12 @@ bool Message::writePluginSrc()
         out << output::indent(1) << "props.append(" << createFieldPropsFuncPrefix << f->getName() << "());\n";
     }
 
-    out << '\n' <<
-           output::indent(1) << "assert(props.size() == " << getReferenceName() << "::FieldIdx_numOfValues);\n" <<
-           output::indent(1) << "return props;\n"
+    out << '\n';
+    if (!m_fields.empty()) {
+        out << output::indent(1) << "assert(props.size() == " << getReferenceName() << "::FieldIdx_numOfValues);\n";
+    }
+
+    out << output::indent(1) << "return props;\n"
            "}\n\n"
            "} // namespace\n\n"
            "const char* " << getReferenceName() << "::nameImpl() const\n"

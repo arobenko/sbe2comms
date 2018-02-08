@@ -85,8 +85,7 @@ bool SetType::parseImpl()
 
 bool SetType::writeImpl(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
 {
-    auto serLen = getSerializationLengthImpl();
-    assert(0U < serLen);
+    assert(0U < getSerializationLengthImpl());
 
     auto count = getAdjustedLengthProp();
     if (count != 1U) {
@@ -191,23 +190,34 @@ void SetType::writeSingle(
     auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
     auto name = common::refName(getName(), suffix);
     auto len = getSerializationLengthImpl();
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::BitmaskValue<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << "TOpt...,\n" <<
-           output::indent(indent + 2) << "comms::option::FixedLength<" << len << ">";
-
     auto reservedMask = calcReservedMask(len);
-    if (reservedMask != 0U) {
-        std::stringstream stream;
-        stream << std::hex << "0x" << reservedMask;
-        out << ",\n" <<
-               output::indent(indent + 2) << "comms::option::BitmaskReservedBits<" << stream.str() << ">";
-    }
 
+    auto writeClassDefFunc =
+        [this, &out, len, reservedMask](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::BitmaskValue<\n" <<
+                   output::indent(ind + 1) << common::fieldBaseFullScope(getDb().getProtocolNamespace()) << ",\n" <<
+                   output::indent(ind + 1) << "TOpt...,\n" <<
+                   output::indent(ind + 1) << "comms::option::FixedLength<" << len << ">";
+
+         if (reservedMask != 0U) {
+             out << ",\n" <<
+                    output::indent(ind + 1) << "comms::option::BitmaskReservedBits<0x" << std::hex << reservedMask << std::dec << ">";
+         }
+
+         out << '\n' <<
+                output::indent(ind) << ">";
+
+        };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n";
 
     auto maskTmp = getLenMask(len) & (~reservedMask);
     bool isSeq = (((maskTmp + 1) & (maskTmp)) == 0);
@@ -232,18 +242,30 @@ void SetType::writeList(
     writeHeader(out, indent, commsOptionalWrapped, true);
     common::writeExtraOptionsTemplParam(out, indent);
     auto& suffix = getNameSuffix(commsOptionalWrapped, false);
-    out << output::indent(indent) << "struct " << common::refName(getName(), suffix) << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << common::fieldBaseStr() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
-           output::indent(indent + 2) << "TOpt...";
-    if (count != 0U) {
-        out << ",\n" <<
-               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << count << ">";
-    }
+    auto writeClassDefFunc =
+        [this, &out, count](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::ArrayList<\n" <<
+                   output::indent(ind + 1) << common::fieldBaseFullScope(getDb().getProtocolNamespace()) << ",\n" <<
+                   output::indent(ind + 1) << getName() << common::elementSuffixStr() << "<>,\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+            if (count != 0U) {
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::SequenceFixedSize<" << count << ">";
+            }
+            out << '\n' <<
+                   output::indent(ind) << ">";
+
+        };
+
+    out << output::indent(indent) << "class " << common::refName(getName(), suffix) << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base=\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n";
     common::writeDefaultSetVersionFunc(out, indent + 1);
     out << "};\n\n";
 }

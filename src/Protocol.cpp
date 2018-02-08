@@ -96,8 +96,8 @@ bool Protocol::writeSrc(const std::string& name)
 
     auto& pluginNs = common::pluginNamespaceNameStr();
     out << "#include \"" << common::protocolNameStr() << ".h\"\n\n"
-           "#include " << common::localHeader(pluginNs, common::emptyString(), common::transportFrameFileName()) << '\n' <<
-           "#include " << common::localHeader(pluginNs, common::emptyString(), name + common::transportMessageNameStr() + ".h") << "\n\n" <<
+           "#include " << common::localHeader(pluginNs, common::transportFrameFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, name + common::transportMessageNameStr() + ".h") << "\n\n" <<
            "namespace cc = comms_champion;\n\n";
 
     auto& ns = m_db.getProtocolNamespace();

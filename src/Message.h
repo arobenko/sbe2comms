@@ -46,6 +46,7 @@ public:
     const std::string& getName() const;
     const std::string& getReferenceName() const;
     unsigned getId() const;
+    bool hasFields() const;
 
 private:
 

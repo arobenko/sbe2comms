@@ -51,12 +51,12 @@ bool MsgId::writeProtocolDef()
         return false;
     }
 
+    auto& ns = m_db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of " << common::msgIdEnumName() << " enumeration.\n\n"
+           "/// \\brief Contains definition of \\ref " << common::scopeFor(ns, common::msgIdEnumName()) << " enumeration.\n\n"
            "#pragma once\n\n" <<
            "#include <cstdint>\n\n";
 
-    auto& ns = m_db.getProtocolNamespace();
     common::writeProtocolNamespaceBegin(ns, out);
 
     auto* msgIdNode = m_db.getMsgIdEnumNode();

@@ -18,7 +18,7 @@
         <type name="UInt8" primitiveType="uint8"/>
         <type name="UInt16" primitiveType="uint16"/>
         <type name="Int32" primitiveType="int32"/>
-        <enum name="BooleanType" encodingType="uint8">
+        <enum name="BooleanType" encodingType="uint8" description="Boolean type enum">
             <validValue name="F">0</validValue>
             <validValue name="T">1</validValue>
         </enum>

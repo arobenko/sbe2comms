@@ -39,6 +39,7 @@ public:
     using ExtraIncludes = std::set<std::string>;
     using ExtraOptInfo = std::pair<std::string, std::string>;
     using ExtraOptInfosList = std::list<ExtraOptInfo>;
+    using AliasTemplateArgsList = std::vector<std::string>;
 
     enum class Kind
     {
@@ -145,6 +146,16 @@ public:
 
     void updateNodeProperties();
 
+    AliasTemplateArgsList getAliasTemplateArguments() const
+    {
+        return getAliasTemplateArgumentsImpl();
+    }
+
+    Type* getRealType()
+    {
+        return getRealTypeImpl();
+    }
+
 protected:
 
     DB& getDb()
@@ -174,6 +185,8 @@ protected:
         std::ostream& out,
         unsigned indent,
         const std::string& scope) = 0;
+    virtual AliasTemplateArgsList getAliasTemplateArgumentsImpl() const;
+    virtual Type* getRealTypeImpl();
 
     void writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped);
     void writeHeader(
@@ -194,7 +207,7 @@ protected:
         std::string* fieldType,
         std::string* propsName);
     static const std::string& getNameSuffix(bool commsOptionalWrapped, bool isElement);
-    const std::string& getFieldBaseString() const;
+    std::string getFieldBaseString() const;
     static void writeSerialisedHiddenCheck(std::ostream& out, unsigned indent, const std::string& prop);
 private:
     const std::string& getDefaultOptMode() const;

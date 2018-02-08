@@ -42,10 +42,11 @@ namespace sbe2comms
 namespace
 {
 
-void writeFileHeader(std::ostream& out, const std::string& name)
+void writeFileHeader(DB& db, std::ostream& out, const std::string& name)
 {
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of \\ref " << common::fieldNamespaceStr() << name << " field.\n\n"
+           "/// \\brief Contains definition of \\ref " << common::scopeFor(ns, common::fieldNamespaceStr() + name) << " field.\n\n"
            "#pragma once\n\n";
 }
 
@@ -296,7 +297,7 @@ bool Type::writeProtocolDef()
         return false;
     }
 
-    writeFileHeader(out, getName());
+    writeFileHeader(m_db, out, getName());
     common::writeExtraHeaders(out, m_extraIncludes);
     openNamespaces(out, m_db);
     bool result = write(out);
@@ -318,8 +319,55 @@ bool Type::write(std::ostream& out, unsigned indent)
         return false;
     }
 
-    writeHeader(out, indent, false);
-    common::writeOptFieldDefinition(out, indent, getName(), optMode, getSinceVersion(), true);
+    writeHeader(out, indent, false, false);
+    auto templateParams = getAliasTemplateArguments();
+    if (templateParams.empty()) {
+        out << "/// tparam TOpt Extra options from \\b comms::option namespace.\n" <<
+               output::indent(indent) << "template <typename... TOpt>\n";
+    }
+    else {
+        out << output::indent(indent) << "/// \\note Receives same template parameters as \\ref " << getName() << common::optFieldSuffixStr() << "\n" <<
+               output::indent(indent) << "template <\n";
+        for (auto& p : templateParams) {
+            out << output::indent(indent + 1) << "typename " << p << " = comms::option::EmptyOption";
+            bool comma = (&p != &templateParams.back());
+            if (comma) {
+                out << ',';
+            }
+            out << '\n';
+        }
+        out << output::indent(indent) << ">\n";
+    }
+
+    auto fieldType = getName() + common::optFieldSuffixStr();
+
+    out << output::indent(indent) << "struct " << getReferenceName() << " : public\n" <<
+           output::indent(indent + 1) << "comms::field::Optional<\n" <<
+           output::indent(indent + 2) << fieldType << "<";
+
+    if (templateParams.empty()) {
+        out << "TOpt...";
+    }
+    else {
+        out << '\n';
+        for (auto& p : templateParams) {
+            out << output::indent(indent + 3) << p;
+            bool comma = (&p != &templateParams.back());
+            if (comma) {
+                out << ',';
+            }
+            out << '\n';
+        }
+
+        out << '\n' <<
+               output::indent(indent + 2);
+    }
+
+    out << ">,\n" <<
+           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
+           output::indent(indent + 1) << ">\n";
+
+    common::writeOptFieldDefinitionBody(out, indent, getSinceVersion());
     return true;
 }
 
@@ -390,6 +438,17 @@ Type::ExtraOptInfosList Type::getExtraOptInfosImpl() const
 bool Type::canBeExtendedAsOptionalImpl() const
 {
     return false;
+}
+
+Type::AliasTemplateArgsList Type::getAliasTemplateArgumentsImpl() const
+{
+    AliasTemplateArgsList list;
+    return list;
+}
+
+Type* Type::getRealTypeImpl()
+{
+    return this;
 }
 
 void Type::writeBrief(std::ostream& out, unsigned indent, bool commsOptionalWrapped)
@@ -514,14 +573,14 @@ const std::string& Type::getNameSuffix(bool commsOptionalWrapped, bool isElement
     return common::emptyString();
 }
 
-const std::string& Type::getFieldBaseString() const
+std::string Type::getFieldBaseString() const
 {
     if (m_forcedBigEndianBase) {
         static const std::string Str("comms::Field<comms::option::BigEndian>");
         return Str;
     }
 
-    return common::fieldBaseStr();
+    return common::fieldBaseFullScope(m_db.getProtocolNamespace());
 }
 
 void Type::writeSerialisedHiddenCheck(std::ostream& out, unsigned indent, const std::string& prop)

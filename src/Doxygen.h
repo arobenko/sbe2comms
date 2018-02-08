@@ -17,27 +17,26 @@
 
 #pragma once
 
-#include "xml_wrap.h"
+#include <string>
 
 namespace sbe2comms
 {
 
 class DB;
-class MessageSchema
+class Doxygen
 {
 public:
-    explicit MessageSchema(xmlNodePtr node, xmlDocPtr doc);
-
-    const std::string& package();
-    unsigned version() const;
-    unsigned id() const;
-    const std::string& byteOrder() const;
-    const std::string& headerType() const;
-
-    static bool write(DB& db);
+    Doxygen(DB& db);
+    bool write();
 
 private:
-    XmlPropsMap m_props;
+    bool writeLayout();
+    bool writeConf();
+    bool writeNamespaces();
+    bool writeMain();
+
+    DB& m_db;
+    std::string m_name;
 };
 
 } // namespace sbe2comms

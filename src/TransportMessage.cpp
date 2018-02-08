@@ -82,9 +82,9 @@ bool TransportMessage::writePluginHeader(const std::string& name)
 
     out << "#pragma once\n\n"
            "#include \"comms_champion/comms_champion.h\"\n\n"
-           "#include " << common::localHeader(ns, common::emptyString(), common::transportFrameFileName()) << '\n' <<
-           "#include " << common::localHeader(pluginNs, common::emptyString(), common::msgInterfaceFileName()) << '\n' <<
-           "#include " << common::localHeader(pluginNs, common::emptyString(), common::transportFrameFileName()) << "\n\n";
+           "#include " << common::localHeader(ns, common::transportFrameFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, common::msgInterfaceFileName()) << '\n' <<
+           "#include " << common::localHeader(pluginNs, common::transportFrameFileName()) << "\n\n";
 
     common::writePluginNamespaceBegin(ns, out);
 
@@ -122,7 +122,7 @@ bool TransportMessage::writeMessageHeaderSrc()
 
     out << "#include \"" << common::messageHeaderFrameStr() << common::transportMessageNameStr() << ".h\"\n\n"
            "#include <cassert>\n\n"
-           "#include " << common::localHeader(pluginNs, common::emptyString(), common::fieldHeaderFileName()) << "\n\n";
+           "#include " << common::localHeader(pluginNs, common::fieldHeaderFileName()) << "\n\n";
 
 
     common::writePluginNamespaceBegin(ns, out);
@@ -177,7 +177,7 @@ bool TransportMessage::writeOpenFramingHeaderSrc()
 
     out << "#include \"" << common::openFramingHeaderFrameStr() << common::transportMessageNameStr() << ".h\"\n\n"
            "#include <cassert>\n\n"
-           "#include " << common::localHeader(pluginNs, common::emptyString(), common::fieldHeaderFileName()) << "\n";
+           "#include " << common::localHeader(pluginNs, common::fieldHeaderFileName()) << "\n";
 
     if (!hasOpenFramingTypeDefined) {
         out << "#include " << common::localHeader(ns, common::builtinNamespaceNameStr(), common::openFramingHeaderStr() + ".h") << '\n';

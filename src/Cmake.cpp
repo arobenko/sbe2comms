@@ -40,6 +40,9 @@ Cmake::Cmake(DB& db)
     m_name(db.getPackageName())
 {
     ba::replace_all(m_name, " ", "_");
+    if (m_name.empty()) {
+        m_name = "protocol";
+    }
 }
 
 bool Cmake::write()
@@ -77,6 +80,7 @@ bool Cmake::writeMain()
            "# OPT_INSTALL_DIR - Custom install directory.\n"
            "# OPT_QT_DIR - Path to custom Qt5 install directory.\n"
            "# OPT_CC_MAIN_INSTALL_DIR - Path to CommsChampion install directory (if such already built).\n"
+           "# OPT_DOXYGEN_CONFIG_FILE - Path to custom doxygen configuration file."
            "\n"
            "if (NOT CMAKE_CXX_STANDARD)\n" <<
            output::indent(1) << "set (CMAKE_CXX_STANDARD 11)\n"
@@ -101,7 +105,24 @@ bool Cmake::writeMain()
            "add_custom_target(" << m_name << ".headers SOURCES ${protocol.headers})\n\n"
            "find_package (Doxygen)\n"
            "if (DOXYGEN_FOUND)\n" <<
-           output::indent(1) << "# TODO:\n"
+           output::indent(1) << "set (doc_output_dir \"${DOC_INSTALL_DIR}/" << m_name << "\")\n" <<
+           output::indent(1) << "make_directory (${doc_output_dir})\n\n" <<
+           output::indent(1) << "if (\"${OPT_DOXYGEN_CONFIG_FILE}\" STREQUAL \"\")\n" <<
+           output::indent(2) << "set (match_str \"OUTPUT_DIRECTORY[^\\n]*\")\n" <<
+           output::indent(2) << "set (replacement_str \"OUTPUT_DIRECTORY = ${doc_output_dir}\")\n" <<
+           output::indent(2) << "set (config_file \"${CMAKE_CURRENT_SOURCE_DIR}/doc/doxygen.conf\")\n" <<
+           output::indent(2) << "set (OPT_DOXYGEN_CONFIG_FILE \"${CMAKE_CURRENT_BINARY_DIR}/doxygen.conf\")\n\n" <<
+           output::indent(2) << "file (READ ${config_file} config_text)\n" <<
+           output::indent(2) << "string (REGEX REPLACE \"${match_str}\" \"${replacement_str}\" modified_config_text \"${config_text}\")\n" <<
+           output::indent(2) << "file (WRITE \"${OPT_DOXYGEN_CONFIG_FILE}\" \"${modified_config_text}\")\n" <<
+           output::indent(1) << "endif ()\n\n" <<
+           output::indent(1) << "if (NOT EXISTS ${OPT_DOXYGEN_CONFIG_FILE})\n" <<
+           output::indent(2) << "message(FATAL_ERROR \"Doxygen configuration file ${OPT_DOXYGEN_CONFIG_FILE} does not exist\")\n" <<
+           output::indent(1) << "endif ()\n\n" <<
+           output::indent(1) << "set (doc_tgt \"doc_" << m_name << "\")\n" <<
+           output::indent(1) << "add_custom_target (\"${doc_tgt}\"\n" <<
+           output::indent(2) << "COMMAND ${DOXYGEN_EXECUTABLE} ${OPT_DOXYGEN_CONFIG_FILE}\n" <<
+           output::indent(2) << "WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})\n"
            "endif ()\n\n"
            "if (OPT_LIB_ONLY)\n" <<
            output::indent(1) << "return ()\n"
@@ -230,7 +251,7 @@ bool Cmake::writePlugin()
 {
     boost::system::error_code ec;
     bf::create_directories(m_db.getRootPath(), ec);
-    if (!common::createPluginDefDir(m_db.getRootPath(), common::pluginNamespaceNameStr())) {
+    if (!common::createPluginDefDir(m_db.getRootPath())) {
         return false;
     }
 

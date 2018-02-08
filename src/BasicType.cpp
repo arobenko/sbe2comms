@@ -303,10 +303,15 @@ bool BasicType::writeSimpleBigUnsignedInt(
     std::string name = common::refName(getName(), suffix);
 
     if (isRequired()) {
-        out << output::indent(indent) << "struct " << name << " : public\n";
+        out << output::indent(indent) << "class " << name << " : public\n";
         writeFunc(indent + 1);
         out << '\n' <<
-               output::indent(indent) << "{\n";
+               output::indent(indent) << "{\n" <<
+               output::indent(indent + 1) << "using Base=\n";
+        writeFunc(indent + 2);
+
+        out << ";\n\n" <<
+               output::indent(indent) << "public:\n";
         common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
         return true;
@@ -330,10 +335,14 @@ bool BasicType::writeSimpleBigUnsignedInt(
             return false;
         }
 
-        out << output::indent(indent) << "struct " << name << " : public\n";
+        out << output::indent(indent) << "class " << name << " : public\n";
         writeFunc(indent + 1);
         out << '\n' <<
-               output::indent(indent) << "{\n";
+               output::indent(indent) << "{\n" <<
+               output::indent(indent + 1) << "using Base =\n";
+        writeFunc(indent + 2);
+        out << ";\n\n" <<
+                output::indent(indent) << "public:\n";
         common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
         return true;
@@ -359,11 +368,15 @@ bool BasicType::writeSimpleBigUnsignedInt(
         defValue = nullValue;
 
         extraValidNumber = nullValue;
-        out << output::indent(indent) << "struct " << name << " : public\n";
+        out << output::indent(indent) << "class " << name << " : public\n";
         writeFunc(indent + 1);
         out << output::indent(indent) << "\n" <<
-               output::indent(indent) << "{\n";
-        common::writeIntNullCheckUpdateFuncs(out, indent + 1, common::num(nullValue));
+               output::indent(indent) << "{\n" <<
+               output::indent(indent + 1) << "using Base=\n";
+        writeFunc(indent + 2);
+        out << ";\n\n" <<
+               output::indent(indent) << "public:\n";
+        common::writeIntNullCheckUpdateFuncs(out, indent + 1, common::num(nullValue), true);
         out << '\n';
         common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
@@ -484,10 +497,14 @@ bool BasicType::writeSimpleInt(
     std::string name = common::refName(getName(), suffix);
 
     if (isRequired()) {
-        out << output::indent(indent) << "struct " << name << " : public\n";
+        out << output::indent(indent) << "class " << name << " : public\n";
         writeFunc(indent + 1);
         out << '\n' <<
-               output::indent(indent) << "{\n";
+               output::indent(indent) << "{\n" <<
+               output::indent(indent + 1) << "using Base =\n";
+        writeFunc(indent + 2);
+        out << ";\n\n" <<
+               output::indent(indent) << "public:\n";
         common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
         return true;
@@ -511,10 +528,14 @@ bool BasicType::writeSimpleInt(
             return false;
         }
 
-        out << output::indent(indent) << "struct " << name << " : public\n";
+        out << output::indent(indent) << "class " << name << " : public\n";
         writeFunc(indent + 1);
         out << '\n' <<
-               output::indent(indent) << "{\n";
+               output::indent(indent) << "{\n" <<
+               output::indent(indent + 1) << "using Base=\n";
+        writeFunc(indent + 2);
+        out << ";\n\n" <<
+               output::indent(indent) << "public:\n";
         common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
 
@@ -546,11 +567,15 @@ bool BasicType::writeSimpleInt(
         defValue = nullValue;
 
         extraValidNumber = nullValue;
-        out << output::indent(indent) << "struct " << name << " : public\n";
+        out << output::indent(indent) << "class " << name << " : public\n";
         writeFunc(indent + 1);
         out << output::indent(indent) << "\n" <<
-               output::indent(indent) << "{\n";
-        common::writeIntNullCheckUpdateFuncs(out, indent + 1, common::num(nullValue));
+               output::indent(indent) << "{\n" <<
+               output::indent(indent + 1) << "using Base=\n";
+        writeFunc(indent + 2);
+        out << ";\n\n" <<
+               output::indent(indent) << "public:\n";
+        common::writeIntNullCheckUpdateFuncs(out, indent + 1, common::num(nullValue), true);
         out << '\n';
         common::writeDefaultSetVersionFunc(out, indent + 1);
         out << output::indent(indent) << "}";
@@ -571,27 +596,38 @@ bool BasicType::writeSimpleFloat(
     auto& suffix = getNameSuffix(commsOptionalWrapped, isElement);
     std::string name = common::refName(getName(), suffix);
 
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::FloatValue<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << fpType << ",\n" <<
-           output::indent(indent + 2) << "TOpt...";
-    writeExtraOptions(out, indent + 1);
+    auto writeClassDefFunc =
+        [this, &out, &fpType, isElement](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::FloatValue<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << fpType << ",\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+            writeExtraOptions(out, ind);
+            if (isConstant()) {
+                assert(!isElement);
+                out << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::EmptySerialization";
+            }
 
-    if (isConstant()) {
-        assert(!isElement);
-        out << ",\n" <<
-               output::indent(indent + 2) << "comms::option::EmptySerialization";
-    }
+            out << '\n' <<
+                   output::indent(ind) << ">";
+        };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
 
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base=\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n";
 
     bool result = false;
     do {
         if (isRequired()) {
-            common::writeFpValidCheckFunc(out, indent + 1);
+            common::writeFpValidCheckFunc(out, indent + 1, false, true);
             out << '\n';
             common::writeDefaultSetVersionFunc(out, indent + 1);
             result = true;
@@ -599,9 +635,9 @@ bool BasicType::writeSimpleFloat(
         }
         
         if (isOptional()) {
-            common::writeFpOptConstructor(out, indent + 1, name);
+            common::writeFpOptConstructor(out, indent + 1, name, common::emptyString(), true);
             out << '\n';
-            common::writeFpNullCheckUpdateFuncs(out, indent + 1);
+            common::writeFpNullCheckUpdateFuncs(out, indent + 1, true);
             out << '\n';
             common::writeDefaultSetVersionFunc(out, indent + 1);
             result = true;
@@ -611,12 +647,11 @@ bool BasicType::writeSimpleFloat(
         if (isConstant()) {
             auto constValStr = xmlText(getNode());
             assert(!constValStr.empty());
-            common::writeFpOptConstructor(out, indent + 1, name, constValStr);
+            common::writeFpOptConstructor(out, indent + 1, name, constValStr, true);
             out << '\n' <<
                    output::indent(indent + 1) << "/// \\brief Value validity check function.\n" <<
                    output::indent(indent + 1) << "bool valid() const\n" <<
                    output::indent(indent + 1) << "{\n" <<
-                   output::indent(indent + 2) << common::fieldBaseDefStr() <<
                    output::indent(indent + 2) << "auto defaultValue = static_cast<typename Base::ValueType>(" << constValStr << ");\n" <<
                    output::indent(indent + 2) << "return std::abs(Base::value() - defaultValue) < std::numberic_limits<typename Base::ValueType>::epsilon;\n" <<
                    output::indent(indent + 1) << "}\n\n";
@@ -645,7 +680,6 @@ bool BasicType::writeVarLength(
     return writeVarLengthArray(out, indent, commsOptionalWrapped);
 }
 
-
 bool BasicType::writeVarLengthString(
     std::ostream& out,
     unsigned indent,
@@ -654,14 +688,25 @@ bool BasicType::writeVarLengthString(
     auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << " comms::field::String<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << "TOpt...";
-    writeExtraOptions(out, indent + 2);
+    auto writeClassDefFunc =
+        [this, &out](unsigned ind)
+        {
+            out << output::indent(ind) << " comms::field::String<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+            writeExtraOptions(out, ind + 1);
+            out << '\n' <<
+                   output::indent(ind) << ">";
+        };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 2) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:";
     writeStringValidFunc(out, indent + 1);
     out << '\n';
     common::writeDefaultSetVersionFunc(out, indent + 1);
@@ -683,15 +728,26 @@ bool BasicType::writeVarLengthArray(
     auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
-           output::indent(indent + 2) << "TOpt...";
-    writeExtraOptions(out, indent + 2);
+    auto writeClassDefFunc =
+            [this, &out](unsigned ind)
+            {
+                out << output::indent(ind) << "comms::field::ArrayList<\n" <<
+                       output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                       output::indent(ind + 1) << getName() << common::elementSuffixStr() << "<>,\n" <<
+                       output::indent(ind + 1) << "TOpt...";
+                writeExtraOptions(out, ind + 1);
+                out << '\n' <<
+                       output::indent(ind) << ">";
+            };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:";
     common::writeDefaultSetVersionFunc(out, indent + 1);
     out << output::indent(indent) << "}";
     return true;
@@ -706,15 +762,26 @@ bool BasicType::writeVarLengthRawDataArray(
     auto& suffix = getNameSuffix(commsOptionalWrapped, false);
     std::string name = common::refName(getName(), suffix);
 
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << common::primitiveTypeToStdInt(primType) << ",\n" <<
-           output::indent(indent + 2) << "TOpt...";
-    writeExtraOptions(out, indent + 2);
+    auto writeClassDefFunc =
+        [this, &out, &primType](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::ArrayList<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << common::primitiveTypeToStdInt(primType) << ",\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+            writeExtraOptions(out, ind + 1);
+            out << '\n' <<
+                   output::indent(ind) << ">";
+        };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n";
     common::writeDefaultSetVersionFunc(out, indent + 1);
     out << output::indent(indent) << "}";
     return true;
@@ -744,15 +811,27 @@ bool BasicType::writeFixedLengthString(
     if (!isConstString()) {
         unsigned len = getLengthProp();
         assert(1U < len);
-        out << output::indent(indent) << "struct " << name << " : public\n" <<
-               output::indent(indent + 1) << "comms::field::String<\n" <<
-               output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-               output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
-               output::indent(indent + 2) << "TOpt...";
-        writeExtraOptions(out, indent + 2);
+
+        auto writeClassDefFunc =
+            [this, &out, len](unsigned ind)
+            {
+                out << output::indent(ind) << "comms::field::String<\n" <<
+                       output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                       output::indent(ind + 1) << "comms::option::SequenceFixedSize<" << len << ">,\n" <<
+                       output::indent(ind + 1) << "TOpt...";
+                writeExtraOptions(out, ind + 1);
+                out << '\n' <<
+                       output::indent(ind) << ">\n";
+            };
+
+        out << output::indent(indent) << "class " << name << " : public\n";
+        writeClassDefFunc(indent + 1);
         out << '\n' <<
-               output::indent(indent + 1) << ">\n" <<
-               output::indent(indent) << "{\n";
+               output::indent(indent) << "{\n" <<
+               output::indent(indent + 1) << "using Base =\n";
+        writeClassDefFunc(indent + 2);
+        out << ";\n\n" <<
+               output::indent(indent) << "public:\n";
         writeStringValidFunc(out, indent + 1);
         out << '\n';
         common::writeDefaultSetVersionFunc(out, indent + 1);
@@ -760,19 +839,30 @@ bool BasicType::writeFixedLengthString(
         return true;
     }
 
+    auto writeClassDefFunc =
+        [this, &out](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::String<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << "TOpt...";
+            writeExtraOptions(out, ind + 1);
+            out << ",\n" <<
+                   output::indent(ind + 1) << "comms::option::EmptySerialization\n" <<
+                   output::indent(ind) << ">";
+        };
+
     auto text = xmlText(getNode());
-    out << output::indent(indent) << "struct " << name << " : public \n" <<
-           output::indent(indent + 1) << "comms::field::String<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << "TOpt...";
-    writeExtraOptions(out, indent + 2);
-    out << ",\n" <<
-           output::indent(indent + 2) << "comms::option::EmptySerialization\n" <<
-           output::indent(indent + 1) << ">\n" <<
+    out << output::indent(indent) << "class " << name << " : public \n";
+    writeClassDefFunc(indent + 1);
+    out << "\n" <<
            output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n" <<
+           output::indent(indent + 1) << "/// \\brief Default constructor\n" <<
            output::indent(indent + 1) << getReferenceName() << "()\n" <<
            output::indent(indent + 1) << "{\n" <<
-           output::indent(indent + 2) << common::fieldBaseDefStr() <<
            output::indent(indent + 2) << "static const char Chars[" << text.size() << "] = {\n" <<
            output::indent(indent + 3);
     bool firstChar = true;
@@ -811,16 +901,28 @@ bool BasicType::writeFixedLengthArray(
     unsigned len = getLengthProp();
     assert(1U < len);
 
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << getName() << common::elementSuffixStr() << "<>,\n" <<
-           output::indent(indent + 2) << "TOpt...,\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">";
-    writeExtraOptions(out, indent + 2);
+    auto writeClassDefFunc =
+        [this, &out, len](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::ArrayList<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << getName() << common::elementSuffixStr() << "<>,\n" <<
+                   output::indent(ind + 1) << "TOpt...,\n" <<
+                   output::indent(ind + 1) << "comms::option::SequenceFixedSize<" << len << ">";
+            writeExtraOptions(out, ind + 1);
+            out << '\n' <<
+                   output::indent(ind) << ">";
+
+        };
+
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n";
     common::writeDefaultSetVersionFunc(out, indent + 1);
     out << output::indent(indent) << "}";
     return true;
@@ -837,16 +939,27 @@ bool BasicType::writeFixedLengthRawDataArray(
 
     unsigned len = getLengthProp();
     assert(1U < len);
-    out << output::indent(indent) << "struct " << name << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::ArrayList<\n" <<
-           output::indent(indent + 2) << getFieldBaseString() << ",\n" <<
-           output::indent(indent + 2) << common::primitiveTypeToStdInt(primType) << ",\n" <<
-           output::indent(indent + 2) << "TOpt...,\n" <<
-           output::indent(indent + 2) << "comms::option::SequenceFixedSize<" << len << ">";
-    writeExtraOptions(out, indent + 2);
+
+    auto writeClassDefFunc =
+        [this, &out, &primType, len](unsigned ind)
+        {
+            out << output::indent(ind) << "comms::field::ArrayList<\n" <<
+                   output::indent(ind + 1) << getFieldBaseString() << ",\n" <<
+                   output::indent(ind + 1) << common::primitiveTypeToStdInt(primType) << ",\n" <<
+                   output::indent(ind + 1) << "TOpt...,\n" <<
+                   output::indent(ind + 1) << "comms::option::SequenceFixedSize<" << len << ">";
+            writeExtraOptions(out, ind + 1);
+            out << '\n' <<
+                   output::indent(ind) << ">";
+        };
+    out << output::indent(indent) << "class " << name << " : public\n";
+    writeClassDefFunc(indent + 1);
     out << '\n' <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n";
+           output::indent(indent) << "{\n" <<
+           output::indent(indent + 1) << "using Base =\n";
+    writeClassDefFunc(indent + 2);
+    out << ";\n\n" <<
+           output::indent(indent) << "public:\n";
     common::writeDefaultSetVersionFunc(out, indent + 1);
     out << output::indent(indent) << "}";
     return true;
@@ -900,7 +1013,9 @@ bool BasicType::isRawData(const std::string& primType) const
     return (iter != std::end(RawDataTypes));
 }
 
-void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
+void BasicType::writeStringValidFunc(
+    std::ostream& out,
+    unsigned indent)
 {
     auto minValue = common::intMinValue(common::charType(), std::string());
     assert (minValue.second);
@@ -909,7 +1024,6 @@ void BasicType::writeStringValidFunc(std::ostream& out, unsigned indent)
     out << output::indent(indent) << "/// \\brief Value validity check function.\n" <<
            output::indent(indent) << "bool valid() const\n" <<
            output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << common::fieldBaseDefStr() <<
            output::indent(indent + 1) << "if (!Base::valid()) {\n" <<
            output::indent(indent + 2) << "return false;\n" <<
            output::indent(indent + 1) << "}\n\n" <<

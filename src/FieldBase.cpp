@@ -34,10 +34,11 @@ namespace sbe2comms
 namespace
 {
 
-void writeFileHeader(std::ostream& out)
+void writeFileHeader(DB& db, std::ostream& out)
 {
+    auto& ns = db.getProtocolNamespace();
     out << "/// \\file\n"
-           "/// \\brief Contains definition of \\ref " << common::fieldNamespaceStr() << common::fieldBaseStr() << " type.\n\n"
+           "/// \\brief Contains definition of \\ref " << common::scopeFor(ns, common::fieldNamespaceStr() + common::fieldBaseStr()) << " type.\n\n"
            "#pragma once\n\n"
            "#include \"comms/Field.h\"\n"
            "#include \"comms/options.h\"\n\n";
@@ -87,7 +88,7 @@ bool FieldBase::writeProtocolDef()
         return false;
     }
 
-    writeFileHeader(out);
+    writeFileHeader(m_db, out);
     openNamespaces(out, m_db);
     out << "/// \\brief Definition of common base class of all the fields.\n"
            "using " << common::fieldBaseStr() << " = comms::Field<" << m_db.getEndian() << ">;\n\n";

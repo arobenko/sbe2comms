@@ -74,7 +74,7 @@ bool MessageHeaderLayer::writeProtocolDef()
 
 
     out << "/// \\file\n"
-           "/// \\brief Contains definition of MessageHeaderLayer transport layer.\n\n"
+           "/// \\brief Contains definition of " << common::scopeFor(ns, common::messageHeaderLayerStr()) << " transport layer.\n\n"
            "#pragma once\n\n";
 
     common::writeExtraHeaders(out, headers);
@@ -103,7 +103,10 @@ bool MessageHeaderLayer::writeProtocolDef()
            "///        subsequent data written by other (next) layers.\n"
            "/// \\details The main purpose of this layer is to process the message header information.\n"
            "///     Holds instance of \\b comms::MsgFactory as its private member and uses it\n"
-           "///     to create message with the required ID.\n"
+           "///     to create message with the required ID. Inherits from \\b comms::protocol::ProtocolLayerBase.\n"
+           "///     Please read the documentation of the latter for details on inherited public\n"
+           "///     interface. Please also read <b>Protocol Stack Tutorial</b> page from the \\b COMMS\n"
+           "///     library documentation.\n"
            "/// \\tparam TMessage Interface class for the \\b input messages, expected to be\n"
            "///     a variant of \\ref Message class.\n"
            "/// \\tparam TAllMessages Types of all \\b input messages, bundled in std::tuple,\n"
@@ -112,7 +115,7 @@ bool MessageHeaderLayer::writeProtocolDef()
            "/// \\tparam TField Field of message header.\n"
            "/// \\tparam TFactoryOpt All the options that will be forwarded to definition of\n"
            "///     message factory type (comms::MsgFactory).\n"
-           "/// \\headerfile MessageHeaderLayer.h\n"
+           "/// \\headerfile " << common::localHeader(ns, name + ".h") << "\n"
            "template <\n" <<
            output::indent(1) << "typename TMessage,\n" <<
            output::indent(1) << "typename TAllMessages,\n" <<

@@ -8,6 +8,10 @@ if (NOT CMAKE_CXX_STANDARD)
     set (CMAKE_CXX_STANDARD 11)
 endif()
 
+if ("${SBE2COMMS_INSTALL_DIR}" STREQUAL "")
+    set (SBE2COMMS_INSTALL_DIR "${CMAKE_BINARY_DIR}/install")
+endif ()
+
 if ((CMAKE_COMPILER_IS_GNUCC) OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
     set (extra_flags_list
         "-Wall" "-Wextra" "-Wcast-align" "-Wcast-qual" "-Wctor-dtor-privacy"

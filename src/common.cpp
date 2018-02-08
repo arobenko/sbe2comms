@@ -247,6 +247,9 @@ const std::string& renameKeyword(const std::string& value)
         makePairFunc("field"),
         makePairFunc("message"),
         makePairFunc("sbe2comms"),
+
+        // other names
+        makePairFunc("All"),
     };
 
     auto iter = Keywords.find(value);
@@ -281,6 +284,11 @@ const std::string& fieldBaseStr()
     return Str;
 }
 
+std::string fieldBaseFullScope(const std::string& ns)
+{
+    return scopeFor(ns, common::fieldNamespaceStr() + fieldBaseStr());
+}
+
 const std::string& fieldBaseDefStr()
 {
     static const std::string Str("using Base = typename std::decay<decltype(toFieldBase(*this))>::type;\n");
@@ -290,12 +298,6 @@ const std::string& fieldBaseDefStr()
 const std::string& fieldBaseFileName()
 {
     static const std::string Str(fieldBaseStr() + ".h");
-    return Str;
-}
-
-const std::string& messageBaseDefStr()
-{
-    static const std::string Str("using Base = typename std::decay<decltype(toMessageBase(*this))>::type;\n");
     return Str;
 }
 
@@ -545,6 +547,18 @@ const std::string& serialisedHiddenStr()
     return Str;
 }
 
+const std::string& messageSchemaStr()
+{
+    static const std::string Str("MessageSchema");
+    return Str;
+}
+
+const std::string& messageSchemaFileNameStr()
+{
+    static const std::string Str(messageSchemaStr() + ".h");
+    return Str;
+}
+
 std::string num(std::intmax_t val)
 {
     if (std::numeric_limits<std::int32_t>::max() < val) {
@@ -669,30 +683,45 @@ void writeExtraOptionsTemplParam(std::ostream& out, unsigned indent)
     out << output::indent(indent) << extraOptionsTemplParamStr();
 }
 
-void writeIntNullCheckUpdateFuncs(std::ostream& out, unsigned indent, const std::string& valStr)
+void writeIntNullCheckUpdateFuncs(
+    std::ostream& out,
+    unsigned indent,
+    const std::string& valStr,
+    bool externalBase)
 {
     std::string nullValStr("static_cast<typename Base::ValueType>(" + valStr + ")");
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::value() == " << nullValStr << ";\n" <<
+           output::indent(indent) << "{\n";
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "return Base::value() == " << nullValStr << ";\n" <<
            output::indent(indent) << "}\n\n" <<
            output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
            output::indent(indent) << "void setNull()\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "Base::value() = " << nullValStr << ";\n" <<
+           output::indent(indent) << "{\n";
+
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "Base::value() = " << nullValStr << ";\n" <<
            output::indent(indent) << "}\n";
 }
 
-void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
+void writeFpNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase)
 {
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return std::isnan(Base::value());\n" <<
+           output::indent(indent) << "{\n";
+
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "return std::isnan(Base::value());\n" <<
            output::indent(indent) << "}\n\n" <<
            output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
            output::indent(indent) << "void setNull()\n" <<
@@ -706,7 +735,8 @@ void writeFpOptConstructor(
     std::ostream& out,
     unsigned indent,
     const std::string& name,
-    const std::string& customDefault)
+    const std::string& customDefault,
+    bool externalBase)
 {
     out << output::indent(indent) << "/// \\brief Default constructor.\n" <<
            output::indent(indent) << "/// \\details Initializes field's value to ";
@@ -718,9 +748,12 @@ void writeFpOptConstructor(
     }
     out << '\n' <<
            output::indent(indent) << name << "()\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "Base::value() = ";
+           output::indent(indent) << "{\n";
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "Base::value() = ";
     if (customDefault.empty()) {
         out << "std::numeric_limits<typename Base::ValueType>::quiet_NaN()";
     }
@@ -731,28 +764,41 @@ void writeFpOptConstructor(
            output::indent(indent) << "}\n";
 }
 
-void writeFpValidCheckFunc(std::ostream& out, unsigned indent, bool nanValid)
+void writeFpValidCheckFunc(
+    std::ostream& out,
+    unsigned indent,
+    bool nanValid,
+    bool externalBase)
 {
     out << output::indent(indent) << "/// \\brief Value validity check function.\n" <<
            output::indent(indent) << "bool valid() const\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << common::fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::valid()";
+           output::indent(indent) << "{\n";
+    if (!externalBase) {
+        out << output::indent(indent + 1) << common::fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "return\n" <<
+           output::indent(indent + 2) << "(Base::valid()) &&\n" <<
+           output::indent(indent + 2) << "(!std::isinf(Base::value()))";
     if (!nanValid) {
-        out << " && (!std::isnan(Base::value()))";
+        out << " &&\n" <<
+               output::indent(indent + 2) << "(!std::isnan(Base::value()))";
     }
     out << ";\n" <<
            output::indent(indent) << "}\n";
 }
 
 
-void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent)
+void writeEnumNullCheckUpdateFuncs(std::ostream& out, unsigned indent, bool externalBase)
 {
     out << output::indent(indent) << "/// \\brief Check the value is equivalent to \\b nullValue.\n" <<
            output::indent(indent) << "bool isNull() const\n" <<
-           output::indent(indent) << "{\n" <<
-           output::indent(indent + 1) << fieldBaseDefStr() <<
-           output::indent(indent + 1) << "return Base::value() == Base::ValueType::" << enumNullValueStr() << ";\n" <<
+           output::indent(indent) << "{\n";
+    if (!externalBase) {
+        out << output::indent(indent + 1) << fieldBaseDefStr();
+    }
+
+    out << output::indent(indent + 1) << "return Base::value() == Base::ValueType::" << enumNullValueStr() << ";\n" <<
            output::indent(indent) << "}\n\n" <<
            output::indent(indent) << "/// \\brief Update field's value to be \\b nullValue.\n" <<
            output::indent(indent) << "void setNull()\n" <<
@@ -773,34 +819,20 @@ void writeDefaultSetVersionFunc(std::ostream& out, unsigned indent)
            output::indent(indent) << "}\n";
 }
 
-void writeOptFieldDefinition(
+void writeOptFieldDefinitionBody(
     std::ostream& out,
     unsigned indent,
-    const std::string& name,
-    const std::string& optMode,
-    unsigned sinceVersion,
-    bool isFieldTemplate)
+    unsigned sinceVersion)
 {
-    auto fieldType = name + optFieldSuffixStr();
-    if (isFieldTemplate) {
-        fieldType += "<TOpt...>";
-        out << output::indent(indent) << "template <typename... TOpt>\n";
-    }
-
-    out << output::indent(indent) << "struct " << renameKeyword(name) << " : public\n" <<
-           output::indent(indent + 1) << "comms::field::Optional<\n" <<
-           output::indent(indent + 2) << fieldType << ",\n" <<
-           output::indent(indent + 2) << "comms::option::DefaultOptionalMode<" << optMode << ">\n" <<
-           output::indent(indent + 1) << ">\n" <<
-           output::indent(indent) << "{\n" <<
+    out << output::indent(indent) << "{\n" <<
            output::indent(indent + 1) << "/// \\brief Update current version.\n" <<
            output::indent(indent + 1) << "/// \\return \\b true if field's content has been updated.\n" <<
-           output::indent(indent + 1) << "bool setVersion(unsigned value)\n" <<
+           output::indent(indent + 1) << "bool setVersion(unsigned val)\n" <<
            output::indent(indent + 1) << "{\n" <<
            output::indent(indent + 2) << fieldBaseDefStr() <<
-           output::indent(indent + 2) << "bool updated = Base::field().setVersion(value);\n" <<
+           output::indent(indent + 2) << "bool updated = Base::field().setVersion(val);\n" <<
            output::indent(indent + 2) << "auto mode = comms::field::OptionalMode::Exists;\n" <<
-           output::indent(indent + 2) << "if (value < " << sinceVersion << "U) {\n" <<
+           output::indent(indent + 2) << "if (val < " << sinceVersion << "U) {\n" <<
            output::indent(indent + 3) << "mode = comms::field::OptionalMode::Missing;\n" <<
            output::indent(indent + 2) << "}\n\n" <<
            output::indent(indent + 2) << "if (Base::getMode() != mode) {\n" <<
@@ -1077,6 +1109,11 @@ void scopeToPropertyDefNames(
         }
     }
 
+}
+
+std::string localHeader(const std::string& ns, const std::string& path)
+{
+    return localHeader(ns, emptyString(), path);
 }
 
 } // namespace common
