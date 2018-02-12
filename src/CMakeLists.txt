@@ -5,7 +5,7 @@ while (TRUE)
         break()
     endif ()
 
-    if ((NOT "${LIBXML2_INCLUDE_DIR}" STREQUAL "") AND (NOT "${}" STREQUAL ""))
+    if ((NOT "${LIBXML2_INCLUDE_DIR}" STREQUAL "") AND (NOT "${LIBXML2_LIBRARIES}" STREQUAL ""))
         # External build of libxml2 is provided
         break()
     endif ()
