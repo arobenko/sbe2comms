@@ -64,7 +64,6 @@ bool TransportFrame::writeProtocolDef()
            "#include <cstdint>\n\n"
            "#include \"comms/protocol/MsgDataLayer.h\"\n"
            "#include \"comms/options.h\"\n"
-           "#include \"comms/field/ArrayList.h\"\n"
            "#include \"" << common::messageHeaderLayerFileName() << "\"\n"
            "#include \"" << common::openFramingHeaderLayerFileName() << "\"\n"
            "#include \"" << common::defaultOptionsFileName() << "\"\n\n";
@@ -100,13 +99,7 @@ bool TransportFrame::writeProtocolDef()
            output::indent(1) << common::messageHeaderLayerStr() << "<\n" <<
            output::indent(2) << "TMsgBase,\n" <<
            output::indent(2) << "TMessages,\n" <<
-           output::indent(2) << "comms::protocol::MsgDataLayer<\n" <<
-           output::indent(3) << "comms::field::ArrayList<\n" <<
-           output::indent(4) << common::fieldBaseFullScope(ns) << ",\n" <<
-           output::indent(4) << "std::uint8_t,\n" <<
-           output::indent(4) << "TDataStorageOpt\n" <<
-           output::indent(3) << ">\n" <<
-           output::indent(2) << ">,\n" <<
+           output::indent(2) << "comms::protocol::MsgDataLayer<TDataStorageOpt>,\n" <<
            output::indent(2) << common::messageHeaderLayerStr() << common::optFieldSuffixStr() << "<TOpt>,\n" <<
            output::indent(2) << "TFactoryOpt\n" <<
            output::indent(1) << ">;\n\n" <<
